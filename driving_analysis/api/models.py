@@ -3,7 +3,7 @@ from django.db import models
 class Customer(models.Model):
     customr_id = models.BigIntegerField(unique=True)
     name = models.TextField(null=True, blank=True)
-    gender = models.IntegerField(choices=[(0, 'Female'), (1, 'Male')])
+    gender = models.IntegerField(choices=[(0, 'Female'), (1, 'Male')])  # Corrected typo
     phone_number = models.IntegerField(unique=True)
     location = models.TextField()
     password = models.TextField()
@@ -19,7 +19,22 @@ class Car(models.Model):
     # Relationships
     customer = models.ForeignKey(Customer, on_delete=models.CASCADE, null=True, blank=True)
     company = models.ForeignKey('Company', on_delete=models.CASCADE, null=True, blank=True)
-    driving_data = models.ForeignKey('DrivingData', on_delete=models.CASCADE, null=True, blank=True)
+
+class DrivingData(models.Model):
+    counter = models.IntegerField()
+    timestamp = models.CharField(max_length=20)  # Store timestamp as a string
+    latitude = models.FloatField()
+    longitude = models.FloatField()
+    speed = models.FloatField()
+    ax = models.FloatField()
+    ay = models.FloatField()
+    az = models.FloatField()
+    gx = models.FloatField()
+    gy = models.FloatField()
+    gz = models.FloatField(default=0.0)  # Add default value
+    yaw = models.FloatField(default=0.0)  # Add default value
+    pitch = models.FloatField(default=0.0)  # Add default value
+    roll = models.FloatField(default=0.0)  # Add default value
 
 class Company(models.Model):
     company_id = models.BigIntegerField()
@@ -29,18 +44,6 @@ class Company(models.Model):
     email = models.EmailField()
     location = models.TextField()
     password = models.TextField()
-
-class DrivingData(models.Model):
-    speed = models.FloatField()
-    acceleration = models.FloatField()
-    harsh_braking = models.FloatField()
-    swerving = models.FloatField()
-    accident_detection = models.IntegerField()
-    bumps = models.FloatField()
-    drilling = models.FloatField()
-    timestamp = models.FloatField()
-    latitude = models.FloatField(default=0.0)  # New field with default value
-    longitude = models.FloatField(default=0.0)  # New field with default value
 
 class Driver(models.Model):
     driver_id = models.BigIntegerField()

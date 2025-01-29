@@ -12,7 +12,8 @@
     <h1>Driver Map</h1>
     <div id="map" style="height: 600px;"></div>
     <script>
-        var map = L.map('map').setView([0, 0], 2);
+        // Set the default location to Jeddah
+        var map = L.map('map').setView([21.4858, 39.1925], 12);
 
         L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png', {
             maxZoom: 19
@@ -28,7 +29,7 @@
                 markers = [];
                 data.forEach(function(point) {
                     var marker = L.marker([point.latitude, point.longitude]).addTo(map);
-                    marker.bindPopup("Speed: " + point.speed + " km/h, Acceleration: " + point.acceleration + " m/s²");
+                    marker.bindPopup("Speed: " + point.speed + " km/h, Acceleration: " + point.ax + " m/s²");
                     markers.push(marker);
                 });
                 if (data.length > 0) {

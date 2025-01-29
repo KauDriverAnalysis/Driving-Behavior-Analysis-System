@@ -20,6 +20,7 @@ from api.views import driver_map, get_latest_data
 
 urlpatterns = [
     path('admin/', admin.site.urls),
+    path('', driver_map, name='home'),  # Add this line to redirect root URL to driver_map
     path('driver-map/', driver_map, name='driver_map'),
     path('get-latest-data/', get_latest_data, name='get_latest_data'),
 ]

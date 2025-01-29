@@ -1,6 +1,5 @@
 from django.shortcuts import render
 from django.http import JsonResponse
-import folium
 from .models import DrivingData
 
 def driver_map(request):
@@ -8,5 +7,5 @@ def driver_map(request):
 
 def get_latest_data(request):
     driving_data = DrivingData.objects.all().order_by('-timestamp')[:10]
-    data_list = list(driving_data.values('latitude', 'longitude', 'speed', 'acceleration'))
+    data_list = list(driving_data.values('latitude', 'longitude', 'speed', 'ax'))
     return JsonResponse(data_list, safe=False)
