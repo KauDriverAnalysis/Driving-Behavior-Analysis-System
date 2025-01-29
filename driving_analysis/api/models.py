@@ -39,6 +39,8 @@ class DrivingData(models.Model):
     bumps = models.FloatField()
     drilling = models.FloatField()
     timestamp = models.FloatField()
+    latitude = models.FloatField(default=0.0)  # New field with default value
+    longitude = models.FloatField(default=0.0)  # New field with default value
 
 class Driver(models.Model):
     driver_id = models.BigIntegerField()
