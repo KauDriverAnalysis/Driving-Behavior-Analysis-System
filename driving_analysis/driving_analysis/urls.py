@@ -16,9 +16,10 @@ Including another URLconf
 """
 from django.contrib import admin
 from django.urls import path
-from api.views import driver_map
+from api.views import driver_map, get_latest_data
 
 urlpatterns = [
     path('admin/', admin.site.urls),
     path('driver-map/', driver_map, name='driver_map'),
+    path('get-latest-data/', get_latest_data, name='get_latest_data'),
 ]

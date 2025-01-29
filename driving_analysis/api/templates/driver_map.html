@@ -4,8 +4,41 @@
     <title>Driver Map</title>
     <meta charset="utf-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    {{ map|safe }}
+    <link rel="stylesheet" href="https://unpkg.com/leaflet@1.7.1/dist/leaflet.css" />
+    <script src="https://unpkg.com/leaflet@1.7.1/dist/leaflet.js"></script>
+    <script src="https://code.jquery.com/jquery-3.6.0.min.js"></script>
 </head>
 <body>
+    <h1>Driver Map</h1>
+    <div id="map" style="height: 600px;"></div>
+    <script>
+        var map = L.map('map').setView([0, 0], 2);
+
+        L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png', {
+            maxZoom: 19
+        }).addTo(map);
+
+        var markers = [];
+
+        function updateMap() {
+            $.getJSON("{% url 'get_latest_data' %}", function(data) {
+                markers.forEach(function(marker) {
+                    map.removeLayer(marker);
+                });
+                markers = [];
+                data.forEach(function(point) {
+                    var marker = L.marker([point.latitude, point.longitude]).addTo(map);
+                    marker.bindPopup("Speed: " + point.speed + " km/h, Acceleration: " + point.acceleration + " m/s²");
+                    markers.push(marker);
+                });
+                if (data.length > 0) {
+                    map.setView([data[0].latitude, data[0].longitude], 12);
+                }
+            });
+        }
+
+        setInterval(updateMap, 5000);  // Update every 5 seconds
+        updateMap();  // Initial load
+    </script>
 </body>
 </html>
