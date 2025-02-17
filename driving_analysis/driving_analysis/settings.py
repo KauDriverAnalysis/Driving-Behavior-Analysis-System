@@ -77,10 +77,10 @@ WSGI_APPLICATION = 'driving_analysis.wsgi.application'
 DATABASES = {
     'default': {
         'ENGINE': 'django.db.backends.mysql',
-        'NAME': 'mydatabase',
-        'USER': 'abdullah',
-        'PASSWORD': '2136692',
-        'HOST': 'localhost',
+        'NAME': 'database1',
+        'USER': 'admin',
+        'PASSWORD': '12ABDo34',
+        'HOST': 'database-1.cj26egwukn4n.us-east-1.rds.amazonaws.com',
         'PORT': '3306',
     }
 }
