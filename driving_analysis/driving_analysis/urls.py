@@ -15,12 +15,17 @@ Including another URLconf
     2. Add a URL to urlpatterns:  path('blog/', include('blog.urls'))
 """
 from django.contrib import admin
-from django.urls import path
+from django.urls import path, include
 from api.views import driver_map, get_latest_data
+from api import views
 
 urlpatterns = [
     path('admin/', admin.site.urls),
     path('', driver_map, name='home'),  # Add this line to redirect root URL to driver_map
     path('driver-map/', driver_map, name='driver_map'),
     path('get-latest-data/', get_latest_data, name='get_latest_data'),
+    path('', views.customer_list, name='customer_list'),
+    path('create/', views.create_customer, name='create_customer'),
+    path('update/<int:customer_id>/', views.update_customer, name='update_customer'),
+    path('delete/<int:customer_id>/', views.delete_customer, name='delete_customer'),
 ]
