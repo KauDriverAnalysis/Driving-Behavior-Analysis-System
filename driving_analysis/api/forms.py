@@ -51,7 +51,7 @@ class CarForm(forms.ModelForm):
 class DriverForm(forms.ModelForm):
     class Meta:
         model = Driver
-        fields = ['Name', 'License_number', 'Phone_number', 'Address', 'Company']
+        fields = ['name',  'gender', 'phone_number', 'company_id']
 class DrivingDataForm(forms.ModelForm):
     class Meta:
         model = DrivingData

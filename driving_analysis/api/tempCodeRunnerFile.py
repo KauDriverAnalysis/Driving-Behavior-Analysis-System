@@ -1,1 +1,1 @@
-django
+    Email = models.EmailField(unique=True)
