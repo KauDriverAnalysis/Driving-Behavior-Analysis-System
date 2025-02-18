@@ -8,6 +8,7 @@ class Customer(models.Model):
     gender = models.CharField(max_length=6, choices=[('male', 'Male'), ('female', 'Female')])
     phone_number = models.CharField(max_length=20, unique=True)
     address = models.CharField(max_length=255, blank=True, null=True)
+    Email = models.EmailField(unique=True)
     Password = models.CharField(max_length=255)
 
 class Company(models.Model):

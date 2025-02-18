@@ -9,7 +9,7 @@ from django.core.exceptions import ValidationError
 class CustomerForm(forms.ModelForm):
     class Meta:
         model = Customer
-        fields = ['Name', 'gender', 'phone_number', 'address', 'Password']
+        fields = ['Name', 'gender', 'phone_number', 'address','Email' ,'Password']
     def clean_contact_number(self):
         contact_number = self.cleaned_data.get('phone_number')
         if not re.match(r'^(?:\+966|05)\d{8}$', contact_number):
