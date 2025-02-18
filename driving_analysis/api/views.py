@@ -1,14 +1,40 @@
 from django.shortcuts import render, get_object_or_404, redirect
-from django.http import JsonResponse
+from django.http import JsonResponse, HttpResponse
+import folium
 from .models import DrivingData, Customer, Company, Car, Driver
 from .forms import CustomerForm, CompanyForm, CarForm, DriverForm,DrivingDataForm
+from .cleansing_data import cleanse_data
+
+buffer = []
+cleansed_buffer = []
 
 def driver_map(request):
-    return render(request, 'driver_map.html')
+    # Create a folium map centered around the latest data point in the buffer
+    if buffer:
+        latest_data = buffer[-1]
+        m = folium.Map(location=[latest_data['latitude'], latest_data['longitude']], zoom_start=12)
+
+        # Add markers for each data point in the buffer
+        for data in buffer:
+            folium.Marker(
+                [data['latitude'], data['longitude']], 
+                popup=f"Speed: {data['speed']}, Acceleration: {data['ax']}"
+            ).add_to(m)
+
+        map_html = m._repr_html_()
+        map_ready = True
+    else:
+        map_html = None
+        map_ready = False
+
+    return render(request, 'driver_map.html', {'map': map_html, 'map_ready': map_ready})
 
 def get_latest_data(request):
-    driving_data = DrivingData.objects.all().order_by('-timestamp')[:10]
-    data_list = list(driving_data.values('latitude', 'longitude', 'speed', 'ax'))
+    if buffer:
+        latest_data = buffer[-1]  # Get the latest data point from the buffer
+        data_list = [latest_data]
+    else:
+        data_list = []
     return JsonResponse(data_list, safe=False)
 
 def customer_list(request):
@@ -166,3 +192,13 @@ def delete_driving_data(request, driving_data_id):
         driving_data.delete()
         return JsonResponse({'message': 'Driving data deleted successfully'}, status=200)
     return JsonResponse({'error': 'Invalid request method'}, status=405)
+
+def cleanse_buffer_view(request):
+    if buffer:
+        cleaned_data = cleanse_data(buffer)
+        return HttpResponse("Buffer cleansed successfully. Check console for details.")
+    else:
+        return HttpResponse("Buffer is empty. No data to cleanse.")
+
+def get_cleansed_data(request):
+    return JsonResponse(cleansed_buffer, safe=False)

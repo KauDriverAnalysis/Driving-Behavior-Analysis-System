@@ -2,11 +2,16 @@ import paho.mqtt.client as mqtt
 import ssl
 from django.core.management.base import BaseCommand
 from api.models import DrivingData
+from api.views import buffer
+from api.cleansing_data import cleanse_data
 
 class Command(BaseCommand):
     help = 'Starts the MQTT client to receive data from the MQTT server'
 
     def handle(self, *args, **kwargs):
+        global buffer
+        cleansed_buffer = []
+
         def on_connect(client, userdata, flags, rc):
             if rc == 0:
                 print("Connected to MQTT broker")
@@ -36,23 +41,13 @@ class Command(BaseCommand):
                 'roll': float(data_list[13])
             }
 
-            DrivingData.objects.create(
-                counter=data_dict['counter'],
-                timestamp=data_dict['timestamp'],
-                latitude=data_dict['latitude'],
-                longitude=data_dict['longitude'],
-                speed=data_dict['speed'],
-                ax=data_dict['ax'],
-                ay=data_dict['ay'],
-                az=data_dict['az'],
-                gx=data_dict['gx'],
-                gy=data_dict['gy'],
-                gz=data_dict['gz'],
-                yaw=data_dict['yaw'],
-                pitch=data_dict['pitch'],
-                roll=data_dict['roll']
-            )
-            print(f"Data saved: {data_dict}")
+            buffer.append(data_dict)
+            if len(buffer) >= 10000:
+                print(f"Buffer reached 10,000 data points")
+                cleaned_data = cleanse_data(buffer)
+                cleansed_buffer.extend(cleaned_data.to_dict('records'))
+                print("Cleaned data added to cleansed buffer")
+                buffer.clear()
 
         client = mqtt.Client()
         client.username_pw_set("team22", "KauKau123")

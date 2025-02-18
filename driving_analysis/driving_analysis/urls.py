@@ -28,4 +28,7 @@ urlpatterns = [
     path('create/', views.create_customer, name='create_customer'),
     path('update/<int:customer_id>/', views.update_customer, name='update_customer'),
     path('delete/<int:customer_id>/', views.delete_customer, name='delete_customer'),
+    path('cleanse-buffer/', views.cleanse_buffer_view, name='cleanse_buffer'),
+    path('get-cleansed-data/', views.get_cleansed_data, name='get_cleansed_data')
+   
 ]
