@@ -1,15 +1,29 @@
 from django import forms
 from .models import Customer, Company, Car, Driver,DrivingData
+from django.contrib.auth.hashers import make_password
+
 
 class CustomerForm(forms.ModelForm):
     class Meta:
         model = Customer
         fields = ['Name', 'gender', 'phone_number', 'address', 'Password']
+    def save(self, commit=True):
+        customer = super(CustomerForm, self).save(commit=False)
+        customer.Password = make_password(self.cleaned_data['Password'])
+        if commit:
+            customer.save()
+        return customer
 
 class CompanyForm(forms.ModelForm):
     class Meta:
         model = Company
         fields = ['Company_name', 'Contact_number', 'Email', 'location', 'Password']
+    def save(self, commit=True):
+        company = super(CompanyForm, self).save(commit=False)
+        company.Password = make_password(self.cleaned_data['Password'])
+        if commit:
+            company.save()
+        return company
 
 class CarForm(forms.ModelForm):
     class Meta:
