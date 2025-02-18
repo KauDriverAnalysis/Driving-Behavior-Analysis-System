@@ -29,12 +29,6 @@ class CompanyForm(forms.ModelForm):
         model = Company
         fields = ['Company_name', 'Contact_number', 'Email', 'location', 'Password']
     
-    def clean_email(self):
-        email = self.cleaned_data.get('Email')
-        if not re.match(r'^[a-zA-Z0-9._%+-]+@[a-zA-Z0-9.-]+\.[a-zA-Z]{2,}$', email):
-            raise ValidationError('Invalid email format')
-        return email
-    
     def clean_contact_number(self):
         contact_number = self.cleaned_data.get('Contact_number')
         if not re.match(r'^(?:\+966|05)\d{8}$', contact_number):
