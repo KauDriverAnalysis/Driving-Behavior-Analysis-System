@@ -194,8 +194,11 @@ def delete_driving_data(request, driving_data_id):
     return JsonResponse({'error': 'Invalid request method'}, status=405)
 
 def cleanse_buffer_view(request):
+    global cleansed_buffer
     if buffer:
         cleaned_data = cleanse_data(buffer)
+        cleansed_buffer.extend(cleaned_data.to_dict('records'))
+        buffer.clear()
         return HttpResponse("Buffer cleansed successfully. Check console for details.")
     else:
         return HttpResponse("Buffer is empty. No data to cleanse.")

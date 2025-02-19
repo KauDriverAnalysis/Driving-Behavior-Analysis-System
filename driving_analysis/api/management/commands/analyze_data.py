@@ -1,12 +1,9 @@
 import pandas as pd
 import numpy as np
-import matplotlib.pyplot as plt
 from django.core.management.base import BaseCommand
 from api.views import cleansed_buffer
+from api.models import DrivingData
 from Analysis_cleansing.analysis_intialy_done import analyze_chunk, score_chunk
-
-# Load the driving data
-driving_data = pd.read_csv(r"C:\\Users\\zahid\\Desktop\\FINAL_PROJECT_FILES\\work\\data cleaning\\dedo\\cleaned_harsh_data.csv")
 
 def analyze_chunk(chunk_df):
     chunk_df = chunk_df.copy()
@@ -47,7 +44,7 @@ def analyze_chunk(chunk_df):
 
         # Add condition to exclude values <= -2000 m/s²
         harsh_braking_mask = (
-            (chunk_df['negative_ax_variance'] > threshold) &
+            (chunk_df['negative_ax_variance'] > threshold) & 
             (chunk_df['Ax'] < -2000)  # New exclusion condition
         )
         results['harsh_braking_events'] = harsh_braking_mask.sum()
@@ -62,7 +59,7 @@ def analyze_chunk(chunk_df):
         
         # Add condition to exclude values >= 2000 m/s²
         harsh_acceleration_mask = (
-            (chunk_df['positive_ax_variance'] > threshold_Acceleration) &
+            (chunk_df['positive_ax_variance'] > threshold_Acceleration) & 
             (chunk_df['Ax'] > 2000)  # New exclusion condition
         )
         results['harsh_acceleration_events'] = harsh_acceleration_mask.sum()
@@ -93,7 +90,7 @@ def analyze_chunk(chunk_df):
 
     # Potential swerving detection
     potential_swerve_mask = (
-        (chunk_df['Ay'].abs() > 2000) &
+        (chunk_df['Ay'].abs() > 2000) & 
         (chunk_df['labels'].isin(['Normal', 'Event']))
     )
     results['potential_swerving_events'] = potential_swerve_mask.sum()
@@ -141,61 +138,6 @@ def score_chunk(chunk_df, results):
 
     return score
 
-accumulated_distance = 0.0
-current_chunk = []
-segment_data = []
-scores = []
-
-for index, row in driving_data.iterrows():
-    accumulated_distance += row['distance']
-    current_chunk.append(row)
-    
-    if accumulated_distance >= 0.1:  # 100-meter chunks
-        chunk_df = pd.DataFrame(current_chunk)
-        labeled_chunk, analysis_results = analyze_chunk(chunk_df)
-        score = score_chunk(chunk_df, analysis_results)
-        
-        # Update labels AND new column in original dataframe
-        for idx in labeled_chunk.index:
-            driving_data.at[idx, 'labels'] = labeled_chunk.at[idx, 'labels']
-            driving_data.at[idx, 'harsh_braking_event'] = labeled_chunk.at[idx, 'harsh_braking_event']
-        
-        segment_data.append(analysis_results)
-        accumulated_distance = 0.0
-        scores.append(score)
-        current_chunk = []
-
-# Process remaining data
-if current_chunk:
-    chunk_df = pd.DataFrame(current_chunk)
-    if not chunk_df.empty:
-        labeled_chunk, analysis_results = analyze_chunk(chunk_df)
-        for idx in labeled_chunk.index:
-            driving_data.at[idx, 'labels'] = labeled_chunk.at[idx, 'labels']
-            driving_data.at[idx, 'harsh_braking_event'] = labeled_chunk.at[idx, 'harsh_braking_event']
-        segment_data.append(analysis_results)
-
-# Create final outputs
-segments_df = pd.DataFrame(segment_data)
-
-# Calculate totals
-total_harsh_braking = segments_df['harsh_braking_events'].sum()
-
-print("Processing complete!")
-print(f"Total chunks processed: {len(segment_data)}")
-print(f"Total harsh braking events: {total_harsh_braking}")
-print("\nFirst 5 labeled rows:")
-print(driving_data[['Counter', 'labels', 'harsh_braking_event']].head())
-
-# Save results
-driving_data.to_csv('labeled_driving_data.csv', index=False)
-segments_df.to_csv('chunk_analysis.csv', index=False)
-
-# Calculate final score
-total_score = sum(scores)
-final_score = total_score / len(segment_data)
-print(f"Final Score: {final_score}")
-
 class Command(BaseCommand):
     help = 'Analyzes the cleansed data in the buffer'
 
@@ -220,6 +162,18 @@ class Command(BaseCommand):
                     scores.append(score)
                     current_chunk = []
 
+                    # Save labeled data to the database
+                    for idx, labeled_row in labeled_chunk.iterrows():
+                        DrivingData.objects.create(
+                            distance=labeled_row['distance'],
+                            harsh_braking_events=analysis_results['harsh_braking_events'],
+                            harsh_acceleration_events=analysis_results['harsh_acceleration_events'],
+                            swerving_events=analysis_results['swerving_events'],
+                            potential_swerving_events=analysis_results['potential_swerving_events'],
+                            over_speed_events=analysis_results['over_speed_events'],
+                            score=score
+                        )
+
             # Process remaining data
             if current_chunk:
                 chunk_df = pd.DataFrame(current_chunk)
@@ -227,12 +181,22 @@ class Command(BaseCommand):
                     labeled_chunk, analysis_results = analyze_chunk(chunk_df)
                     segment_data.append(analysis_results)
 
-            segments_df = pd.DataFrame(segment_data)
+                    # Save labeled data to the database
+                    for idx, labeled_row in labeled_chunk.iterrows():
+                        DrivingData.objects.create(
+                            distance=labeled_row['distance'],
+                            harsh_braking_events=analysis_results['harsh_braking_events'],
+                            harsh_acceleration_events=analysis_results['harsh_acceleration_events'],
+                            swerving_events=analysis_results['swerving_events'],
+                            potential_swerving_events=analysis_results['potential_swerving_events'],
+                            over_speed_events=analysis_results['over_speed_events'],
+                            score=score
+                        )
+
             total_score = sum(scores)
             final_score = total_score / len(segment_data) if segment_data else 0
 
             print("Analysis complete!")
             print(f"Final Score: {final_score}")
-            print(segments_df)
         else:
             print("Cleansed buffer is empty. No data to analyze.")

@@ -1,15 +1,14 @@
 from django import forms
-from .models import Customer, Company, Car, Driver,DrivingData
+from .models import Customer, Company, Car, Driver, DrivingData
 from django.contrib.auth.hashers import make_password
 import re
 from django.core.exceptions import ValidationError
 
-
-
 class CustomerForm(forms.ModelForm):
     class Meta:
         model = Customer
-        fields = ['Name', 'gender', 'phone_number', 'address','Email' ,'Password']
+        fields = ['Name', 'gender', 'phone_number', 'address', 'Email', 'Password']
+    
     def clean_contact_number(self):
         contact_number = self.cleaned_data.get('phone_number')
         if not re.match(r'^(?:\+966|05)\d{8}$', contact_number):
@@ -22,7 +21,6 @@ class CustomerForm(forms.ModelForm):
         if commit:
             customer.save()
         return customer
-
 
 class CompanyForm(forms.ModelForm):
     class Meta:
@@ -42,7 +40,6 @@ class CompanyForm(forms.ModelForm):
             company.save()
         return company
 
-
 class CarForm(forms.ModelForm):
     class Meta:
         model = Car
@@ -51,8 +48,13 @@ class CarForm(forms.ModelForm):
 class DriverForm(forms.ModelForm):
     class Meta:
         model = Driver
-        fields = ['name',  'gender', 'phone_number', 'company_id']
+        fields = ['name', 'gender', 'phone_number', 'company_id']
+
 class DrivingDataForm(forms.ModelForm):
     class Meta:
         model = DrivingData
-        fields = ['speed', 'high_acceleration', 'harsh_braking', 'accident_detection', 'car_id']
+        fields = [
+            'speed', 'accident_detection', 'car_id', 'distance', 'harsh_braking_events',
+            'harsh_acceleration_events', 'swerving_events', 'potential_swerving_events',
+            'over_speed_events', 'score'
+        ]

@@ -35,8 +35,13 @@ class Driver(models.Model):
 
 class DrivingData(models.Model):
     speed = models.FloatField()
-    high_acceleration = models.FloatField()
-    harsh_braking = models.FloatField()
     accident_detection = models.BooleanField()
     created_at = models.DateTimeField(auto_now_add=True)
     car_id = models.ForeignKey('Car', on_delete=models.CASCADE)
+    distance = models.FloatField(default=0.0)
+    harsh_braking_events = models.IntegerField(default=0)
+    harsh_acceleration_events = models.IntegerField(default=0)
+    swerving_events = models.IntegerField(default=0)
+    potential_swerving_events = models.IntegerField(default=0)
+    over_speed_events = models.IntegerField(default=0)
+    score = models.FloatField(default=100.0)
