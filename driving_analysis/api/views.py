@@ -1,8 +1,8 @@
 from django.shortcuts import render, get_object_or_404, redirect
 from django.http import JsonResponse, HttpResponse
 import folium
-from .models import DrivingData, Customer, Company, Car, Driver
-from .forms import CustomerForm, CompanyForm, CarForm, DriverForm,DrivingDataForm
+from .models import DrivingData, Customer, Company, Car, Driver,Employee
+from .forms import CustomerForm, CompanyForm, CarForm, DriverForm,DrivingDataForm,EmployeeForm
 from .cleansing_data import cleanse_data
 
 buffer = []
@@ -205,3 +205,33 @@ def cleanse_buffer_view(request):
 
 def get_cleansed_data(request):
     return JsonResponse(cleansed_buffer, safe=False)
+#---------------------------------------------------------------------------------------
+
+# Employee views
+def create_employee(request):
+    if request.method == 'POST':
+        form = EmployeeForm(request.POST)
+        if form.is_valid():
+            form.save()
+            return JsonResponse({'message': 'Employee created successfully'}, status=201)
+    else:
+        form = EmployeeForm()
+    return JsonResponse({'errors': form.errors}, status=400)
+
+def update_employee(request, employee_id):
+    employee = get_object_or_404(Employee, pk=employee_id)
+    if request.method == 'POST':
+        form = EmployeeForm(request.POST, instance=employee)
+        if form.is_valid():
+            form.save()
+            return JsonResponse({'message': 'Employee updated successfully'}, status=200)
+    else:
+        form = EmployeeForm(instance=employee)
+    return JsonResponse({'errors': form.errors}, status=400)
+
+def delete_employee(request, employee_id):
+    employee = get_object_or_404(Employee, pk=employee_id)
+    if request.method == 'POST':
+        employee.delete()
+        return JsonResponse({'message': 'Employee deleted successfully'}, status=200)
+    return JsonResponse({'error': 'Invalid request method'}, status=405)

@@ -82,8 +82,14 @@ DATABASES = {
         'PASSWORD': '12ABDo34',
         'HOST': 'database-1.cj26egwukn4n.us-east-1.rds.amazonaws.com',
         'PORT': '3306',
+        #'CONN_MAX_AGE': 600,  # Adjust as needed
+        'OPTIONS': {
+            'init_command': "SET sql_mode='STRICT_TRANS_TABLES'"
+            
+        }
     }
 }
+
 
 
 
