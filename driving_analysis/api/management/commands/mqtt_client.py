@@ -1,17 +1,13 @@
 import paho.mqtt.client as mqtt
 import ssl
+from django.core.cache import cache
 from django.core.management.base import BaseCommand
-from api.models import DrivingData
-from api.views import buffer
-from api.cleansing_data import cleanse_data
+#from api.cleansing_data import cleanse_data
 
 class Command(BaseCommand):
     help = 'Starts the MQTT client to receive data from the MQTT server'
 
     def handle(self, *args, **kwargs):
-        global buffer
-        cleansed_buffer = []
-
         def on_connect(client, userdata, flags, rc):
             if rc == 0:
                 print("Connected to MQTT broker")
@@ -26,7 +22,7 @@ class Command(BaseCommand):
 
             data_dict = {
                 'counter': int(data_list[0]),
-                'timestamp': data_list[1],  # Store timestamp as a string
+                'timestamp': data_list[1],
                 'latitude': float(data_list[2]),
                 'longitude': float(data_list[3]),
                 'speed': float(data_list[4]),
@@ -41,13 +37,36 @@ class Command(BaseCommand):
                 'roll': float(data_list[13])
             }
 
+            # Store latest location in cache
+            latest_location = {'latitude': data_dict['latitude'], 'longitude': data_dict['longitude']}
+            cache.set('latest_location', latest_location, timeout=None)
+            
+            # Get and update buffer in cache
+            buffer = cache.get('buffer', [])
             buffer.append(data_dict)
-            if len(buffer) >= 10000:
-                print(f"Buffer reached 10,000 data points")
+            cache.set('buffer', buffer, timeout=None)
+            
+            # When buffer reaches threshold, automatically cleanse and analyze
+            if len(buffer) >= 1000:  # You can adjust this threshold
+                print(f"Buffer reached 1000 data points - triggering automatic cleansing")
+                
+                # Cleansing
+                from api.cleansing_data import cleanse_data
                 cleaned_data = cleanse_data(buffer)
+                
+                # Get and update cleansed buffer in cache
+                cleansed_buffer = cache.get('cleansed_buffer', [])
                 cleansed_buffer.extend(cleaned_data.to_dict('records'))
-                print("Cleaned data added to cleansed buffer")
-                buffer.clear()
+                cache.set('cleansed_buffer', cleansed_buffer, timeout=None)
+                
+                # Analysis
+                from api.analysis import analyze_data
+                analysis_results = analyze_data(cleaned_data)
+                cache.set('analysis_results', analysis_results, timeout=None)
+                
+                # Clear buffer after processing
+                cache.set('buffer', [], timeout=None)
+                print("Automatic cleansing and analysis complete")
 
         client = mqtt.Client()
         client.username_pw_set("team22", "KauKau123")

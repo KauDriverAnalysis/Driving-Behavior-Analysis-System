@@ -1,20 +1,19 @@
 from django.shortcuts import render, get_object_or_404, redirect
 from django.http import JsonResponse, HttpResponse
 import folium
+from django.core.cache import cache
 from .models import DrivingData, Customer, Company, Car, Driver
-from .forms import CustomerForm, CompanyForm, CarForm, DriverForm,DrivingDataForm
+from .forms import CustomerForm, CompanyForm, CarForm, DriverForm, DrivingDataForm
 from .cleansing_data import cleanse_data
 
-buffer = []
-cleansed_buffer = []
-
 def driver_map(request):
-    # Create a folium map centered around the latest data point in the buffer
-    if buffer:
-        latest_data = buffer[-1]
-        m = folium.Map(location=[latest_data['latitude'], latest_data['longitude']], zoom_start=12)
+    latest_location = cache.get('latest_location')
+    print(f"Driver map latest_location: {latest_location}")  # Debugging statement
+    if latest_location:
+        m = folium.Map(location=[latest_location['latitude'], latest_location['longitude']], zoom_start=12)
 
         # Add markers for each data point in the buffer
+        buffer = cache.get('buffer', [])
         for data in buffer:
             folium.Marker(
                 [data['latitude'], data['longitude']], 
@@ -30,9 +29,11 @@ def driver_map(request):
     return render(request, 'driver_map.html', {'map': map_html, 'map_ready': map_ready})
 
 def get_latest_data(request):
-    if buffer:
-        latest_data = buffer[-1]  # Get the latest data point from the buffer
-        data_list = [latest_data]
+    latest_location = cache.get('latest_location')
+    print(f"latest_data: {latest_location}")  # Debugging statement
+    if latest_location:
+        data_list = [latest_location]
+        print(f"Sending latest_location: {latest_location}")  # Debugging statement
     else:
         data_list = []
     return JsonResponse(data_list, safe=False)
@@ -40,7 +41,6 @@ def get_latest_data(request):
 def customer_list(request):
     customers = Customer.objects.all()
     return render(request, 'customer_list.html', {'customers': customers})
-#---------------------------------------------------------------------------------------
 
 # customer views
 def create_customer(request):
@@ -70,7 +70,6 @@ def delete_customer(request, customer_id):
         customer.delete()
         return redirect('customer_list')
     return render(request, 'delete_customer.html', {'customer': customer})
-#---------------------------------------------------------------------------------------
 
 # Company views
 def create_company(request):
@@ -100,7 +99,6 @@ def delete_company(request, company_id):
         company.delete()
         return JsonResponse({'message': 'Company deleted successfully'}, status=200)
     return JsonResponse({'error': 'Invalid request method'}, status=405)
-#---------------------------------------------------------------------------------------
 
 # Car views
 def create_car(request):
@@ -130,7 +128,6 @@ def delete_car(request, car_id):
         car.delete()
         return JsonResponse({'message': 'Car deleted successfully'}, status=200)
     return JsonResponse({'error': 'Invalid request method'}, status=405)
-#---------------------------------------------------------------------------------------
 
 # Driver views
 def create_driver(request):
@@ -160,9 +157,6 @@ def delete_driver(request, driver_id):
         driver.delete()
         return JsonResponse({'message': 'Driver deleted successfully'}, status=200)
     return JsonResponse({'error': 'Invalid request method'}, status=405)
-
-
-#---------------------------------------------------------------------------------------
 
 # DrivingData views
 def create_driving_data(request):
@@ -194,14 +188,21 @@ def delete_driving_data(request, driving_data_id):
     return JsonResponse({'error': 'Invalid request method'}, status=405)
 
 def cleanse_buffer_view(request):
-    global cleansed_buffer
+    cleansed_buffer = cache.get('cleansed_buffer', [])  # Retrieve cleansed_buffer from cache
+    buffer = cache.get('buffer', [])  # Retrieve buffer from cache
     if buffer:
         cleaned_data = cleanse_data(buffer)
         cleansed_buffer.extend(cleaned_data.to_dict('records'))
-        buffer.clear()
+        cache.set('cleansed_buffer', cleansed_buffer, timeout=None)
+        cache.set('buffer', [], timeout=None)
         return HttpResponse("Buffer cleansed successfully. Check console for details.")
     else:
         return HttpResponse("Buffer is empty. No data to cleanse.")
 
 def get_cleansed_data(request):
+    cleansed_buffer = cache.get('cleansed_buffer', [])  # Retrieve cleansed_buffer from cache
     return JsonResponse(cleansed_buffer, safe=False)
+
+def get_analysis_results(request):
+    analysis_results = cache.get('analysis_results', {})
+    return JsonResponse(analysis_results, safe=False)

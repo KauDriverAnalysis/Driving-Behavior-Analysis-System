@@ -21,14 +21,14 @@ from api import views
 
 urlpatterns = [
     path('admin/', admin.site.urls),
-    path('', driver_map, name='home'),  # Add this line to redirect root URL to driver_map
+    path('', driver_map, name='home'),  # Redirect root URL to driver_map
     path('driver-map/', driver_map, name='driver_map'),
-    path('get-latest-data/', get_latest_data, name='get_latest_data'),
-    path('', views.customer_list, name='customer_list'),
+    path('get-latest-data/', get_latest_data, name='get_latest_data'),  # Ensure this line is correct
+    path('customers/', views.customer_list, name='customer_list'),
     path('create/', views.create_customer, name='create_customer'),
     path('update/<int:customer_id>/', views.update_customer, name='update_customer'),
     path('delete/<int:customer_id>/', views.delete_customer, name='delete_customer'),
     path('cleanse-buffer/', views.cleanse_buffer_view, name='cleanse_buffer'),
-    path('get-cleansed-data/', views.get_cleansed_data, name='get_cleansed_data')
-   
+    path('get-cleansed-data/', views.get_cleansed_data, name='get_cleansed_data'),
+    path('get-analysis-results/', views.get_analysis_results, name='get-analysis-results'),
 ]
