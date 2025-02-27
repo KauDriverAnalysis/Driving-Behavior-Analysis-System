@@ -174,13 +174,28 @@ def delete_driver(request, driver_id):
 # DrivingData views
 def create_driving_data(request):
     if request.method == 'POST':
-        form = DrivingDataForm(request.POST)
-        if form.is_valid():
-            form.save()
-            return JsonResponse({'message': 'Driving data created successfully'}, status=201)
+        # Assuming form processing or other logic for creating driving data
+        analysis_results = cache.get('analysis_results')
+        if analysis_results:
+            DrivingData.objects.create(
+                # car_id=car,  # You can add logic to determine car_id later
+                distance=analysis_results.get('distance_km', 0.1),
+                harsh_braking_events=analysis_results.get('harsh_braking_events', 0),
+                harsh_acceleration_events=analysis_results.get('harsh_acceleration_events', 0),
+                swerving_events=analysis_results.get('swerving_events', 0),
+                potential_swerving_events=analysis_results.get('potential_swerving_events', 0),
+                over_speed_events=analysis_results.get('over_speed_events', 0),
+                score=analysis_results.get('score', 100)
+            )
+            print("Data saved to database")
+
+            # Return a success response
+            return JsonResponse({'message': 'Driving data created and analysis saved successfully'}, status=201)
+        else:
+            return JsonResponse({'errors': 'No analysis results available'}, status=400)
     else:
-        form = DrivingDataForm()
-    return JsonResponse({'errors': form.errors}, status=400)
+        return JsonResponse({'errors': 'Invalid request method'}, status=400)
+
 
 def update_driving_data(request, driving_data_id):
     driving_data = get_object_or_404(DrivingData, pk=driving_data_id)
