@@ -64,6 +64,20 @@ class Command(BaseCommand):
                 analysis_results = analyze_data(cleaned_data)
                 cache.set('analysis_results', analysis_results, timeout=None)
                 
+                # Save the analysis results to the database
+                from api.models import DrivingData
+                
+                DrivingData.objects.create(
+                    distance=analysis_results.get('distance_km', 0.1),
+                    harsh_braking_events=analysis_results.get('harsh_braking_events', 0),
+                    harsh_acceleration_events=analysis_results.get('harsh_acceleration_events', 0),
+                    swerving_events=analysis_results.get('swerving_events', 0),
+                    potential_swerving_events=analysis_results.get('potential_swerving_events', 0),
+                    over_speed_events=analysis_results.get('over_speed_events', 0),
+                    score=analysis_results.get('score', 100)
+                )
+                print("Data saved to database")
+                
                 # Clear buffer after processing
                 cache.set('buffer', [], timeout=None)
                 print("Automatic cleansing and analysis complete")
