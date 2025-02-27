@@ -43,8 +43,7 @@ class CompanyForm(forms.ModelForm):
 class CarForm(forms.ModelForm):
     class Meta:
         model = Car
-        fields = ['Model_of_car', 'TypeOfCar', 'Plate_number', 'Release_Year_car', 'State_of_car', 'customer_id', 'company_id']
-
+        fields = ['Model_of_car', 'TypeOfCar', 'Plate_number', 'Release_Year_car', 'State_of_car', 'device_id','customer_id', 'company_id']
     def clean_Plate_number(self):
         plate_number = self.cleaned_data.get('Plate_number')
         pattern = re.compile(r'^[A-Z]{3}\s\d{4}$')  # Pattern: 3 letters followed by 4 digits

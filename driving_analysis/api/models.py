@@ -24,6 +24,7 @@ class Car(models.Model):
     Plate_number = models.CharField(max_length=20, unique=True)
     Release_Year_car = models.IntegerField()
     State_of_car = models.CharField(max_length=7, choices=[('online', 'Online'), ('offline', 'Offline')])
+    device_id=models.CharField(max_length=255, unique=True)
     customer_id = models.ForeignKey('Customer', on_delete=models.SET_NULL, null=True, blank=True)
     company_id = models.ForeignKey('Company', on_delete=models.SET_NULL, null=True, blank=True)
 
