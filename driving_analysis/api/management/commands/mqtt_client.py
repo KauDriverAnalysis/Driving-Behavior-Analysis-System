@@ -37,8 +37,14 @@ class Command(BaseCommand):
                 'roll': float(data_list[13])
             }
 
-            # Store latest location in cache
-            latest_location = {'latitude': data_dict['latitude'], 'longitude': data_dict['longitude']}
+            # Store the latest location and speed in the cache
+            latest_location = {
+                  'latitude': data_dict['latitude'],
+                  'longitude': data_dict['longitude'],
+                   'speed': data_dict['speed']  # Include speed in the cached location
+                            }
+
+            # Cache the latest location and speed
             cache.set('latest_location', latest_location, timeout=None)
             
             # Get and update buffer in cache

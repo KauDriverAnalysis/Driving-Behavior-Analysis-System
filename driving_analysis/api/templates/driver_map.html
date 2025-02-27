@@ -7,10 +7,47 @@
     <link rel="stylesheet" href="https://unpkg.com/leaflet@1.7.1/dist/leaflet.css" />
     <script src="https://unpkg.com/leaflet@1.7.1/dist/leaflet.js"></script>
     <script src="https://code.jquery.com/jquery-3.6.0.min.js"></script>
+    <style>
+        /* Style for the speed counter */
+        #speed-counter-container {
+            position: absolute;
+            top: px;  /* Adjust this to move the counter vertically */
+            left: 10px;  /* Adjust this to move the counter horizontally */
+            text-align: center;  /* Centers the text below the circle */
+        }
+
+        #speed-counter {
+            width: 40px;
+            height: 40px;
+            background-color: rgba(0, 0, 0, 0.6);
+            color: white;
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            font-size: 18px;
+            font-weight: bold;
+            border-radius: 50%;  /* Makes the div circular */
+            border: 3px solid red;  /* Red border for the circle */
+        }
+
+        #speed-label {
+            color: white;
+            font-size: 14px;
+            font-weight: normal;
+            margin-top: 5px;
+        }
+    </style>
 </head>
 <body>
     <h1>Driver Map</h1>
     <div id="map" style="height: 600px;"></div>
+    
+    <!-- Container for speed counter and label -->
+    <div id="speed-counter-container">
+        <div id="speed-counter">0</div>
+        <div id="speed-label">Current Speed</div>  <!-- Label below the circle -->
+    </div>
+
     <script>
         // Set the default location to Jeddah
         var map = L.map('map').setView([21.4858, 39.1925], 12);
@@ -20,6 +57,7 @@
         }).addTo(map);
 
         var markers = [];
+        var currentSpeed = 0;  // Initialize current speed
 
         function updateMap() {
             $.getJSON("{% url 'get_latest_data' %}", function(data) {
@@ -27,11 +65,17 @@
                     map.removeLayer(marker);
                 });
                 markers = [];
+                
                 data.forEach(function(point) {
                     var marker = L.marker([point.latitude, point.longitude]).addTo(map);
                     marker.bindPopup("Speed: " + point.speed + " km/h, Acceleration: " + point.ax + " m/s²");
                     markers.push(marker);
+                    currentSpeed = point.speed;  // Update the current speed from the data
                 });
+                
+                // Update the speed counter on the map
+                $('#speed-counter').text(currentSpeed);  // Just update the speed value inside the circle
+
                 if (data.length > 0) {
                     map.setView([data[0].latitude, data[0].longitude], 12);
                 }

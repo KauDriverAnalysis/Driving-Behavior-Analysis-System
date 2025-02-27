@@ -30,15 +30,26 @@ def driver_map(request):
 
     return render(request, 'driver_map.html', {'map': map_html, 'map_ready': map_ready})
 
+from django.http import JsonResponse
+from django.core.cache import cache
+
 def get_latest_data(request):
     latest_location = cache.get('latest_location')
     print(f"latest_data: {latest_location}")  # Debugging statement
     if latest_location:
-        data_list = [latest_location]
-        print(f"Sending latest_location: {latest_location}")  # Debugging statement
+        # Sending the full data, including speed
+        data_dict = {
+            'latitude': latest_location['latitude'],
+            'longitude': latest_location['longitude'],
+            'speed': latest_location['speed']  # Include speed data
+        }
+        print(f"Sending latest_location: {data_dict}")  # Debugging statement
+        data_list = [data_dict]  # Wrap the data in a list
     else:
         data_list = []
+    
     return JsonResponse(data_list, safe=False)
+
 
 def customer_list(request):
     customers = Customer.objects.all()
