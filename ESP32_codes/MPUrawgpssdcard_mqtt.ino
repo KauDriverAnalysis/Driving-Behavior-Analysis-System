@@ -136,6 +136,7 @@ void parseNMEA(String line) {
     timeG = formattedTime;
     latitude = formattedLat;
     longitude = formattedLon;
+
   } else if (line.startsWith("$GNVTG")) {
     int idx1 = 0, idx2 = 0, fieldCount = 0;
     
@@ -204,10 +205,19 @@ void setup() {
   espClient.setCACert(root_ca);
   reconnect();
   
+  GPS.begin(9600, SERIAL_8N1, RX_PIN, TX_PIN);
+  delay(100); 
+  GPS.print("$PCAS03,1,0,0,0,0,1,0,002\r\n"); // Enable only the GGA and VTG sentences
+  GPS.print("$PCAS01,519\r\n"); // Set GPS to 115200 bps
+  GPS.print("$PCAS02,1001E\r\n"); // Set GPS update rate to 10Hz
+  delay(100);
+  GPS.end();
+  delay(100); 
   GPS.begin(115200, SERIAL_8N1, RX_PIN, TX_PIN);
-  GPS.print("$PCAS03,1,0,0,0,0,1,0,0*02\r\n");
-  GPS.print("$PCAS01,5*19\r\n");
-  GPS.print("$PCAS02,100*1E\r\n");
+  delay(100); 
+  GPS.print("$PCAS03,1,0,0,0,0,1,0,002\r\n"); // Enable only the GGA and VTG sentences
+  GPS.print("$PCAS01,519\r\n"); // Set GPS to 115200 bps
+  GPS.print("$PCAS02,1001E\r\n"); // Set GPS update rate to 10Hz
 
   Wire.begin();
   Wire.setClock(400000);
@@ -268,15 +278,14 @@ void loop() {
     mpu.dmpGetGravity(&gravity, &quat);
     mpu.dmpGetYawPitchRoll(ypr, &quat, &gravity);
   }
-
   dataWriteCounter++;
   String dataLine = String(dataWriteCounter) + "," 
-                    + timeG + "," + latitude + "," + longitude + "," + String(speedKmh) + ","
-                    + String(ax) + "," + String(ay) + "," + String(az) + ","
-                    + String(gx) + "," + String(gy) + "," + String(gz) + ","
-                    + String(ypr[0] * 180/M_PI) + "," 
-                    + String(ypr[1] * 180/M_PI) + ","
-                    + String(ypr[2] * 180/M_PI) + "\n";  // Add newline here
+                  + "11:00:50.800" + "," + "21.499150" + "," + "39.235192" + "," + String(10) + ","
+                  + String(ax) + "," + String(ay) + "," + String(az) + ","
+                  + String(gx) + "," + String(gy) + "," + String(gz) + ","
+                  + String(ypr[0] * 180/M_PI) + "," 
+                  + String(ypr[1] * 180/M_PI) + ","
+                  + String(ypr[2] * 180/M_PI) + "\n";  // Add newline here
   dataBuffer += dataLine;
 
   if (millis() - lastWriteTime >= WRITE_INTERVAL) {
