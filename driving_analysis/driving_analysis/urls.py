@@ -31,4 +31,5 @@ urlpatterns = [
     path('cleanse-buffer/', views.cleanse_buffer_view, name='cleanse_buffer'),
     path('get-cleansed-data/', views.get_cleansed_data, name='get_cleansed_data'),
     path('get-analysis-results/', views.get_analysis_results, name='get-analysis-results'),
+    path('api/get-latest-data/', views.get_latest_data, name='get-latest-data'),
 ]

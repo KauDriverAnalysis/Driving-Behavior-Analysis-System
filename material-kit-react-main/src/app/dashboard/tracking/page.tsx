@@ -1,9 +1,15 @@
+"use client";
+
 import * as React from 'react';
-import Stack from '@mui/material/Stack';
-import Typography from '@mui/material/Typography';
-import Grid from '@mui/material/Grid';
-import Box from '@mui/material/Box';
+import { Stack, Grid, Typography, Box } from '@mui/material';
 import { CarsTable } from '@/components/dashboard/tracking/CarsTableTrack';
+import dynamic from 'next/dynamic';
+
+// Import the map component dynamically to prevent SSR issues
+const LocationMapComponent = dynamic(
+  () => import('@/components/maps/location-map').then(mod => mod.LocationMap),
+  { ssr: false }
+);
 
 const cars = [
   { id: 'CAR-001', name: 'Car 1', status: 'Active' },
@@ -44,16 +50,10 @@ export default function Tracking(): React.JSX.Element {
           <CarsTable cars={sortedCars} />
         </Grid>
         <Grid item xs={12} md={6}>
-          <Typography variant="h6">Map</Typography>
-          <Box
-            sx={{
-              width: '100%',
-              height: '650px',
-              backgroundImage: 'url(/assets/map.jpg)',
-              backgroundSize: 'cover',
-              backgroundPosition: 'center',
-            }}
-          />
+          <Typography variant="h6">Live Tracking Map</Typography>
+          <Box sx={{ height: '650px', width: '100%' }}>
+            <LocationMapComponent />
+          </Box>
         </Grid>
       </Grid>
     </Stack>

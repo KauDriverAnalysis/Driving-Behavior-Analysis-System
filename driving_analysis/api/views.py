@@ -37,18 +37,21 @@ def get_latest_data(request):
     latest_location = cache.get('latest_location')
     print(f"latest_data: {latest_location}")  # Debugging statement
     if latest_location:
-        # Sending the full data, including speed
         data_dict = {
             'latitude': latest_location['latitude'],
             'longitude': latest_location['longitude'],
-            'speed': latest_location['speed']  # Include speed data
+            'speed': latest_location['speed']
         }
-        print(f"Sending latest_location: {data_dict}")  # Debugging statement
-        data_list = [data_dict]  # Wrap the data in a list
+        data_list = [data_dict]
     else:
         data_list = []
     
-    return JsonResponse(data_list, safe=False)
+    response = JsonResponse(data_list, safe=False)
+    # Add CORS headers manually if needed
+    response["Access-Control-Allow-Origin"] = "http://localhost:3000"
+    response["Access-Control-Allow-Methods"] = "GET, OPTIONS"
+    response["Access-Control-Allow-Headers"] = "Content-Type, Authorization"
+    return response
 
 
 def customer_list(request):
