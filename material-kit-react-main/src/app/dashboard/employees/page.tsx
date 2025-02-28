@@ -7,7 +7,6 @@ import { Download as DownloadIcon } from '@phosphor-icons/react/dist/ssr/Downloa
 import { Plus as PlusIcon } from '@phosphor-icons/react/dist/ssr/Plus';
 import { Upload as UploadIcon } from '@phosphor-icons/react/dist/ssr/Upload';
 import dayjs from 'dayjs';
-
 import { config } from '@/config';
 import { EmployeesFilters } from '@/components/dashboard/employee/employees-filters';
 import { EmployeesTable } from '@/components/dashboard/employee/employees-table';

@@ -30,7 +30,6 @@ export function DriversTable({ rows, count, page, rowsPerPage }: DriversTablePro
       <Table>
         <TableHead>
           <TableRow>
-            <TableCell>ID</TableCell>
             <TableCell>Name</TableCell>
             <TableCell>Email</TableCell>
             <TableCell>Phone</TableCell>
@@ -40,11 +39,10 @@ export function DriversTable({ rows, count, page, rowsPerPage }: DriversTablePro
         <TableBody>
           {rows.map((row) => (
             <TableRow key={row.id}>
-              <TableCell>{row.id}</TableCell>
               <TableCell>{row.name}</TableCell>
               <TableCell>{row.email}</TableCell>
               <TableCell>{row.phone}</TableCell>
-              <TableCell>{dayjs(row.createdAt).format('MMM D, YYYY')}</TableCell>
+              <TableCell>{dayjs(row.createdAt).format('DD/MM/YYYY HH:mm')}</TableCell>
             </TableRow>
           ))}
         </TableBody>
