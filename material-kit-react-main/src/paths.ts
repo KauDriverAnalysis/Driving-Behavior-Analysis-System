@@ -8,6 +8,8 @@ export const paths = {
     drivers: '/dashboard/drivers',
     settings: '/dashboard/settings',
     account: '/dashboard/account',
+    cars: '/dashboard/cars',
+
   },
   errors: { notFound: '/errors/not-found' },
 } as const;

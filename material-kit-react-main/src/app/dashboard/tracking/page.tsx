@@ -3,7 +3,7 @@ import Stack from '@mui/material/Stack';
 import Typography from '@mui/material/Typography';
 import Grid from '@mui/material/Grid';
 import Box from '@mui/material/Box';
-import { CarsTable } from '@/components/dashboard/tracking/CarsTable';
+import { CarsTable } from '@/components/dashboard/tracking/CarsTableTrack';
 
 const cars = [
   { id: 'CAR-001', name: 'Car 1', status: 'Active' },
