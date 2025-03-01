@@ -6,15 +6,13 @@ import TableHead from '@mui/material/TableHead';
 import TableRow from '@mui/material/TableRow';
 import Paper from '@mui/material/Paper';
 import TableContainer from '@mui/material/TableContainer';
-import dayjs from 'dayjs';
 
 interface Driver {
   id: string;
   name: string;
-  avatar: string;
-  email: string;
-  phone: string;
-  createdAt: Date;
+  gender: string;
+  phone_number: string;
+  company_id: string; // Assuming company_id is a string, you may need to adjust depending on your data model
 }
 
 interface DriversTableProps {
@@ -31,18 +29,18 @@ export function DriversTable({ rows, count, page, rowsPerPage }: DriversTablePro
         <TableHead>
           <TableRow>
             <TableCell>Name</TableCell>
-            <TableCell>Email</TableCell>
-            <TableCell>Phone</TableCell>
-            <TableCell>Created At</TableCell>
+            <TableCell>Gender</TableCell>
+            <TableCell>Phone Number</TableCell>
+            <TableCell>Company ID</TableCell>
           </TableRow>
         </TableHead>
         <TableBody>
           {rows.map((row) => (
             <TableRow key={row.id}>
               <TableCell>{row.name}</TableCell>
-              <TableCell>{row.email}</TableCell>
-              <TableCell>{row.phone}</TableCell>
-              <TableCell>{dayjs(row.createdAt).format('DD/MM/YYYY HH:mm')}</TableCell>
+              <TableCell>{row.gender}</TableCell>
+              <TableCell>{row.phone_number}</TableCell>
+              <TableCell>{row.company_id}</TableCell>
             </TableRow>
           ))}
         </TableBody>

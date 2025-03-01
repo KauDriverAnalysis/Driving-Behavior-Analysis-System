@@ -29,6 +29,8 @@ export interface Employee {
   email: string;
   address: { city: string; state: string; country: string; street: string };
   phone: string;
+  gender: string;
+  company_id: string; // Assuming company_id is a string
   createdAt: Date;
 }
 
@@ -74,10 +76,12 @@ export function EmployeesTable({
                 />
               </TableCell>
               <TableCell>Name</TableCell>
+              <TableCell>Gender</TableCell>
               <TableCell>Email</TableCell>
-              <TableCell>Location</TableCell>
+              <TableCell>address</TableCell>
               <TableCell>Phone</TableCell>
-              <TableCell>Signed Up</TableCell>
+              <TableCell>Company ID</TableCell>
+              <TableCell>Password</TableCell>
             </TableRow>
           </TableHead>
           <TableBody>
@@ -104,11 +108,13 @@ export function EmployeesTable({
                       <Typography variant="subtitle2">{row.name}</Typography>
                     </Stack>
                   </TableCell>
+                  <TableCell>{row.gender}</TableCell>
                   <TableCell>{row.email}</TableCell>
                   <TableCell>
                     {row.address.city}, {row.address.state}, {row.address.country}
                   </TableCell>
                   <TableCell>{row.phone}</TableCell>
+                  <TableCell>{row.company_id}</TableCell>
                   <TableCell>{dayjs(row.createdAt).format('MMM D, YYYY')}</TableCell>
                 </TableRow>
               );

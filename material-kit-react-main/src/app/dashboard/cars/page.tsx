@@ -1,12 +1,9 @@
-// filepath: /c:/Users/Eyad/Documents/GitHub/Driving-Behavior-Analysis-System/qqq/Driving-Behavior-Analysis-System/material-kit-react-main/src/pages/dashboard/cars.tsx
 import * as React from 'react';
 import Stack from '@mui/material/Stack';
 import Typography from '@mui/material/Typography';
 import Button from '@mui/material/Button';
-import { Download as DownloadIcon } from '@phosphor-icons/react/dist/ssr/Download';
-import { Plus as PlusIcon } from '@phosphor-icons/react/dist/ssr/Plus';
-import { Upload as UploadIcon } from '@phosphor-icons/react/dist/ssr/Upload';
 import { CarsTable } from '@/components/dashboard/cars/CarsTable';
+import { CarsFilters } from '@/components/dashboard/cars/CarsFilters'; // Import the CarsFilters component
 
 const cars = [
   { id: 'CAR-001', name: 'Car A', status: 'Active' },
@@ -26,20 +23,25 @@ export default function Cars(): React.JSX.Element {
         <Stack spacing={1} sx={{ flex: '1 1 auto' }}>
           <Typography variant="h4">Cars</Typography>
           <Stack direction="row" spacing={1} sx={{ alignItems: 'center' }}>
-            <Button color="inherit" startIcon={<UploadIcon fontSize="var(--icon-fontSize-md)" />}>
-              Import
+            {/* Edit Button */}
+            <Button color="inherit">
+              Edit
             </Button>
-            <Button color="inherit" startIcon={<DownloadIcon fontSize="var(--icon-fontSize-md)" />}>
-              Export
+            {/* Delete Button */}
+            <Button color="inherit">
+              Delete
             </Button>
           </Stack>
         </Stack>
         <div>
-          <Button startIcon={<PlusIcon fontSize="var(--icon-fontSize-md)" />} variant="contained">
+          {/* Add Button */}
+          <Button variant="contained">
             Add
           </Button>
         </div>
       </Stack>
+      {/* Add the CarsFilters component */}
+      <CarsFilters />
       <CarsTable
         count={cars.length}
         page={page}
