@@ -1,17 +1,20 @@
+'use client';
+
 import * as React from 'react';
+import { useState } from 'react';
 import Stack from '@mui/material/Stack';
 import Typography from '@mui/material/Typography';
 import Button from '@mui/material/Button';
-import { Download as DownloadIcon } from '@phosphor-icons/react/dist/ssr/Download';
-import { Plus as PlusIcon } from '@phosphor-icons/react/dist/ssr/Plus';
-import { Upload as UploadIcon } from '@phosphor-icons/react/dist/ssr/Upload';
-import dayjs from 'dayjs';
+import AddIcon from '@mui/icons-material/Add';
+import EditIcon from '@mui/icons-material/Edit';
+import DeleteIcon from '@mui/icons-material/Delete';
 import { DriversTable } from '@/components/dashboard/drivers/DriversTable';
 import { DriversFilters } from '@/components/dashboard/drivers/DriversFilters';
+import AddDriverDialog from './add-driver-dialog';
 
 const drivers = [
-  { id: 'DRV-001', name: 'John Doe', avatar: '/assets/avatar-1.png', email: 'john.doe@example.com', phone: '123-456-7890', createdAt: dayjs().subtract(2, 'hours').toDate() },
-  { id: 'DRV-002', name: 'Jane Smith', avatar: '/assets/avatar-2.png', email: 'jane.smith@example.com', phone: '987-654-3210', createdAt: dayjs().subtract(2, 'hours').toDate() },
+  { id: 'DRV-001', name: 'Driver A', status: 'Active' },
+  { id: 'DRV-002', name: 'Driver B', status: 'Inactive' },
   // Add more drivers here
 ];
 
@@ -21,33 +24,39 @@ export default function Drivers(): React.JSX.Element {
 
   const paginatedDrivers = applyPagination(drivers, page, rowsPerPage);
 
+  const [openDriverDialog, setOpenDriverDialog] = useState(false);
+
+  const handleOpenDriverDialog = () => {
+    setOpenDriverDialog(true);
+  };
+
+  const handleCloseDriverDialog = () => {
+    setOpenDriverDialog(false);
+  };
+
   return (
     <Stack spacing={3}>
       <Stack direction="row" spacing={3}>
         <Stack spacing={1} sx={{ flex: '1 1 auto' }}>
           <Typography variant="h4">Drivers</Typography>
           <Stack direction="row" spacing={1} sx={{ alignItems: 'center' }}>
-            <Button color="inherit" startIcon={<UploadIcon fontSize="var(--icon-fontSize-md)" />}>
-              Import
+            <Button color="inherit" startIcon={<EditIcon />}>
+              Edit
             </Button>
-            <Button color="inherit" startIcon={<DownloadIcon fontSize="var(--icon-fontSize-md)" />}>
-              Export
+            <Button color="inherit" startIcon={<DeleteIcon />}>
+              Delete
             </Button>
           </Stack>
         </Stack>
         <div>
-          <Button startIcon={<PlusIcon fontSize="var(--icon-fontSize-md)" />} variant="contained">
+          <Button startIcon={<AddIcon />} variant="contained" onClick={handleOpenDriverDialog}>
             Add
           </Button>
         </div>
       </Stack>
       <DriversFilters />
-      <DriversTable
-        count={drivers.length}
-        page={page}
-        rows={paginatedDrivers}
-        rowsPerPage={rowsPerPage}
-      />
+      <DriversTable count={drivers.length} page={page} rows={paginatedDrivers} rowsPerPage={rowsPerPage} />
+      <AddDriverDialog open={openDriverDialog} onClose={handleCloseDriverDialog} />
     </Stack>
   );
 }
