@@ -5,6 +5,7 @@ export const paths = {
     overview: '/dashboard',
     tracking: '/dashboard/tracking',
     employees: '/dashboard/employees',
+    addEmployee: '/dashboard/add-employee', // Add this line
     drivers: '/dashboard/drivers',
     settings: '/dashboard/settings',
     account: '/dashboard/account',

@@ -1,5 +1,7 @@
+'use client';
+
 import * as React from 'react';
-import { useRouter } from 'next/router';
+import Link from 'next/link';
 import Button from '@mui/material/Button';
 import Card from '@mui/material/Card';
 import CardActions from '@mui/material/CardActions';
@@ -12,16 +14,9 @@ import OutlinedInput from '@mui/material/OutlinedInput';
 import Stack from '@mui/material/Stack';
 
 export default function AddEmployee(): React.JSX.Element {
-  const router = useRouter();
-
-  const handleBack = () => {
-    router.push('/dashboard/employees');
-  };
-
   const handleSubmit = (event: React.FormEvent) => {
     event.preventDefault();
     // Add logic to save the employee information
-    handleBack();
   };
 
   return (
@@ -51,7 +46,9 @@ export default function AddEmployee(): React.JSX.Element {
         </CardContent>
         <Divider />
         <CardActions sx={{ justifyContent: 'flex-end' }}>
-          <Button onClick={handleBack} variant="outlined">Back</Button>
+          <Link href="/dashboard/employees" passHref>
+            <Button variant="outlined">Back</Button>
+          </Link>
           <Button type="submit" variant="contained">Add</Button>
         </CardActions>
       </Card>

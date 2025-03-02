@@ -1,5 +1,5 @@
 import * as React from 'react';
-import type { Metadata } from 'next';
+import Link from 'next/link';
 import Button from '@mui/material/Button';
 import Stack from '@mui/material/Stack';
 import Typography from '@mui/material/Typography';
@@ -107,6 +107,10 @@ const employees: Employee[] = [
   },
 ];
 
+function applyPagination(rows: Employee[], page: number, rowsPerPage: number): Employee[] {
+  return rows.slice(page * rowsPerPage, page * rowsPerPage + rowsPerPage);
+}
+
 export default function Page(): React.JSX.Element {
   const page = 0;
   const rowsPerPage = 5;
@@ -128,9 +132,11 @@ export default function Page(): React.JSX.Element {
           </Stack>
         </Stack>
         <div>
-          <Button startIcon={<PlusIcon fontSize="var(--icon-fontSize-md)" />} variant="contained">
-            Add
-          </Button>
+          <Link href="/dashboard/add-employee" passHref>
+            <Button startIcon={<PlusIcon fontSize="var(--icon-fontSize-md)" />} variant="contained">
+              Add
+            </Button>
+          </Link>
         </div>
       </Stack>
       <EmployeesFilters />
@@ -142,8 +148,4 @@ export default function Page(): React.JSX.Element {
       />
     </Stack>
   );
-}
-
-function applyPagination(rows: Employee[], page: number, rowsPerPage: number): Employee[] {
-  return rows.slice(page * rowsPerPage, page * rowsPerPage + rowsPerPage);
 }
