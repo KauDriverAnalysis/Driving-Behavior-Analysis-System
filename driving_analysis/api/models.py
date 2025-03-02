@@ -54,4 +54,3 @@ class Employee(models.Model):
     address = models.CharField(max_length=255, blank=True, null=True)
     Email = models.EmailField(unique=True)
     Password = models.CharField(max_length=255)
-    company_id = models.ForeignKey('Company', on_delete=models.CASCADE)

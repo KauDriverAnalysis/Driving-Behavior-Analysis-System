@@ -16,31 +16,51 @@ import { useSelection } from '@/hooks/use-selection';
 interface Driver {
   id: string;
   name: string;
-  gender: string;
+  gender: 'male' | 'female';
   phone_number: string;
-  company_id: string; // Assuming company_id is a string, you may need to adjust depending on your data model
+  company_id: string; // Adjust this type as needed
 }
 
 interface DriversTableProps {
-  rows: Driver[];
-  count: number;
-  page: number;
-  rowsPerPage: number;
+  rows?: Driver[];
+  count?: number;
+  page?: number;
+  rowsPerPage?: number;
 }
 
 function noop(): void {
   // do nothing
 }
 
-export function DriversTable({ rows, count, page, rowsPerPage }: DriversTableProps): React.JSX.Element {
+export function DriversTable({ rows = [], count = 0, page = 0, rowsPerPage = 0 }: DriversTableProps): React.JSX.Element {
+  const [drivers, setDrivers] = React.useState<Driver[]>([]);
+  const [loading, setLoading] = React.useState<boolean>(true);
+
+  React.useEffect(() => {
+    fetch('http://localhost:8000/api/drivers/')
+      .then((response) => response.json())
+      .then((data) => {
+        setDrivers(data);
+        setLoading(false);
+      })
+      .catch((error) => {
+        console.error('Error fetching driver data:', error);
+        setLoading(false);
+      });
+  }, []);
+
   const rowIds = React.useMemo(() => {
-    return rows.map((driver) => driver.id);
-  }, [rows]);
+    return drivers.map((driver) => driver.id);
+  }, [drivers]);
 
   const { selectAll, deselectAll, selectOne, deselectOne, selected } = useSelection(rowIds);
 
-  const selectedSome = (selected?.size ?? 0) > 0 && (selected?.size ?? 0) < rows.length;
-  const selectedAll = rows.length > 0 && selected?.size === rows.length;
+  const selectedSome = (selected?.size ?? 0) > 0 && (selected?.size ?? 0) < drivers.length;
+  const selectedAll = drivers.length > 0 && selected?.size === drivers.length;
+
+  if (loading) {
+    return <div>Loading...</div>;
+  }
 
   return (
     <Card>
@@ -69,7 +89,7 @@ export function DriversTable({ rows, count, page, rowsPerPage }: DriversTablePro
               </TableRow>
             </TableHead>
             <TableBody>
-              {rows.map((row) => {
+              {drivers.map((row) => {
                 const isSelected = selected?.has(row.id);
 
                 return (

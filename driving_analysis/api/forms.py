@@ -69,7 +69,7 @@ class DrivingDataForm(forms.ModelForm):
 class EmployeeForm(forms.ModelForm):
     class Meta:
         model = Employee
-        fields = ['Name', 'gender', 'phone_number', 'address', 'Email', 'Password', 'company_id']
+        fields = ['Name', 'gender', 'phone_number', 'address', 'Email', 'Password']
 
     def clean_phone_number(self):
         phone_number = self.cleaned_data.get('phone_number')
