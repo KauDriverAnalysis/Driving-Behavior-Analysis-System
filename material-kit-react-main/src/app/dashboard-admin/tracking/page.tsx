@@ -2,7 +2,7 @@
 
 import * as React from 'react';
 import { Stack, Grid, Typography, Box } from '@mui/material';
-import { CarsTable } from '@/components/dashboard/tracking/CarsTableTrack';
+import { CarsTable } from '@/components/dashboard-admin/tracking/CarsTableTrack';
 import dynamic from 'next/dynamic';
 
 // Import the map component dynamically to prevent SSR issues

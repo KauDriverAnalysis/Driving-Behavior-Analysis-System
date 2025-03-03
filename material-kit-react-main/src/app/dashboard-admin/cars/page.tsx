@@ -8,8 +8,8 @@ import Button from '@mui/material/Button';
 import AddIcon from '@mui/icons-material/Add';
 import EditIcon from '@mui/icons-material/Edit';
 import DeleteIcon from '@mui/icons-material/Delete';
-import { CarsTable } from '@/components/dashboard/cars/CarsTable';
-import { CarsFilters } from '@/components/dashboard/cars/CarsFilters';
+import { CarsTable } from '@/components/dashboard-admin/cars/CarsTable';
+import { CarsFilters } from '@/components/dashboard-admin/cars/CarsFilters';
 import AddCarDialog from './add-car-dialog';
 
 const cars = [

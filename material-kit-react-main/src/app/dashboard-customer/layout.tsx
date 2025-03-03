@@ -1,11 +1,12 @@
+'use client';
+
 import * as React from 'react';
 import Box from '@mui/material/Box';
 import Container from '@mui/material/Container';
 import GlobalStyles from '@mui/material/GlobalStyles';
-
 import { AuthGuard } from '@/components/auth/auth-guard';
-import { MainNav } from '@/components/dashboard/layout/main-nav';
-import { SideNav } from '@/components/dashboard/layout/side-nav';
+import { MainNav } from '@/components/dashboard-customer/layout/main-nav';
+import { SideNav } from '@/components/dashboard-customer/layout/side-nav';
 
 interface LayoutProps {
   children: React.ReactNode;
@@ -38,11 +39,7 @@ export default function Layout({ children }: LayoutProps): React.JSX.Element {
         <SideNav />
         <Box sx={{ display: 'flex', flex: '1 1 auto', flexDirection: 'column', pl: { lg: 'var(--SideNav-width)' } }}>
           <MainNav />
-          <main>
-            <Container maxWidth="xl" sx={{ py: '64px' }}>
-              {children}
-            </Container>
-          </main>
+          <main>{children}</main>
         </Box>
       </Box>
     </AuthGuard>
