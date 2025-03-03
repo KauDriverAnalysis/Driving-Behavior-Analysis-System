@@ -143,13 +143,39 @@ def car_list(request):
 @csrf_exempt
 def create_car(request):
     if request.method == 'POST':
-        form = CarForm(request.POST)
-        if form.is_valid():
-            form.save()
-            return JsonResponse({'message': 'Car created successfully'}, status=201)
-    else:
-        form = CarForm()
-    return JsonResponse({'errors': form.errors}, status=400)
+        try:
+            # Parse JSON data from request body
+            data = json.loads(request.body)
+            print(f"Received car data: {data}")  # Debug print
+            
+            # Handle foreign key fields
+            if data.get('company_id'):
+                try:
+                    company = Company.objects.get(id=data['company_id'])
+                    data['company_id'] = company
+                except Company.DoesNotExist:
+                    return JsonResponse({'errors': {'company_id': 'Invalid company ID'}}, status=400)
+                    
+            if data.get('customer_id'):
+                try:
+                    customer = Customer.objects.get(id(data['customer_id']))
+                    data['customer_id'] = customer
+                except Customer.DoesNotExist:
+                    return JsonResponse({'errors': {'customer_id': 'Invalid customer ID'}}, status=400)
+                    
+            # Create form with JSON data
+            form = CarForm(data)
+            if form.is_valid():
+                car = form.save()
+                return JsonResponse({'success': True, 'id': car.id}, status=201)
+            else:
+                print(f"Form validation errors: {form.errors}")
+                return JsonResponse({'errors': form.errors}, status=400)
+        except Exception as e:
+            print(f"Error creating car: {str(e)}")
+            return JsonResponse({'errors': {'server': str(e)}}, status=500)
+    
+    return JsonResponse({'error': 'Method not allowed'}, status=405)
 
 def update_car(request, car_id):
     car = get_object_or_404(Car, pk=car_id)
@@ -194,13 +220,33 @@ def driver_list(request):
 @csrf_exempt
 def create_driver(request):
     if request.method == 'POST':
-        form = DriverForm(request.POST)
-        if form.is_valid():
-            form.save()
-            return JsonResponse({'message': 'Driver created successfully'}, status=201)
-    else:
-        form = DriverForm()
-    return JsonResponse({'errors': form.errors}, status=400)
+        try:
+            data = json.loads(request.body)
+            # Clean up data if needed
+            if 'male' in data:
+                del data['male']
+            if 'female' in data:
+                del data['female']
+                
+            # Try to get company instance
+            try:
+                company = Company.objects.get(id=data['company_id'])
+                data['company_id'] = company
+            except Company.DoesNotExist:
+                return JsonResponse({'errors': {'company_id': 'Invalid company ID'}}, status=400)
+                
+            form = DriverForm(data)
+            if form.is_valid():
+                driver = form.save()
+                return JsonResponse({'success': True, 'id': driver.id})
+            else:
+                print(f"Form errors: {form.errors}")
+                return JsonResponse({'errors': form.errors}, status=400)
+        except Exception as e:
+            print(f"Error: {str(e)}")
+            return JsonResponse({'errors': {'server': str(e)}}, status=500)
+    
+    return JsonResponse({'error': 'Method not allowed'}, status=405)
 
 def update_driver(request, driver_id):
     driver = get_object_or_404(Driver, pk=driver_id)
@@ -356,16 +402,3 @@ def get_car_driving_data(request, car_id):
             })
     except Exception as e:
         return JsonResponse({'error': str(e)}, status=500)        # In api/views.py
-        from django.views.decorators.csrf import csrf_exempt
-        
-        @csrf_exempt
-        def create_car(request):
-            if request.method == 'POST':
-                # Your existing code
-                pass
-            
-        @csrf_exempt
-        def create_driver(request):
-            if request.method == 'POST':
-                # Your existing code
-                pass

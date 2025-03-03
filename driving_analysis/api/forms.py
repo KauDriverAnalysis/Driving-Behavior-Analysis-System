@@ -57,6 +57,12 @@ class DriverForm(forms.ModelForm):
     class Meta:
         model = Driver
         fields = ['name', 'gender', 'phone_number', 'company_id']
+    
+    def clean_phone_number(self):
+        phone_number = self.cleaned_data.get('phone_number')
+        if not re.match(r'^(?:\+966|05)\d{8}$', phone_number):
+            raise ValidationError('Invalid phone number format for Saudi Arabia')
+        return phone_number
 
 class DrivingDataForm(forms.ModelForm):
     class Meta:
@@ -79,7 +85,7 @@ class EmployeeForm(forms.ModelForm):
 
     def save(self, commit=True):
         employee = super(EmployeeForm, self).save(commit=False)
-        # employee.Password = make_password(self.cleaned_data['Password'])
+        employee.Password = make_password(self.cleaned_data['Password'])
         if commit:
             employee.save()
         return employee

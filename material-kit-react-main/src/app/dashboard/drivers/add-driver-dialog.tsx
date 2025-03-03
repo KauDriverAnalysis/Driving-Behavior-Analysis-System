@@ -50,8 +50,15 @@ export default function AddDriverDialog({ open, onClose }: AddDriverDialogProps)
       formDataObject[key] = value;
     });
     
-    // Add gender data
+    // Add gender data and REMOVE male/female checkbox values
     formDataObject.gender = gender.male ? 'male' : (gender.female ? 'female' : '');
+    delete formDataObject.male;
+    delete formDataObject.female;
+    
+    // Ensure company_id is properly formatted
+    if (formDataObject.company_id) {
+      formDataObject.company_id = parseInt(formDataObject.company_id, 10);
+    }
     
     console.log('Form data being sent:', formDataObject);
     

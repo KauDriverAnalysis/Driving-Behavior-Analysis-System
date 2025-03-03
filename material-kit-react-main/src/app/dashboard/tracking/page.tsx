@@ -1,7 +1,7 @@
 "use client";
 
 import * as React from 'react';
-import { useState, useEffect } from 'react';
+import { useState, useEffect, useRef } from 'react';
 import { Stack, Grid, Typography, Box } from '@mui/material';
 import { CarsTable } from '@/components/dashboard/tracking/CarsTableTrack';
 import dynamic from 'next/dynamic';
@@ -18,17 +18,28 @@ export default function Tracking(): React.JSX.Element {
   const [loading, setLoading] = useState(true);
   const [selectedCar, setSelectedCar] = useState(null);
   const [drivingData, setDrivingData] = useState(null);
+  const [fetchingForCarId, setFetchingForCarId] = useState(null);
+  const [detailPanelKey, setDetailPanelKey] = useState(0); // Used to force re-render
 
   // Fetch cars from API
   useEffect(() => {
     fetch('http://localhost:8000/api/cars/')
       .then(response => response.json())
       .then(data => {
-        // Add status field based on State_of_car
-        const processedCars = data.map(car => ({
-          ...car,
-          status: car.state === 'Active' ? 'Active' : 'Non-Active'
-        }));
+        console.log('Car data received:', data); // Debug logging to verify data format
+        
+        // Add status field based on state property
+        const processedCars = data.map(car => {
+          // Use 'state' property instead of 'State_of_car'
+          const stateValue = car.state?.toLowerCase() || '';
+          
+          return {
+            ...car,
+            status: stateValue === 'online' ? 'Active' : 'Non-Active',
+            isActive: stateValue === 'online'
+          };
+        });
+        
         setCars(processedCars);
         setLoading(false);
       })
@@ -38,18 +49,37 @@ export default function Tracking(): React.JSX.Element {
       });
   }, []);
 
-  // Handle car selection
+  // Handle car selection with race condition prevention
   const handleSelectCar = (carId) => {
+    // Toggle behavior: if clicking the same car again, close the panel
+    if (selectedCar === carId) {
+      setSelectedCar(null);
+      setDrivingData(null);
+      return;
+    }
+    
+    // Set selected car immediately for UI feedback
     setSelectedCar(carId);
+    setDrivingData(null); // Clear previous data while loading
+    
+    // Track which car we're currently fetching for
+    setFetchingForCarId(carId);
     
     // Fetch driving data for selected car
     fetch(`http://localhost:8000/api/car-driving-data/${carId}/`)
       .then(response => response.json())
       .then(data => {
-        setDrivingData(data);
+        // Only update if this is still the car we want data for
+        if (fetchingForCarId === carId) {
+          setDrivingData(data);
+          setDetailPanelKey(prevKey => prevKey + 1); // Force re-render of panel
+        }
       })
       .catch(error => {
         console.error('Error fetching driving data:', error);
+        if (fetchingForCarId === carId) {
+          setDrivingData(null);
+        }
       });
   };
 
@@ -68,7 +98,10 @@ export default function Tracking(): React.JSX.Element {
             />
           )}
           {selectedCar && drivingData && (
-            <CarDetailPanel data={drivingData} />
+            <CarDetailPanel 
+              key={`car-${selectedCar}-panel-${detailPanelKey}`} 
+              data={drivingData} 
+            />
           )}
         </Grid>
         <Grid item xs={12} md={6}>
