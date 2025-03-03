@@ -22,9 +22,6 @@ import { paths } from '@/paths';
 import { authClient } from '@/lib/auth/client';
 import { useUser } from '@/hooks/use-user';
 
-// Add import for localStorage utility
-import { setUserRole, getUserRole } from '@/lib/userRole'; // You'll need to create this file
-
 const schema = zod.object({
   email: zod.string().min(1, { message: 'Email is required' }).email(),
   password: zod.string().min(1, { message: 'Password is required' }),
@@ -32,15 +29,16 @@ const schema = zod.object({
 
 type Values = zod.infer<typeof schema>;
 
-const defaultValues = { email: '', password: '' } satisfies Values;
+const defaultValues = { email: 'sofia@devias.io', password: 'Secret1' } satisfies Values;
 
 export function SignInForm(): React.JSX.Element {
   const router = useRouter();
+
   const { checkSession } = useUser();
 
-  const [showPassword, setShowPassword] = React.useState<boolean>(false);
+  const [showPassword, setShowPassword] = React.useState<boolean>();
+
   const [isPending, setIsPending] = React.useState<boolean>(false);
-  const [isEmployee, setIsEmployee] = React.useState<boolean>(false);
 
   const {
     control,
@@ -53,7 +51,7 @@ export function SignInForm(): React.JSX.Element {
     async (values: Values): Promise<void> => {
       setIsPending(true);
 
-      const { userType, error } = await authClient.signInWithPassword(values);
+      const { error } = await authClient.signInWithPassword(values);
 
       if (error) {
         setError('root', { type: 'server', message: error });
@@ -61,21 +59,12 @@ export function SignInForm(): React.JSX.Element {
         return;
       }
 
+      // Refresh the auth state
       await checkSession?.();
 
-      // Save user role to localStorage for global access
-      if (userType) {
-        setUserRole(userType);
-      }
-
-      if (userType === 'admin') {
-        router.push(paths.dashboardAdmin.overview);
-      } else if (userType === 'customer') {
-        router.push(paths.dashboardCustomer.overview);
-      } else if (userType === 'employee') {
-        setIsEmployee(true);
-        router.push(paths.dashboardAdmin.overview); // Redirect employees to the admin dashboard
-      }
+      // UserProvider, for this case, will not refresh the router
+      // After refresh, GuestGuard will handle the redirect
+      router.refresh();
     },
     [checkSession, router, setError]
   );
@@ -152,35 +141,12 @@ export function SignInForm(): React.JSX.Element {
       <Alert color="warning">
         Use{' '}
         <Typography component="span" sx={{ fontWeight: 700 }} variant="inherit">
-          admin@example.com
+          sofia@devias.io
         </Typography>{' '}
         with password{' '}
         <Typography component="span" sx={{ fontWeight: 700 }} variant="inherit">
-          AdminSecret
-        </Typography>{' '}
-        for admin access.
-      </Alert>
-      <Alert color="warning">
-        Use{' '}
-        <Typography component="span" sx={{ fontWeight: 700 }} variant="inherit">
-          customer@example.com
-        </Typography>{' '}
-        with password{' '}
-        <Typography component="span" sx={{ fontWeight: 700 }} variant="inherit">
-          CustomerSecret
-        </Typography>{' '}
-        for customer access.
-      </Alert>
-      <Alert color="warning">
-        Use{' '}
-        <Typography component="span" sx={{ fontWeight: 700 }} variant="inherit">
-          employee@example.com
-        </Typography>{' '}
-        with password{' '}
-        <Typography component="span" sx={{ fontWeight: 700 }} variant="inherit">
-          EmployeeSecret
-        </Typography>{' '}
-        for employee access.
+          Secret1
+        </Typography>
       </Alert>
     </Stack>
   );

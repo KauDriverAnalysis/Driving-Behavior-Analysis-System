@@ -8,8 +8,8 @@ import Button from '@mui/material/Button';
 import AddIcon from '@mui/icons-material/Add';
 import EditIcon from '@mui/icons-material/Edit';
 import DeleteIcon from '@mui/icons-material/Delete';
-import { DriversTable } from '@/components/dashboard-admin/drivers/DriversTable';
-import { DriversFilters } from '@/components/dashboard-admin/drivers/DriversFilters';
+import { DriversTable } from '@/components/dashboard/drivers/DriversTable';
+import { DriversFilters } from '@/components/dashboard/drivers/DriversFilters';
 import AddDriverDialog from './add-driver-dialog';
 
 const drivers = [

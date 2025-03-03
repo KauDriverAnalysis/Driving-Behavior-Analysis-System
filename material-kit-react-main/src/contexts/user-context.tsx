@@ -1,34 +1,57 @@
-// src/contexts/UserContext.tsx
 'use client';
 
-import React, { createContext, useContext, useState, ReactNode } from 'react';
+import * as React from 'react';
 
-type UserType = 'admin' | 'customer' | 'employee' | null;
+import type { User } from '@/types/user';
+import { authClient } from '@/lib/auth/client';
+import { logger } from '@/lib/default-logger';
 
-interface UserContextType {
-  userType: UserType;
-  setUserType: (type: UserType) => void;
-  isEmployee: boolean;
-  setIsEmployee: (value: boolean) => void;
+export interface UserContextValue {
+  user: User | null;
+  error: string | null;
+  isLoading: boolean;
+  checkSession?: () => Promise<void>;
 }
 
-const UserContext = createContext<UserContextType | undefined>(undefined);
+export const UserContext = React.createContext<UserContextValue | undefined>(undefined);
 
-export function UserProvider({ children }: { children: ReactNode }) {
-  const [userType, setUserType] = useState<UserType>(null);
-  const [isEmployee, setIsEmployee] = useState<boolean>(false);
-
-  return (
-    <UserContext.Provider value={{ userType, setUserType, isEmployee, setIsEmployee }}>
-      {children}
-    </UserContext.Provider>
-  );
+export interface UserProviderProps {
+  children: React.ReactNode;
 }
 
-export function useUserContext() {
-  const context = useContext(UserContext);
-  if (context === undefined) {
-    throw new Error('useUserContext must be used within a UserProvider');
-  }
-  return context;
+export function UserProvider({ children }: UserProviderProps): React.JSX.Element {
+  const [state, setState] = React.useState<{ user: User | null; error: string | null; isLoading: boolean }>({
+    user: null,
+    error: null,
+    isLoading: true,
+  });
+
+  const checkSession = React.useCallback(async (): Promise<void> => {
+    try {
+      const { data, error } = await authClient.getUser();
+
+      if (error) {
+        logger.error(error);
+        setState((prev) => ({ ...prev, user: null, error: 'Something went wrong', isLoading: false }));
+        return;
+      }
+
+      setState((prev) => ({ ...prev, user: data ?? null, error: null, isLoading: false }));
+    } catch (err) {
+      logger.error(err);
+      setState((prev) => ({ ...prev, user: null, error: 'Something went wrong', isLoading: false }));
+    }
+  }, []);
+
+  React.useEffect(() => {
+    checkSession().catch((err: unknown) => {
+      logger.error(err);
+      // noop
+    });
+    // eslint-disable-next-line react-hooks/exhaustive-deps -- Expected
+  }, []);
+
+  return <UserContext.Provider value={{ ...state, checkSession }}>{children}</UserContext.Provider>;
 }
+
+export const UserConsumer = UserContext.Consumer;

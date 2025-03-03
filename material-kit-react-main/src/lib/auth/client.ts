@@ -1,4 +1,5 @@
 'use client';
+
 import type { User } from '@/types/user';
 
 function generateToken(): string {
@@ -37,8 +38,12 @@ export interface ResetPasswordParams {
 
 class AuthClient {
   async signUp(_: SignUpParams): Promise<{ error?: string }> {
+    // Make API request
+
+    // We do not handle the API, so we'll just generate a token and store it in localStorage.
     const token = generateToken();
     localStorage.setItem('custom-auth-token', token);
+
     return {};
   }
 
@@ -46,35 +51,20 @@ class AuthClient {
     return { error: 'Social authentication not implemented' };
   }
 
-  async signInWithPassword(params: SignInWithPasswordParams): Promise<{ userType?: string; error?: string }> {
+  async signInWithPassword(params: SignInWithPasswordParams): Promise<{ error?: string }> {
     const { email, password } = params;
 
-    const adminEmail = 'admin@example.com';
-    const adminPassword = 'AdminSecret';
-    const customerEmail = 'customer@example.com';
-    const customerPassword = 'CustomerSecret';
-    const employeeEmail = 'employee@example.com';
-    const employeePassword = 'EmployeeSecret';
+    // Make API request
 
-    if (email === adminEmail && password === adminPassword) {
-      const token = generateToken();
-      localStorage.setItem('custom-auth-token', token);
-      return { userType: 'admin', error: null };
+    // We do not handle the API, so we'll check if the credentials match with the hardcoded ones.
+    if (email !== 'sofia@devias.io' || password !== 'Secret1') {
+      return { error: 'Invalid credentials' };
     }
 
-    if (email === customerEmail && password === customerPassword) {
-      const token = generateToken();
-      localStorage.setItem('custom-auth-token', token);
-      return { userType: 'customer', error: null };
-    }
+    const token = generateToken();
+    localStorage.setItem('custom-auth-token', token);
 
-    if (email === employeeEmail && password === employeePassword) {
-      const token = generateToken();
-      localStorage.setItem('custom-auth-token', token);
-      return { userType: 'employee', error: null };
-    }
-
-    return { userType: null, error: 'Invalid email or password' };
+    return {};
   }
 
   async resetPassword(_: ResetPasswordParams): Promise<{ error?: string }> {
@@ -86,15 +76,21 @@ class AuthClient {
   }
 
   async getUser(): Promise<{ data?: User | null; error?: string }> {
+    // Make API request
+
+    // We do not handle the API, so just check if we have a token in localStorage.
     const token = localStorage.getItem('custom-auth-token');
+
     if (!token) {
       return { data: null };
     }
+
     return { data: user };
   }
 
   async signOut(): Promise<{ error?: string }> {
     localStorage.removeItem('custom-auth-token');
+
     return {};
   }
 }
