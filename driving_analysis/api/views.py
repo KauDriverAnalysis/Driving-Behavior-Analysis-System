@@ -7,6 +7,9 @@ from .forms import CustomerForm, CompanyForm, CarForm, DriverForm, DrivingDataFo
 from .models import DrivingData, Customer, Company, Car, Driver,Employee
 from .forms import CustomerForm, CompanyForm, CarForm, DriverForm,DrivingDataForm,EmployeeForm
 from .cleansing_data import cleanse_data
+from django.views.decorators.csrf import ensure_csrf_cookie
+from django.views.decorators.http import require_http_methods
+import json
 
 def driver_map(request):
     latest_location = cache.get('latest_location')
@@ -117,6 +120,25 @@ def delete_company(request, company_id):
     return JsonResponse({'error': 'Invalid request method'}, status=405)
 
 # Car views
+
+def car_list(request):
+    cars = Car.objects.all()
+    car_data = [
+        {
+            'id': car.id,
+            'model': car.Model_of_car,
+            'type': car.TypeOfCar,
+            'plateNumber': car.Plate_number,
+            'releaseYear': car.Release_Year_car,
+            'state': car.State_of_car,
+            'deviceId': car.device_id,
+            'customerId': car.customer_id_id,
+            'companyId': car.company_id_id,
+        }
+        for car in cars
+    ]
+    return JsonResponse(car_data, safe=False)
+
 def create_car(request):
     if request.method == 'POST':
         form = CarForm(request.POST)
@@ -146,6 +168,28 @@ def delete_car(request, car_id):
     return JsonResponse({'error': 'Invalid request method'}, status=405)
 
 # Driver views
+
+from django.http import JsonResponse
+from .models import Driver
+
+def driver_list(request):
+    try:
+        drivers = Driver.objects.all()
+        driver_data = [
+            {
+                'id': driver.id,
+                'name': driver.name,
+                'gender': driver.gender,
+                'phone_number': driver.phone_number,
+                'company_id': driver.company_id_id,  
+            }
+            for driver in drivers
+        ]
+        return JsonResponse(driver_data, safe=False)
+    except Exception as e:
+        return JsonResponse({'error': str(e)}, status=500)
+
+
 def create_driver(request):
     if request.method == 'POST':
         form = DriverForm(request.POST)
@@ -226,15 +270,37 @@ def get_analysis_results(request):
 #---------------------------------------------------------------------------------------
 
 # Employee views
+def employee_list(request):
+    employees = Employee.objects.all()
+    employee_data = [
+        {
+            'id': employee.id,
+            'name': employee.Name,
+            'gender': employee.gender,
+            'phone_number': employee.phone_number,
+            'address': employee.address,
+            'Email': employee.Email,
+            'Password': employee.Password  
+        }
+        for employee in employees
+    ]
+    return JsonResponse(employee_data, safe=False)
+@ensure_csrf_cookie
+@require_http_methods(["POST"])
 def create_employee(request):
-    if request.method == 'POST':
-        form = EmployeeForm(request.POST)
+    try:
+        data = json.loads(request.body)
+        form = EmployeeForm(data)
         if form.is_valid():
-            form.save()
-            return JsonResponse({'message': 'Employee created successfully'}, status=201)
-    else:
-        form = EmployeeForm()
-    return JsonResponse({'errors': form.errors}, status=400)
+            employee = form.save()
+            return JsonResponse({
+                'message': 'Employee created successfully',
+                'employee_id': employee.id
+            }, status=201)
+        else:
+            return JsonResponse({'errors': form.errors}, status=400)
+    except Exception as e:
+        return JsonResponse({'error': str(e)}, status=500)
 
 def update_employee(request, employee_id):
     employee = get_object_or_404(Employee, pk=employee_id)

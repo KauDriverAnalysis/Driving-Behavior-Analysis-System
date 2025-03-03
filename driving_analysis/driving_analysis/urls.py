@@ -22,7 +22,7 @@ from api import views
 urlpatterns = [
     path('admin/', admin.site.urls),
     path('', driver_map, name='home'),  # Redirect root URL to driver_map
-    path('driver-map/', driver_map, name='driver_map'),
+    path('driver-map``/', driver_map, name='driver_map'),
     path('get-latest-data/', get_latest_data, name='get_latest_data'),  # Ensure this line is correct
     path('customers/', views.customer_list, name='customer_list'),
     path('create/', views.create_customer, name='create_customer'),
@@ -32,4 +32,9 @@ urlpatterns = [
     path('get-cleansed-data/', views.get_cleansed_data, name='get_cleansed_data'),
     path('get-analysis-results/', views.get_analysis_results, name='get-analysis-results'),
     path('api/get-latest-data/', views.get_latest_data, name='get-latest-data'),
+    path('api/employees/', views.employee_list, name='employee_list'),
+    path('api/create_employee/', views.create_employee, name='create_employee'),
+    path('api/cars/', views.car_list, name='car_list'),
+    path('api/drivers/', views.driver_list, name='driver_list'),        
+
 ]

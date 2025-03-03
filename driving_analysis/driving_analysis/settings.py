@@ -27,9 +27,16 @@ DEBUG = True
 
 ALLOWED_HOSTS = []
 
-CORS_ALLOWED_ORIGINS = [
-    "http://localhost:3000",  # Your React app's origin
+# settings.py
+
+CORS_ORIGIN_WHITELIST = [
+    'http://localhost:3000',
 ]
+
+CSRF_TRUSTED_ORIGINS = [
+    'http://localhost:3000',
+]
+
 # Application definition
 CORS_ALLOW_CREDENTIALS = True
 CORS_ALLOW_ALL_ORIGINS = False  # Keep this false for security
@@ -59,6 +66,7 @@ MIDDLEWARE = [
     'django.middleware.clickjacking.XFrameOptionsMiddleware',
 
 ]
+
 
 ROOT_URLCONF = 'driving_analysis.urls'
 
