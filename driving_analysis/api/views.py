@@ -9,12 +9,13 @@ from .forms import CustomerForm, CompanyForm, CarForm, DriverForm,DrivingDataFor
 from .cleansing_data import cleanse_data
 from django.views.decorators.csrf import ensure_csrf_cookie
 from django.views.decorators.http import require_http_methods
+from django.views.decorators.csrf import csrf_exempt
 import json
 
 def driver_map(request):
     latest_location = cache.get('latest_location')
     print(f"Driver map latest_location: {latest_location}")  # Debugging statement
-    if latest_location:
+    if (latest_location):
         m = folium.Map(location=[latest_location['latitude'], latest_location['longitude']], zoom_start=12)
 
         # Add markers for each data point in the buffer
@@ -139,6 +140,7 @@ def car_list(request):
     ]
     return JsonResponse(car_data, safe=False)
 
+@csrf_exempt
 def create_car(request):
     if request.method == 'POST':
         form = CarForm(request.POST)
@@ -189,7 +191,7 @@ def driver_list(request):
     except Exception as e:
         return JsonResponse({'error': str(e)}, status=500)
 
-
+@csrf_exempt
 def create_driver(request):
     if request.method == 'POST':
         form = DriverForm(request.POST)
@@ -286,7 +288,9 @@ def employee_list(request):
     ]
     return JsonResponse(employee_data, safe=False)
 @ensure_csrf_cookie
+@csrf_exempt 
 @require_http_methods(["POST"])
+@csrf_exempt
 def create_employee(request):
     try:
         data = json.loads(request.body)
@@ -319,3 +323,49 @@ def delete_employee(request, employee_id):
         employee.delete()
         return JsonResponse({'message': 'Employee deleted successfully'}, status=200)
     return JsonResponse({'error': 'Invalid request method'}, status=405)
+@csrf_exempt
+def get_car_driving_data(request, car_id):
+    try:
+        # Get the most recent driving data for this car
+        driving_data = DrivingData.objects.filter(car_id=car_id).order_by('-id').first()
+        
+        if driving_data:
+            data = {
+                'car_id': car_id,
+                'distance': driving_data.distance,
+                'harsh_braking_events': driving_data.harsh_braking_events,
+                'harsh_acceleration_events': driving_data.harsh_acceleration_events,
+                'swerving_events': driving_data.swerving_events,
+                'potential_swerving_events': driving_data.potential_swerving_events,
+                'over_speed_events': driving_data.over_speed_events,
+                'score': driving_data.score,
+                'speed': driving_data.speed,
+            }
+            return JsonResponse(data)
+        else:
+            return JsonResponse({
+                'car_id': car_id,
+                'distance': 0,
+                'harsh_braking_events': 0,
+                'harsh_acceleration_events': 0,
+                'swerving_events': 0,
+                'potential_swerving_events': 0,
+                'over_speed_events': 0,
+                'score': 100,
+                'speed': 0
+            })
+    except Exception as e:
+        return JsonResponse({'error': str(e)}, status=500)        # In api/views.py
+        from django.views.decorators.csrf import csrf_exempt
+        
+        @csrf_exempt
+        def create_car(request):
+            if request.method == 'POST':
+                # Your existing code
+                pass
+            
+        @csrf_exempt
+        def create_driver(request):
+            if request.method == 'POST':
+                # Your existing code
+                pass

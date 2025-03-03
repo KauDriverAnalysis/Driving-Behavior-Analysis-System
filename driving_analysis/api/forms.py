@@ -79,7 +79,7 @@ class EmployeeForm(forms.ModelForm):
 
     def save(self, commit=True):
         employee = super(EmployeeForm, self).save(commit=False)
-        employee.Password = make_password(self.cleaned_data['Password'])
+        # employee.Password = make_password(self.cleaned_data['Password'])
         if commit:
             employee.save()
         return employee

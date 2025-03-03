@@ -35,6 +35,8 @@ urlpatterns = [
     path('api/employees/', views.employee_list, name='employee_list'),
     path('api/create_employee/', views.create_employee, name='create_employee'),
     path('api/cars/', views.car_list, name='car_list'),
-    path('api/drivers/', views.driver_list, name='driver_list'),        
-
+    path('api/drivers/', views.driver_list, name='driver_list'),     
+    path('api/car-driving-data/<int:car_id>/', views.get_car_driving_data, name='get_car_driving_data'),
+    path('api/create_car/', views.create_car, name='create_car'),
+    path('api/create_driver/', views.create_driver, name='create_driver'),
 ]

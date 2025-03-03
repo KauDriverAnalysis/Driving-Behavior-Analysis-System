@@ -73,11 +73,11 @@ export default function AddEmployeeDialog({
       }
     }
     
+    
     console.log('Form data being sent:', formDataObject);
     console.log('CSRF token:', getCsrfToken());
     
     try {
-      // Send POST request to your backend with full URL
       const response = await fetch('http://localhost:8000/api/create_employee/', {
         method: 'POST',
         headers: {
@@ -88,42 +88,38 @@ export default function AddEmployeeDialog({
         credentials: 'include', // Important for cookies/CSRF
       });
       
-      console.log('Response status:', response.status);
-      const data = await response.json();
-      console.log('Response data:', data);
-      
-      if (response.ok) {
-        // Handle success
+      if (!response.ok) {
+        const errorData = await response.json();
+        console.error('Error:', errorData);
         setAlertState({
           open: true,
-          message: 'Employee created successfully!',
-          severity: 'success'
-        });
-        
-        // Reset form
-        setGender({ male: false, female: false });
-        (event.target as HTMLFormElement).reset();
-        
-        // Call success callback if provided
-        if (onSuccess) {
-          onSuccess();
-        }
-        
-        // Close dialog after a short delay
-        setTimeout(() => {
-          onClose();
-        }, 1500);
-      } else {
-        // Handle errors from the server
-        console.error('Error creating employee:', data.errors);
-        setAlertState({
-          open: true,
-          message: `Error: ${JSON.stringify(data.errors || data.error || 'Unknown error')}`,
+          message: `Error: ${JSON.stringify(errorData.errors || errorData.error || 'Unknown error')}`,
           severity: 'error'
         });
+        return;
       }
+      
+      const result = await response.json();
+      console.log('Success:', result);
+      setAlertState({
+        open: true,
+        message: 'Employee created successfully!',
+        severity: 'success'
+      });
+      
+      setGender({ male: false, female: false });
+      (event.target as HTMLFormElement).reset();
+      
+      if (onSuccess) {
+        onSuccess();
+      }
+      
+      setTimeout(() => {
+        onClose();
+      }, 1500);
+      
     } catch (error) {
-      console.error('Error submitting form:', error);
+      console.error('Error:', error);
       setAlertState({
         open: true,
         message: `Network error: ${error instanceof Error ? error.message : 'Unknown error'}`,

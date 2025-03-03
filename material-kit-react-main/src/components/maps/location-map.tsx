@@ -4,8 +4,6 @@ import React, { useEffect, useRef, useState } from 'react';
 import L from 'leaflet';
 import 'leaflet/dist/leaflet.css';
 
-
-
 let DefaultIcon = L.icon({
   iconUrl: '/assets/marker-icon.png',
   shadowUrl: '/assets/marker-shadow.png',
@@ -19,7 +17,8 @@ export function LocationMap() {
   const mapRef = useRef(null);
   const mapInstanceRef = useRef<L.Map | null>(null);
   const markerRef = useRef<L.Marker | null>(null);
-  
+  const [currentSpeed, setCurrentSpeed] = useState<number>(0); // Add this state
+
   // Initialize the map once when component mounts
   useEffect(() => {
     if (mapRef.current && !mapInstanceRef.current) {
@@ -73,9 +72,11 @@ export function LocationMap() {
         .then(data => {
           if (Array.isArray(data) && data.length > 0) {
             updateMarker(data[0]);
+            setCurrentSpeed(data[0].speed); // Update speed state
           } else if (data && data.latitude) {
             // Handle case where API returns direct object instead of array
             updateMarker(data);
+            setCurrentSpeed(data.speed); // Update speed state
           }
         })
         .catch(error => console.error('Error fetching location data:', error));
@@ -83,6 +84,37 @@ export function LocationMap() {
     
     return () => clearInterval(interval);
   }, []); // Empty dependency - starts after map initialization
-  
-  return <div ref={mapRef} style={{ height: '100%', width: '100%' }} />;
+
+  // Speed counter component
+  const SpeedCounter = () => (
+    <div 
+      style={{ 
+        position: 'absolute',
+        bottom: '20px',
+        left: '20px',
+        zIndex: 1000,
+        backgroundColor: 'rgba(0, 0, 0, 0.6)',
+        color: 'white',
+        padding: '15px',
+        borderRadius: '50%',
+        width: '60px',
+        height: '60px',
+        display: 'flex',
+        flexDirection: 'column',
+        justifyContent: 'center',
+        alignItems: 'center',
+        border: '3px solid red'
+      }}
+    >
+      <div style={{ fontSize: '20px', fontWeight: 'bold' }}>{currentSpeed}</div>
+      <div style={{ fontSize: '12px' }}>km/h</div>
+    </div>
+  );
+
+  return (
+    <div style={{ position: 'relative', height: '100%', width: '100%' }}>
+      <div ref={mapRef} style={{ height: '100%', width: '100%' }} />
+      <SpeedCounter /> {/* Overlay the speed counter */}
+    </div>
+  );
 }
