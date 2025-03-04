@@ -33,6 +33,7 @@ class Driver(models.Model):
     gender = models.CharField(max_length=6, choices=[('male', 'Male'), ('female', 'Female')])
     phone_number = models.CharField(max_length=20, unique=True)
     company_id = models.ForeignKey('Company', on_delete=models.CASCADE)
+    car_id = models.ForeignKey('Car', on_delete=models.CASCADE)  # Ensure correct relation
 
 class DrivingData(models.Model):
     speed = models.FloatField()
@@ -54,3 +55,9 @@ class Employee(models.Model):
     address = models.CharField(max_length=255, blank=True, null=True)
     Email = models.EmailField(unique=True)
     Password = models.CharField(max_length=255)
+    Admin = models.BooleanField(default=False)  # `New Admin field``
+
+    def save(self, *args, **kwargs):
+        if not Employee.objects.exists():  # If no employee exists, set the first user as Admin
+            self.Admin = True
+        super().save(*args, **kwargs)  # Call the original save method
