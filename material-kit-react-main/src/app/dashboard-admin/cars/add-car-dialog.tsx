@@ -18,9 +18,10 @@ import MenuItem from '@mui/material/MenuItem';
 interface AddCarDialogProps {
   open: boolean;
   onClose: () => void;
+  onSuccess?: () => void; // Add this prop
 }
 
-export default function AddCarDialog({ open, onClose }: AddCarDialogProps): React.JSX.Element {
+export default function AddCarDialog({ open, onClose, onSuccess }: AddCarDialogProps): React.JSX.Element {
   const theme = useTheme();
   const [alertState, setAlertState] = useState({
     open: false,
@@ -73,7 +74,11 @@ export default function AddCarDialog({ open, onClose }: AddCarDialogProps): Reac
         severity: 'success'
       });
       
-      onClose();
+      if (onSuccess) {
+        onSuccess(); // Call onSuccess when car is created successfully
+      } else {
+        onClose(); // Fallback to just closing if onSuccess not provided
+      }
     } catch (error) {
       console.error('Error:', error);
       setAlertState({

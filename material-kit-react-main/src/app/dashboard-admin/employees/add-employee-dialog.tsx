@@ -112,6 +112,8 @@ export default function AddEmployeeDialog({
       
       if (onSuccess) {
         onSuccess();
+      } else {
+        onClose();
       }
       
       setTimeout(() => {

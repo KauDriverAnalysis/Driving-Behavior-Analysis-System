@@ -18,19 +18,34 @@ const cars = [
   // Add more cars here
 ];
 
+function applyPagination(rows: any[], page: number, rowsPerPage: number): any[] {
+  return rows.slice(page * rowsPerPage, page * rowsPerPage + rowsPerPage);
+}
+
 export default function Cars(): React.JSX.Element {
+  const [refreshTrigger, setRefreshTrigger] = useState(0);
+  const [openCarDialog, setOpenCarDialog] = useState(false);
   const page = 0;
   const rowsPerPage = 5;
 
   const paginatedCars = applyPagination(cars, page, rowsPerPage);
-
-  const [openCarDialog, setOpenCarDialog] = useState(false);
+  
+  // Function to trigger refresh
+  const refreshData = () => {
+    setRefreshTrigger(prev => prev + 1);
+  };
 
   const handleOpenCarDialog = () => {
     setOpenCarDialog(true);
   };
 
   const handleCloseCarDialog = () => {
+    setOpenCarDialog(false);
+  };
+  
+  // Add success handler
+  const handleSuccessfulOperation = () => {
+    refreshData();
     setOpenCarDialog(false);
   };
 
@@ -55,12 +70,18 @@ export default function Cars(): React.JSX.Element {
         </div>
       </Stack>
       <CarsFilters />
-      <CarsTable count={cars.length} page={page} rows={paginatedCars} rowsPerPage={rowsPerPage} />
-      <AddCarDialog open={openCarDialog} onClose={handleCloseCarDialog} />
+      <CarsTable 
+        count={cars.length} 
+        page={page} 
+        rows={paginatedCars} 
+        rowsPerPage={rowsPerPage}
+        refreshTrigger={refreshTrigger}
+      />
+      <AddCarDialog 
+        open={openCarDialog} 
+        onClose={handleCloseCarDialog}
+        onSuccess={handleSuccessfulOperation}
+      />
     </Stack>
   );
-}
-
-function applyPagination(rows: any[], page: number, rowsPerPage: number): any[] {
-  return rows.slice(page * rowsPerPage, page * rowsPerPage + rowsPerPage);
 }

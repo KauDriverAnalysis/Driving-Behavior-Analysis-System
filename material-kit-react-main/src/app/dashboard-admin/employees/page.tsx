@@ -69,16 +69,26 @@ function applyPagination(rows: Employee[], page: number, rowsPerPage: number): E
 
 export default function Page(): React.JSX.Element {
   const [open, setOpen] = useState(false);
+  const [refreshTrigger, setRefreshTrigger] = useState(0);
   const page = 0;
   const rowsPerPage = 5;
 
   const paginatedEmployees = applyPagination(employees, page, rowsPerPage);
+
+  const refreshData = () => {
+    setRefreshTrigger(prev => prev + 1);
+  };
 
   const handleOpen = () => {
     setOpen(true);
   };
 
   const handleClose = () => {
+    setOpen(false);
+  };
+
+  const handleSuccessfulOperation = () => {
+    refreshData();
     setOpen(false);
   };
 
@@ -112,8 +122,13 @@ export default function Page(): React.JSX.Element {
           page={page}
           rows={paginatedEmployees}
           rowsPerPage={rowsPerPage}
+          refreshTrigger={refreshTrigger}
         />
-        <AddEmployeeDialog open={open} onClose={handleClose} />
+        <AddEmployeeDialog 
+          open={open} 
+          onClose={handleClose}
+          onSuccess={handleSuccessfulOperation} 
+        />
       </Stack>
     </>
   );

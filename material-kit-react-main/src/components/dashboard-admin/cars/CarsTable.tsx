@@ -30,17 +30,19 @@ interface CarsTableProps {
   count?: number;
   page?: number;
   rowsPerPage?: number;
+  refreshTrigger?: number;
 }
 
 function noop(): void {
   // do nothing
 }
 
-export function CarsTable({ rows = [], count = 0, page = 0, rowsPerPage = 0 }: CarsTableProps): React.JSX.Element {
+export function CarsTable({ rows = [], count = 0, page = 0, rowsPerPage = 0, refreshTrigger = 0 }: CarsTableProps): React.JSX.Element {
   const [cars, setCars] = React.useState<Car[]>([]);
   const [loading, setLoading] = React.useState<boolean>(true);
 
   React.useEffect(() => {
+    setLoading(true);
     fetch('http://localhost:8000/api/cars/')
       .then((response) => response.json())
       .then((data) => {
@@ -51,7 +53,7 @@ export function CarsTable({ rows = [], count = 0, page = 0, rowsPerPage = 0 }: C
         console.error('Error fetching car data:', error);
         setLoading(false);
       });
-  }, []);
+  }, [refreshTrigger]);
 
   const rowIds = React.useMemo(() => {
     return cars.map((car) => car.id);

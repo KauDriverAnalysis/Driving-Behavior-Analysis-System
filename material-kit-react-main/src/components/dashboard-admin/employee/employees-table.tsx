@@ -37,6 +37,7 @@ interface EmployeesTableProps {
   page?: number;
   rows?: Employee[];
   rowsPerPage?: number;
+  refreshTrigger?: number;
 }
 
 export function EmployeesTable({
@@ -44,11 +45,13 @@ export function EmployeesTable({
   rows = [],
   page = 0,
   rowsPerPage = 0,
+  refreshTrigger = 0,
 }: EmployeesTableProps): React.JSX.Element {
   const [employees, setEmployees] = React.useState<Employee[]>([]);
   const [loading, setLoading] = React.useState<boolean>(true);
 
   React.useEffect(() => {
+    setLoading(true);
     fetch('http://localhost:8000/api/employees/')
       .then((response) => response.json())
       .then((data) => {
@@ -59,7 +62,7 @@ export function EmployeesTable({
         console.error('Error fetching employee data:', error);
         setLoading(false);
       });
-  }, []);
+  }, [refreshTrigger]);
 
   const rowIds = React.useMemo(() => {
     return employees.map((employee) => employee.id);
