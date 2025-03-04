@@ -29,16 +29,15 @@ const schema = zod.object({
 
 type Values = zod.infer<typeof schema>;
 
-const defaultValues = { email: 'sofia@devias.io', password: 'Secret1' } satisfies Values;
+const defaultValues = { email: '', password: '' } satisfies Values;
 
 export function SignInForm(): React.JSX.Element {
   const router = useRouter();
+  const { checkSession, setUserType } = useUser();
 
-  const { checkSession } = useUser();
-
-  const [showPassword, setShowPassword] = React.useState<boolean>();
-
+  const [showPassword, setShowPassword] = React.useState<boolean>(false);
   const [isPending, setIsPending] = React.useState<boolean>(false);
+  const [isEmployee, setIsEmployee] = React.useState<boolean>(false);
 
   const {
     control,
@@ -51,7 +50,7 @@ export function SignInForm(): React.JSX.Element {
     async (values: Values): Promise<void> => {
       setIsPending(true);
 
-      const { error } = await authClient.signInWithPassword(values);
+      const { userType, error } = await authClient.signInWithPassword(values);
 
       if (error) {
         setError('root', { type: 'server', message: error });
@@ -59,14 +58,22 @@ export function SignInForm(): React.JSX.Element {
         return;
       }
 
-      // Refresh the auth state
       await checkSession?.();
+      console.log('Current user type:', userType);
+      
+      // Store the user type
+      setUserType(userType);
 
-      // UserProvider, for this case, will not refresh the router
-      // After refresh, GuestGuard will handle the redirect
-      router.refresh();
+      if (userType === 'admin') {
+        router.push(paths.dashboardAdmin.overview);
+      } else if (userType === 'customer') {
+        router.push(paths.dashboardCustomer.overview);
+      } else if (userType === 'employee') {
+        setIsEmployee(true);
+        router.push(paths.dashboardAdmin.overview);
+      }
     },
-    [checkSession, router, setError]
+    [checkSession, router, setError, setUserType]  // Add setUserType to dependencies
   );
 
   return (
@@ -141,12 +148,35 @@ export function SignInForm(): React.JSX.Element {
       <Alert color="warning">
         Use{' '}
         <Typography component="span" sx={{ fontWeight: 700 }} variant="inherit">
-          sofia@devias.io
+          admin@example.com
         </Typography>{' '}
         with password{' '}
         <Typography component="span" sx={{ fontWeight: 700 }} variant="inherit">
-          Secret1
-        </Typography>
+          AdminSecret
+        </Typography>{' '}
+        for admin access.
+      </Alert>
+      <Alert color="warning">
+        Use{' '}
+        <Typography component="span" sx={{ fontWeight: 700 }} variant="inherit">
+          customer@example.com
+        </Typography>{' '}
+        with password{' '}
+        <Typography component="span" sx={{ fontWeight: 700 }} variant="inherit">
+          CustomerSecret
+        </Typography>{' '}
+        for customer access.
+      </Alert>
+      <Alert color="warning">
+        Use{' '}
+        <Typography component="span" sx={{ fontWeight: 700 }} variant="inherit">
+          employee@example.com
+        </Typography>{' '}
+        with password{' '}
+        <Typography component="span" sx={{ fontWeight: 700 }} variant="inherit">
+          EmployeeSecret
+        </Typography>{' '}
+        for employee access.
       </Alert>
     </Stack>
   );
