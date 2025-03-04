@@ -1,30 +1,46 @@
 'use client';
 
 import * as React from 'react';
+import { createContext, useState, useEffect } from 'react';
 
 import type { User } from '@/types/user';
 import { authClient } from '@/lib/auth/client';
 import { logger } from '@/lib/default-logger';
 
-export interface UserContextValue {
-  user: User | null;
-  error: string | null;
-  isLoading: boolean;
+interface UserContextType {
+  user: any | null;
+  userType: string | null;
+  setUserType: (type: string | null) => void;
   checkSession?: () => Promise<void>;
+  // Other properties your context has...
 }
 
-export const UserContext = React.createContext<UserContextValue | undefined>(undefined);
+// Create and export the context
+export const UserContext = createContext<UserContextType | undefined>(undefined);
 
 export interface UserProviderProps {
   children: React.ReactNode;
 }
 
 export function UserProvider({ children }: UserProviderProps): React.JSX.Element {
-  const [state, setState] = React.useState<{ user: User | null; error: string | null; isLoading: boolean }>({
-    user: null,
-    error: null,
-    isLoading: true,
+  const [user, setUser] = useState<any | null>(null);
+  // Initialize userType from localStorage
+  const [userType, setUserTypeState] = useState<string | null>(() => {
+    if (typeof window !== 'undefined') {
+      return localStorage.getItem('userType');
+    }
+    return null;
   });
+
+  // Function to update userType in both state and localStorage
+  const setUserType = (type: string | null) => {
+    setUserTypeState(type);
+    if (type) {
+      localStorage.setItem('userType', type);
+    } else {
+      localStorage.removeItem('userType');
+    }
+  };
 
   const checkSession = React.useCallback(async (): Promise<void> => {
     try {
@@ -32,18 +48,18 @@ export function UserProvider({ children }: UserProviderProps): React.JSX.Element
 
       if (error) {
         logger.error(error);
-        setState((prev) => ({ ...prev, user: null, error: 'Something went wrong', isLoading: false }));
+        setUser(null);
         return;
       }
 
-      setState((prev) => ({ ...prev, user: data ?? null, error: null, isLoading: false }));
+      setUser(data ?? null);
     } catch (err) {
       logger.error(err);
-      setState((prev) => ({ ...prev, user: null, error: 'Something went wrong', isLoading: false }));
+      setUser(null);
     }
   }, []);
 
-  React.useEffect(() => {
+  useEffect(() => {
     checkSession().catch((err: unknown) => {
       logger.error(err);
       // noop
@@ -51,7 +67,22 @@ export function UserProvider({ children }: UserProviderProps): React.JSX.Element
     // eslint-disable-next-line react-hooks/exhaustive-deps -- Expected
   }, []);
 
-  return <UserContext.Provider value={{ ...state, checkSession }}>{children}</UserContext.Provider>;
+  return (
+    <UserContext.Provider value={{ 
+      user, 
+      userType, 
+      setUserType, 
+      checkSession 
+    }}>
+      {children}
+    </UserContext.Provider>
+  );
 }
 
-export const UserConsumer = UserContext.Consumer;
+export function useUserContext() {
+  const context = React.useContext(UserContext);
+  if (!context) {
+    throw new Error('useUserContext must be used within a UserProvider');
+  }
+  return context;
+}
