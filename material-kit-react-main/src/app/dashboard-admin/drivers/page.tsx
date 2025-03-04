@@ -19,12 +19,15 @@ const drivers = [
 ];
 
 export default function Drivers(): React.JSX.Element {
+  const [refreshTrigger, setRefreshTrigger] = useState(0);
+  const [openDriverDialog, setOpenDriverDialog] = useState(false);
   const page = 0;
   const rowsPerPage = 5;
 
-  const paginatedDrivers = applyPagination(drivers, page, rowsPerPage);
-
-  const [openDriverDialog, setOpenDriverDialog] = useState(false);
+  // Function to trigger refresh
+  const refreshData = () => {
+    setRefreshTrigger(prev => prev + 1);
+  };
 
   const handleOpenDriverDialog = () => {
     setOpenDriverDialog(true);
@@ -33,6 +36,12 @@ export default function Drivers(): React.JSX.Element {
   const handleCloseDriverDialog = () => {
     setOpenDriverDialog(false);
   };
+
+  const handleSuccessfulOperation = () => {
+    refreshData(); // Refresh data after successful operation
+  };
+
+  const paginatedDrivers = applyPagination(drivers, page, rowsPerPage);
 
   return (
     <Stack spacing={3}>
@@ -55,8 +64,18 @@ export default function Drivers(): React.JSX.Element {
         </div>
       </Stack>
       <DriversFilters />
-      <DriversTable count={drivers.length} page={page} rows={paginatedDrivers} rowsPerPage={rowsPerPage} />
-      <AddDriverDialog open={openDriverDialog} onClose={handleCloseDriverDialog} />
+      <DriversTable 
+        count={drivers.length} 
+        page={page} 
+        rows={paginatedDrivers} 
+        rowsPerPage={rowsPerPage}
+        refreshTrigger={refreshTrigger}
+      />
+      <AddDriverDialog 
+        open={openDriverDialog} 
+        onClose={handleCloseDriverDialog}
+        onSuccess={handleSuccessfulOperation} 
+      />
     </Stack>
   );
 }

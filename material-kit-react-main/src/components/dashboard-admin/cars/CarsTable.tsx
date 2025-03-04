@@ -26,25 +26,45 @@ interface Car {
 }
 
 interface CarsTableProps {
-  rows: Car[];
-  count: number;
-  page: number;
-  rowsPerPage: number;
+  rows?: Car[];
+  count?: number;
+  page?: number;
+  rowsPerPage?: number;
 }
 
 function noop(): void {
   // do nothing
 }
 
-export function CarsTable({ rows, count, page, rowsPerPage }: CarsTableProps): React.JSX.Element {
+export function CarsTable({ rows = [], count = 0, page = 0, rowsPerPage = 0 }: CarsTableProps): React.JSX.Element {
+  const [cars, setCars] = React.useState<Car[]>([]);
+  const [loading, setLoading] = React.useState<boolean>(true);
+
+  React.useEffect(() => {
+    fetch('http://localhost:8000/api/cars/')
+      .then((response) => response.json())
+      .then((data) => {
+        setCars(data);
+        setLoading(false);
+      })
+      .catch((error) => {
+        console.error('Error fetching car data:', error);
+        setLoading(false);
+      });
+  }, []);
+
   const rowIds = React.useMemo(() => {
-    return rows.map((car) => car.id);
-  }, [rows]);
+    return cars.map((car) => car.id);
+  }, [cars]);
 
   const { selectAll, deselectAll, selectOne, deselectOne, selected } = useSelection(rowIds);
 
-  const selectedSome = (selected?.size ?? 0) > 0 && (selected?.size ?? 0) < rows.length;
-  const selectedAll = rows.length > 0 && selected?.size === rows.length;
+  const selectedSome = (selected?.size ?? 0) > 0 && (selected?.size ?? 0) < cars.length;
+  const selectedAll = cars.length > 0 && selected?.size === cars.length;
+
+  if (loading) {
+    return <div>Loading...</div>;
+  }
 
   return (
     <Card>
@@ -78,7 +98,7 @@ export function CarsTable({ rows, count, page, rowsPerPage }: CarsTableProps): R
               </TableRow>
             </TableHead>
             <TableBody>
-              {rows.map((row) => {
+              {cars.map((row) => {
                 const isSelected = selected?.has(row.id);
 
                 return (
@@ -102,8 +122,8 @@ export function CarsTable({ rows, count, page, rowsPerPage }: CarsTableProps): R
                     <TableCell>{row.releaseYear}</TableCell>
                     <TableCell>{row.state}</TableCell>
                     <TableCell>{row.deviceId}</TableCell>
-                    <TableCell>{row.customerId || 'N/A'}</TableCell>
-                    <TableCell>{row.companyId || 'N/A'}</TableCell>
+                    <TableCell>{row.customerId}</TableCell>
+                    <TableCell>{row.companyId}</TableCell>
                   </TableRow>
                 );
               })}

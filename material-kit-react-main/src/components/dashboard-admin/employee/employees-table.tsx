@@ -24,14 +24,12 @@ function noop(): void {
 
 export interface Employee {
   id: string;
-  avatar: string;
   name: string;
-  email: string;
-  address: { city: string; state: string; country: string; street: string };
-  phone: string;
   gender: string;
-  company_id: string; // Assuming company_id is a string
-  createdAt: Date;
+  phone_number: string;
+  address: string;
+  Email: string;
+  Password: string;
 }
 
 interface EmployeesTableProps {
@@ -47,14 +45,34 @@ export function EmployeesTable({
   page = 0,
   rowsPerPage = 0,
 }: EmployeesTableProps): React.JSX.Element {
+  const [employees, setEmployees] = React.useState<Employee[]>([]);
+  const [loading, setLoading] = React.useState<boolean>(true);
+
+  React.useEffect(() => {
+    fetch('http://localhost:8000/api/employees/')
+      .then((response) => response.json())
+      .then((data) => {
+        setEmployees(data);
+        setLoading(false);
+      })
+      .catch((error) => {
+        console.error('Error fetching employee data:', error);
+        setLoading(false);
+      });
+  }, []);
+
   const rowIds = React.useMemo(() => {
-    return rows.map((employee) => employee.id);
-  }, [rows]);
+    return employees.map((employee) => employee.id);
+  }, [employees]);
 
   const { selectAll, deselectAll, selectOne, deselectOne, selected } = useSelection(rowIds);
 
-  const selectedSome = (selected?.size ?? 0) > 0 && (selected?.size ?? 0) < rows.length;
-  const selectedAll = rows.length > 0 && selected?.size === rows.length;
+  const selectedSome = (selected?.size ?? 0) > 0 && (selected?.size ?? 0) < employees.length;
+  const selectedAll = employees.length > 0 && selected?.size === employees.length;
+
+  if (loading) {
+    return <div>Loading...</div>;
+  }
 
   return (
     <Card>
@@ -77,15 +95,14 @@ export function EmployeesTable({
               </TableCell>
               <TableCell>Name</TableCell>
               <TableCell>Gender</TableCell>
+              <TableCell>Phone Number</TableCell>
+              <TableCell>Address</TableCell>
               <TableCell>Email</TableCell>
-              <TableCell>address</TableCell>
-              <TableCell>Phone</TableCell>
-              <TableCell>Company ID</TableCell>
               <TableCell>Password</TableCell>
             </TableRow>
           </TableHead>
           <TableBody>
-            {rows.map((row) => {
+            {employees.map((row) => {
               const isSelected = selected?.has(row.id);
 
               return (
@@ -102,20 +119,12 @@ export function EmployeesTable({
                       }}
                     />
                   </TableCell>
-                  <TableCell>
-                    <Stack sx={{ alignItems: 'center' }} direction="row" spacing={2}>
-                      <Avatar src={row.avatar} />
-                      <Typography variant="subtitle2">{row.name}</Typography>
-                    </Stack>
-                  </TableCell>
+                  <TableCell>{row.name}</TableCell>
                   <TableCell>{row.gender}</TableCell>
-                  <TableCell>{row.email}</TableCell>
-                  <TableCell>
-                    {row.address.city}, {row.address.state}, {row.address.country}
-                  </TableCell>
-                  <TableCell>{row.phone}</TableCell>
-                  <TableCell>{row.company_id}</TableCell>
-                  <TableCell>{dayjs(row.createdAt).format('MMM D, YYYY')}</TableCell>
+                  <TableCell>{row.phone_number}</TableCell>
+                  <TableCell>{row.address}</TableCell>
+                  <TableCell>{row.Email}</TableCell>
+                  <TableCell>{row.Password}</TableCell>
                 </TableRow>
               );
             })}

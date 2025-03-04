@@ -1,9 +1,7 @@
-
 'use client';
 
 import * as React from 'react';
 import { useState } from 'react';
-import { useRouter } from 'next/navigation';
 import Head from 'next/head';
 import Button from '@mui/material/Button';
 import Stack from '@mui/material/Stack';
@@ -18,9 +16,6 @@ import { EmployeesTable } from '@/components/dashboard-admin/employee/employees-
 import AddEmployeeDialog from './add-employee-dialog';
 import type { Employee } from '@/components/dashboard-admin/employee/employees-table';
 
-// Remove the metadata export
-// export const metadata = { title: `Employees | Dashboard | ${config.site.name}` } satisfies Metadata;
-
 const employees: Employee[] = [
   {
     id: 'USR-001',
@@ -29,6 +24,9 @@ const employees: Employee[] = [
     email: 'john.doe@example.com',
     phone: '123-456-7890',
     address: { city: 'New York', country: 'USA', state: 'NY', street: '123 Main St' },
+    createdAt: dayjs().subtract(2, 'hours').toDate(),
+    gender: '',
+    company_id: ''
   },
   {
     id: 'USR-002',
@@ -37,6 +35,9 @@ const employees: Employee[] = [
     email: 'jane.smith@example.com',
     phone: '987-654-3210',
     address: { city: 'Los Angeles', country: 'USA', state: 'CA', street: '456 Elm St' },
+    createdAt: dayjs().subtract(1, 'day').toDate(),
+    gender: '',
+    company_id: ''
   },
   {
     id: 'USR-003',
@@ -45,6 +46,9 @@ const employees: Employee[] = [
     email: 'alice.johnson@example.com',
     phone: '555-123-4567',
     address: { city: 'Chicago', country: 'USA', state: 'IL', street: '789 Oak St' },
+    createdAt: dayjs().subtract(3, 'days').toDate(),
+    gender: '',
+    company_id: ''
   },
   {
     id: 'USR-004',
@@ -53,6 +57,9 @@ const employees: Employee[] = [
     email: 'bob.brown@example.com',
     phone: '444-555-6666',
     address: { city: 'Houston', country: 'USA', state: 'TX', street: '101 Pine St' },
+    createdAt: dayjs().subtract(1, 'week').toDate(),
+    gender: '',
+    company_id: ''
   },
 ];
 
@@ -61,24 +68,18 @@ function applyPagination(rows: Employee[], page: number, rowsPerPage: number): E
 }
 
 export default function Page(): React.JSX.Element {
-  const router = useRouter();
+  const [open, setOpen] = useState(false);
   const page = 0;
   const rowsPerPage = 5;
 
   const paginatedEmployees = applyPagination(employees, page, rowsPerPage);
 
-  const [openEmployeeDialog, setOpenEmployeeDialog] = useState(false);
-
-  const handleOpenEmployeeDialog = () => {
-    setOpenEmployeeDialog(true);
+  const handleOpen = () => {
+    setOpen(true);
   };
 
-  const handleCloseEmployeeDialog = () => {
-    setOpenEmployeeDialog(false);
-  };
-
-  const handleAddEmployee = () => {
-    router.push('/dashboard-admin/employees/add-employee');
+  const handleClose = () => {
+    setOpen(false);
   };
 
   return (
@@ -100,8 +101,8 @@ export default function Page(): React.JSX.Element {
             </Stack>
           </Stack>
           <div>
-            <Button startIcon={<AddIcon />} variant="contained" onClick={handleAddEmployee}>
-              Add Employee
+            <Button startIcon={<AddIcon />} variant="contained" onClick={handleOpen}>
+              Add
             </Button>
           </div>
         </Stack>
@@ -112,7 +113,7 @@ export default function Page(): React.JSX.Element {
           rows={paginatedEmployees}
           rowsPerPage={rowsPerPage}
         />
-        <AddEmployeeDialog open={openEmployeeDialog} onClose={handleCloseEmployeeDialog} />
+        <AddEmployeeDialog open={open} onClose={handleClose} />
       </Stack>
     </>
   );
