@@ -17,9 +17,14 @@ import Checkbox from '@mui/material/Checkbox';
 interface AddDriverDialogProps {
   open: boolean;
   onClose: () => void;
+  onSuccess?: () => void;
 }
 
-export default function AddDriverDialog({ open, onClose }: AddDriverDialogProps): React.JSX.Element {
+export default function AddDriverDialog({ 
+  open, 
+  onClose,
+  onSuccess
+}: AddDriverDialogProps): React.JSX.Element {
   const theme = useTheme();
   const [alertState, setAlertState] = useState({
     open: false,
@@ -60,6 +65,11 @@ export default function AddDriverDialog({ open, onClose }: AddDriverDialogProps)
       formDataObject.company_id = parseInt(formDataObject.company_id, 10);
     }
     
+    // Ensure car_id is properly formatted
+    if (formDataObject.car_id) {
+      formDataObject.car_id = parseInt(formDataObject.car_id, 10);
+    }
+    
     console.log('Form data being sent:', formDataObject);
     
     try {
@@ -91,7 +101,13 @@ export default function AddDriverDialog({ open, onClose }: AddDriverDialogProps)
         severity: 'success'
       });
       
-      onClose();
+      if (onSuccess) {
+        onSuccess(); // Call the success callback
+      }
+      
+      setTimeout(() => {
+        onClose();
+      }, 1500);
     } catch (error) {
       console.error('Error:', error);
       setAlertState({
@@ -171,6 +187,13 @@ export default function AddDriverDialog({ open, onClose }: AddDriverDialogProps)
               <FormControl fullWidth required>
                 <InputLabel>Company ID</InputLabel>
                 <OutlinedInput label="Company ID" name="company_id" />
+              </FormControl>
+            </Grid>
+
+            <Grid item xs={12}>
+              <FormControl fullWidth required>
+                <InputLabel>Car ID</InputLabel>
+                <OutlinedInput label="Car ID" name="car_id" />
               </FormControl>
             </Grid>
           </Grid>

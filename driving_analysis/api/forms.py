@@ -56,7 +56,7 @@ class CarForm(forms.ModelForm):
 class DriverForm(forms.ModelForm):
     class Meta:
         model = Driver
-        fields = ['name', 'gender', 'phone_number', 'company_id']
+        fields = ['name', 'gender', 'phone_number', 'company_id', 'car_id']
     
     def clean_phone_number(self):
         phone_number = self.cleaned_data.get('phone_number')
@@ -75,7 +75,7 @@ class DrivingDataForm(forms.ModelForm):
 class EmployeeForm(forms.ModelForm):
     class Meta:
         model = Employee
-        fields = ['Name', 'gender', 'phone_number', 'address', 'Email', 'Password']
+        fields = ['Name', 'gender', 'phone_number', 'address', 'Email', 'Password', 'Admin']
 
     def clean_phone_number(self):
         phone_number = self.cleaned_data.get('phone_number')

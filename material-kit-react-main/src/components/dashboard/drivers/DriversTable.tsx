@@ -26,17 +26,19 @@ interface DriversTableProps {
   count?: number;
   page?: number;
   rowsPerPage?: number;
+  refreshTrigger?: number;
 }
 
 function noop(): void {
   // do nothing
 }
 
-export function DriversTable({ rows = [], count = 0, page = 0, rowsPerPage = 0 }: DriversTableProps): React.JSX.Element {
+export function DriversTable({ rows = [], count = 0, page = 0, rowsPerPage = 0, refreshTrigger = 0 }: DriversTableProps): React.JSX.Element {
   const [drivers, setDrivers] = React.useState<Driver[]>([]);
   const [loading, setLoading] = React.useState<boolean>(true);
 
   React.useEffect(() => {
+    setLoading(true);
     fetch('http://localhost:8000/api/drivers/')
       .then((response) => response.json())
       .then((data) => {
@@ -47,7 +49,7 @@ export function DriversTable({ rows = [], count = 0, page = 0, rowsPerPage = 0 }
         console.error('Error fetching driver data:', error);
         setLoading(false);
       });
-  }, []);
+  }, [refreshTrigger]);
 
   const rowIds = React.useMemo(() => {
     return drivers.map((driver) => driver.id);
