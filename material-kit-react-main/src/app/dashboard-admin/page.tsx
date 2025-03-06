@@ -1,132 +1,107 @@
+'use client';
+
 import * as React from 'react';
-import type { Metadata } from 'next';
 import Grid from '@mui/material/Unstable_Grid2';
-import dayjs from 'dayjs';
+import Card from '@mui/material/Card';
+import CardContent from '@mui/material/CardContent';
+import Typography from '@mui/material/Typography';
+import { TimeFilter } from '@/components/dashboard-admin/overview/time-filter';
+import { Metrics } from '@/components/dashboard-admin/overview/metrics';
 
-import { config } from '@/config';
-import { Budget } from '@/components/dashboard-admin/overview/budget';
-import { LatestOrders } from '@/components/dashboard-admin/overview/latest-orders';
-import { LatestProducts } from '@/components/dashboard-admin/overview/latest-products';
-import { Sales } from '@/components/dashboard-admin/overview/sales';
-import { TasksProgress } from '@/components/dashboard-admin/overview/tasks-progress';
-import { TotalCustomers } from '@/components/dashboard-admin/overview/total-customers';
-import { TotalProfit } from '@/components/dashboard-admin/overview/total-profit';
-import { Traffic } from '@/components/dashboard-admin/overview/traffic';
+// Fake data for different time frames
+const fakeStatsData = {
+  '1d': {
+    carsUsed: 45,
+    averageAccidents: 2.3,
+    averageScore: 85
+  },
+  '7d': {
+    carsUsed: 156,
+    averageAccidents: 3.1,
+    averageScore: 82
+  },
+  '30d': {
+    carsUsed: 487,
+    averageAccidents: 2.8,
+    averageScore: 84
+  }
+};
 
-export const metadata = { title: `Overview | Dashboard | ${config.site.name}` } satisfies Metadata;
+const fakeMetricsData = {
+  '1d': {
+    braking: 75,
+    acceleration: 68,
+    swerving: 82
+  },
+  '7d': {
+    braking: 82,
+    acceleration: 74,
+    swerving: 88
+  },
+  '30d': {
+    braking: 78,
+    acceleration: 71,
+    swerving: 85
+  }
+};
 
-export default function Page(): React.JSX.Element {
+export default function Overview(): React.JSX.Element {
+  const [timeFrame, setTimeFrame] = React.useState<'1d' | '7d' | '30d'>('1d');
+  const [stats, setStats] = React.useState(fakeStatsData['1d']);
+  const [metrics, setMetrics] = React.useState(fakeMetricsData['1d']);
+
+  // Update stats when timeFrame changes
+  React.useEffect(() => {
+    setStats(fakeStatsData[timeFrame]);
+    setMetrics(fakeMetricsData[timeFrame]);
+    
+    // TODO: Implement real API calls when backend is ready
+    // fetch(`http://localhost:8000/api/overview-stats?timeFrame=${timeFrame}`)
+    //   .then(response => response.json())
+    //   .then(data => {
+    //     setStats(data.stats);
+    //     setMetrics(data.metrics);
+    //   })
+    //   .catch(error => console.error('Error fetching data:', error));
+  }, [timeFrame]);
+
   return (
     <Grid container spacing={3}>
-      <Grid lg={3} sm={6} xs={12}>
-        <Budget diff={12} trend="up" sx={{ height: '100%' }} value="$24k" />
+      <Grid xs={12}>
+        <TimeFilter onFilterChange={setTimeFrame} selectedFilter={timeFrame} />
       </Grid>
-      <Grid lg={3} sm={6} xs={12}>
-        <TotalCustomers diff={16} trend="down" sx={{ height: '100%' }} value="1.6k" />
+      <Grid lg={4} sm={6} xs={12}>
+        <Card>
+          <CardContent>
+            <Typography color="text.secondary" variant="overline">
+              Cars Used
+            </Typography>
+            <Typography variant="h4">{stats.carsUsed}</Typography>
+          </CardContent>
+        </Card>
       </Grid>
-      <Grid lg={3} sm={6} xs={12}>
-        <TasksProgress sx={{ height: '100%' }} value={75.5} />
+      <Grid lg={4} sm={6} xs={12}>
+        <Card>
+          <CardContent>
+            <Typography color="text.secondary" variant="overline">
+              Average Accidents
+            </Typography>
+            <Typography variant="h4">{stats.averageAccidents.toFixed(1)}</Typography>
+          </CardContent>
+        </Card>
       </Grid>
-      <Grid lg={3} sm={6} xs={12}>
-        <TotalProfit sx={{ height: '100%' }} value="$15k" />
+      <Grid lg={4} sm={6} xs={12}>
+        <Card>
+          <CardContent>
+            <Typography color="text.secondary" variant="overline">
+              Average Score
+            </Typography>
+            <Typography variant="h4">{stats.averageScore}/100</Typography>
+          </CardContent>
+        </Card>
       </Grid>
-      <Grid lg={8} xs={12}>
-        <Sales
-          chartSeries={[
-            { name: 'This year', data: [18, 16, 5, 8, 3, 14, 14, 16, 17, 19, 18, 20] },
-            { name: 'Last year', data: [12, 11, 4, 6, 2, 9, 9, 10, 11, 12, 13, 13] },
-          ]}
-          sx={{ height: '100%' }}
-        />
-      </Grid>
-      <Grid lg={4} md={6} xs={12}>
-        <Traffic chartSeries={[63, 15, 22]} labels={['Desktop', 'Tablet', 'Phone']} sx={{ height: '100%' }} />
-      </Grid>
-      <Grid lg={4} md={6} xs={12}>
-        <LatestProducts
-          products={[
-            {
-              id: 'PRD-005',
-              name: 'Soja & Co. Eucalyptus',
-              image: '/assets/product-5.png',
-              updatedAt: dayjs().subtract(18, 'minutes').subtract(5, 'hour').toDate(),
-            },
-            {
-              id: 'PRD-004',
-              name: 'Necessaire Body Lotion',
-              image: '/assets/product-4.png',
-              updatedAt: dayjs().subtract(41, 'minutes').subtract(3, 'hour').toDate(),
-            },
-            {
-              id: 'PRD-003',
-              name: 'Ritual of Sakura',
-              image: '/assets/product-3.png',
-              updatedAt: dayjs().subtract(5, 'minutes').subtract(3, 'hour').toDate(),
-            },
-            {
-              id: 'PRD-002',
-              name: 'Lancome Rouge',
-              image: '/assets/product-2.png',
-              updatedAt: dayjs().subtract(23, 'minutes').subtract(2, 'hour').toDate(),
-            },
-            {
-              id: 'PRD-001',
-              name: 'Erbology Aloe Vera',
-              image: '/assets/product-1.png',
-              updatedAt: dayjs().subtract(10, 'minutes').toDate(),
-            },
-          ]}
-          sx={{ height: '100%' }}
-        />
-      </Grid>
-      <Grid lg={8} md={12} xs={12}>
-        <LatestOrders
-          orders={[
-            {
-              id: 'ORD-007',
-              customer: { name: 'Ekaterina Tankova' },
-              amount: 30.5,
-              status: 'pending',
-              createdAt: dayjs().subtract(10, 'minutes').toDate(),
-            },
-            {
-              id: 'ORD-006',
-              customer: { name: 'Cao Yu' },
-              amount: 25.1,
-              status: 'delivered',
-              createdAt: dayjs().subtract(10, 'minutes').toDate(),
-            },
-            {
-              id: 'ORD-004',
-              customer: { name: 'Alexa Richardson' },
-              amount: 10.99,
-              status: 'refunded',
-              createdAt: dayjs().subtract(10, 'minutes').toDate(),
-            },
-            {
-              id: 'ORD-003',
-              customer: { name: 'Anje Keizer' },
-              amount: 96.43,
-              status: 'pending',
-              createdAt: dayjs().subtract(10, 'minutes').toDate(),
-            },
-            {
-              id: 'ORD-002',
-              customer: { name: 'Clarke Gillebert' },
-              amount: 32.54,
-              status: 'delivered',
-              createdAt: dayjs().subtract(10, 'minutes').toDate(),
-            },
-            {
-              id: 'ORD-001',
-              customer: { name: 'Adam Denisov' },
-              amount: 16.76,
-              status: 'delivered',
-              createdAt: dayjs().subtract(10, 'minutes').toDate(),
-            },
-          ]}
-          sx={{ height: '100%' }}
-        />
+      <Grid xs={12}>
+        <Metrics data={metrics} />
       </Grid>
     </Grid>
   );

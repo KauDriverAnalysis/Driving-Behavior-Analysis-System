@@ -4,15 +4,6 @@ import * as React from 'react';
 import Grid from '@mui/material/Unstable_Grid2';
 import dayjs from 'dayjs';
 
-import { config } from '@/config';
-import { Budget } from '@/components/dashboard-admin/overview/budget';
-import { LatestOrders } from '@/components/dashboard-admin/overview/latest-orders';
-import { LatestProducts } from '@/components/dashboard-admin/overview/latest-products';
-import { Sales } from '@/components/dashboard-admin/overview/sales';
-import { TasksProgress } from '@/components/dashboard-admin/overview/tasks-progress';
-import { TotalCustomers } from '@/components/dashboard-admin/overview/total-customers';
-import { TotalProfit } from '@/components/dashboard-admin/overview/total-profit';
-import { Traffic } from '@/components/dashboard-admin/overview/traffic';
 
 // Remove the metadata export
 // export const metadata = { title: `Overview | Dashboard | ${config.site.name}` } satisfies Metadata;
