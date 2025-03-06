@@ -1,126 +1,277 @@
+// Overview.tsx
 'use client';
 
 import * as React from 'react';
-import Grid from '@mui/material/Unstable_Grid2';
-import dayjs from 'dayjs';
+import Grid from '@mui/material/Grid'; // Changed from Unstable_Grid2
+import Card from '@mui/material/Card';
+import CardContent from '@mui/material/CardContent';
+import Typography from '@mui/material/Typography';
+import Box from '@mui/material/Box';
+import Stack from '@mui/material/Stack';
+import Divider from '@mui/material/Divider';
+import TrendingUpIcon from '@mui/icons-material/TrendingUp';
+import TrendingDownIcon from '@mui/icons-material/TrendingDown';
+import DirectionsCarIcon from '@mui/icons-material/DirectionsCar';
+import WarningIcon from '@mui/icons-material/Warning';
+import SpeedIcon from '@mui/icons-material/Speed';
+import { TimeFilter } from '@/components/dashboard-admin/overview/time-filter';
+import { DrivingMetrics } from '@/components/dashboard-admin/overview/driving-metrics';
+import { PerformanceTrend } from '@/components/dashboard-admin/overview/performance-trend';
+import { RiskAssessment } from '@/components/dashboard-admin/overview/risk-assessment';
+import { StatusBreakdown } from '@/components/dashboard-admin/overview/status-breakdown';
 
+// Enhanced fake data for different time frames
+const fakeStatsData = {
+  '1d': {
+    carsUsed: 45,
+    averageAccidents: 2.3,
+    averageScore: 85,
+    trend: {
+      carsUsed: +8,
+      averageAccidents: -0.5,
+      averageScore: +3
+    }
+  },
+  '7d': {
+    carsUsed: 156,
+    averageAccidents: 3.1,
+    averageScore: 82,
+    trend: {
+      carsUsed: +12,
+      averageAccidents: +0.2,
+      averageScore: -1
+    }
+  },
+  '30d': {
+    carsUsed: 487,
+    averageAccidents: 2.8,
+    averageScore: 84,
+    trend: {
+      carsUsed: +23,
+      averageAccidents: -0.3,
+      averageScore: +2
+    }
+  }
+};
 
-// Remove the metadata export
-// export const metadata = { title: `Overview | Dashboard | ${config.site.name}` } satisfies Metadata;
+const fakeDrivingMetricsData = {
+  '1d': {
+    braking: 75,
+    acceleration: 68,
+    swerving: 82,
+    speeding: 64,
+    phoneUse: 88,
+    tiredness: 92
+  },
+  '7d': {
+    braking: 82,
+    acceleration: 74,
+    swerving: 88,
+    speeding: 70,
+    phoneUse: 85,
+    tiredness: 89
+  },
+  '30d': {
+    braking: 78,
+    acceleration: 71,
+    swerving: 85,
+    speeding: 68,
+    phoneUse: 87,
+    tiredness: 90
+  }
+};
 
-export default function Page(): React.JSX.Element {
+const fakePerformanceTrendData = {
+  '1d': {
+    hours: ['00:00', '03:00', '06:00', '09:00', '12:00', '15:00', '18:00', '21:00'],
+    scores: [82, 83, 88, 85, 78, 80, 84, 87]
+  },
+  '7d': {
+    days: ['Mon', 'Tue', 'Wed', 'Thu', 'Fri', 'Sat', 'Sun'],
+    scores: [81, 83, 85, 82, 80, 88, 86]
+  },
+  '30d': {
+    weeks: ['Week 1', 'Week 2', 'Week 3', 'Week 4'],
+    scores: [83, 85, 82, 87]
+  }
+};
+
+const fakeRiskData = {
+  '1d': {
+    high: 8,
+    medium: 15,
+    low: 22
+  },
+  '7d': {
+    high: 24,
+    medium: 45,
+    low: 87
+  },
+  '30d': {
+    high: 68,
+    medium: 134,
+    low: 285
+  }
+};
+
+const fakeStatusData = {
+  '1d': {
+    active: 30,
+    maintenance: 8,
+    idle: 7
+  },
+  '7d': {
+    active: 98,
+    maintenance: 35,
+    idle: 23
+  },
+  '30d': {
+    active: 325,
+    maintenance: 87,
+    idle: 75
+  }
+};
+
+export default function Overview(): React.JSX.Element {
+  const [timeFrame, setTimeFrame] = React.useState<'1d' | '7d' | '30d'>('1d');
+  const [stats, setStats] = React.useState(fakeStatsData['1d']);
+  const [drivingMetrics, setDrivingMetrics] = React.useState(fakeDrivingMetricsData['1d']);
+  const [performanceTrend, setPerformanceTrend] = React.useState(fakePerformanceTrendData['1d']);
+  const [riskData, setRiskData] = React.useState(fakeRiskData['1d']);
+  const [statusData, setStatusData] = React.useState(fakeStatusData['1d']);
+
+  // Update all data when timeFrame changes
+  React.useEffect(() => {
+    setStats(fakeStatsData[timeFrame]);
+    setDrivingMetrics(fakeDrivingMetricsData[timeFrame]);
+    setPerformanceTrend(fakePerformanceTrendData[timeFrame]);
+    setRiskData(fakeRiskData[timeFrame]);
+    setStatusData(fakeStatusData[timeFrame]);
+    
+    // TODO: Implement real API calls when backend is ready
+    // fetch(`http://localhost:8000/api/overview-stats?timeFrame=${timeFrame}`)
+    //   .then(response => response.json())
+    //   .then(data => {
+    //     setStats(data.stats);
+    //     setDrivingMetrics(data.drivingMetrics);
+    //     // etc.
+    //   })
+    //   .catch(error => console.error('Error fetching data:', error));
+  }, [timeFrame]);
+
   return (
-    <Grid container spacing={3}>
-      <Grid lg={3} sm={6} xs={12}>
-        <Budget diff={12} trend="up" sx={{ height: '100%' }} value="$24k" />
+    <Box sx={{ pb: 5 }}>
+      <Box sx={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', mb: 3 }}>
+        <Typography variant="h4" component="h1">Fleet Overview</Typography>
+        <TimeFilter onFilterChange={setTimeFrame} selectedFilter={timeFrame} />
+      </Box>
+
+      <Grid container spacing={3}>
+        {/* Key Stats Cards */}
+        <Grid item lg={4} sm={6} xs={12}>
+          <Card sx={{ height: '100%' }}>
+            <CardContent>
+              <Box sx={{ display: 'flex', alignItems: 'center', mb: 2 }}>
+                <DirectionsCarIcon sx={{ color: 'primary.main', mr: 1 }} />
+                <Typography color="text.secondary" variant="overline">
+                  Cars Used
+                </Typography>
+              </Box>
+              <Typography variant="h4">{stats.carsUsed}</Typography>
+              <Box sx={{ 
+                display: 'flex', 
+                alignItems: 'center', 
+                mt: 1, 
+                color: stats.trend.carsUsed >= 0 ? 'success.main' : 'error.main' 
+              }}>
+                {stats.trend.carsUsed >= 0 ? 
+                  <TrendingUpIcon fontSize="small" sx={{ mr: 0.5 }} /> : 
+                  <TrendingDownIcon fontSize="small" sx={{ mr: 0.5 }} />
+                }
+                <Typography variant="body2">
+                  {stats.trend.carsUsed >= 0 ? '+' : ''}{stats.trend.carsUsed} from previous {timeFrame}
+                </Typography>
+              </Box>
+            </CardContent>
+          </Card>
+        </Grid>
+        
+        <Grid item lg={4} sm={6} xs={12}>
+          <Card sx={{ height: '100%' }}>
+            <CardContent>
+              <Box sx={{ display: 'flex', alignItems: 'center', mb: 2 }}>
+                <WarningIcon sx={{ color: 'warning.main', mr: 1 }} />
+                <Typography color="text.secondary" variant="overline">
+                  Average Accidents
+                </Typography>
+              </Box>
+              <Typography variant="h4">{stats.averageAccidents.toFixed(1)}</Typography>
+              <Box sx={{ 
+                display: 'flex', 
+                alignItems: 'center', 
+                mt: 1, 
+                color: stats.trend.averageAccidents <= 0 ? 'success.main' : 'error.main' 
+              }}>
+                {stats.trend.averageAccidents <= 0 ? 
+                  <TrendingDownIcon fontSize="small" sx={{ mr: 0.5 }} /> : 
+                  <TrendingUpIcon fontSize="small" sx={{ mr: 0.5 }} />
+                }
+                <Typography variant="body2">
+                  {stats.trend.averageAccidents <= 0 ? '' : '+'}{stats.trend.averageAccidents.toFixed(1)} from previous {timeFrame}
+                </Typography>
+              </Box>
+            </CardContent>
+          </Card>
+        </Grid>
+        
+        <Grid item lg={4} sm={6} xs={12}>
+          <Card sx={{ height: '100%' }}>
+            <CardContent>
+              <Box sx={{ display: 'flex', alignItems: 'center', mb: 2 }}>
+                <SpeedIcon sx={{ color: 'info.main', mr: 1 }} />
+                <Typography color="text.secondary" variant="overline">
+                  Average Score
+                </Typography>
+              </Box>
+              <Typography variant="h4">{stats.averageScore}/100</Typography>
+              <Box sx={{ 
+                display: 'flex', 
+                alignItems: 'center', 
+                mt: 1, 
+                color: stats.trend.averageScore >= 0 ? 'success.main' : 'error.main' 
+              }}>
+                {stats.trend.averageScore >= 0 ? 
+                  <TrendingUpIcon fontSize="small" sx={{ mr: 0.5 }} /> : 
+                  <TrendingDownIcon fontSize="small" sx={{ mr: 0.5 }} />
+                }
+                <Typography variant="body2">
+                  {stats.trend.averageScore >= 0 ? '+' : ''}{stats.trend.averageScore} points from previous {timeFrame}
+                </Typography>
+              </Box>
+            </CardContent>
+          </Card>
+        </Grid>
+        
+        {/* Driving Metrics */}
+        <Grid item xs={12} md={6}>
+          <DrivingMetrics data={drivingMetrics} />
+        </Grid>
+
+        {/* Performance Trend */}
+        <Grid item xs={12} md={6}>
+          <PerformanceTrend timeFrame={timeFrame} data={performanceTrend} />
+        </Grid>
+
+        {/* Risk Assessment */}
+        <Grid item xs={12} md={6}>
+          <RiskAssessment data={riskData} />
+        </Grid>
+        
+        {/* Car Status Breakdown */}
+        <Grid item xs={12} md={6}>
+          <StatusBreakdown data={statusData} />
+        </Grid>
       </Grid>
-      <Grid lg={3} sm={6} xs={12}>
-        <TotalCustomers diff={16} trend="down" sx={{ height: '100%' }} value="1.6k" />
-      </Grid>
-      <Grid lg={3} sm={6} xs={12}>
-        <TasksProgress sx={{ height: '100%' }} value={75.5} />
-      </Grid>
-      <Grid lg={3} sm={6} xs={12}>
-        <TotalProfit sx={{ height: '100%' }} value="$15k" />
-      </Grid>
-      <Grid lg={8} xs={12}>
-        <Sales
-          chartSeries={[
-            { name: 'This year', data: [18, 16, 5, 8, 3, 14, 14, 16, 17, 19, 18, 20] },
-            { name: 'Last year', data: [12, 11, 4, 6, 2, 9, 9, 10, 11, 12, 13, 13] },
-          ]}
-          sx={{ height: '100%' }}
-        />
-      </Grid>
-      <Grid lg={4} md={6} xs={12}>
-        <Traffic chartSeries={[63, 15, 22]} labels={['Desktop', 'Tablet', 'Phone']} sx={{ height: '100%' }} />
-      </Grid>
-      <Grid lg={4} md={6} xs={12}>
-        <LatestProducts
-          products={[
-            {
-              id: 'PRD-005',
-              name: 'Soja & Co. Eucalyptus',
-              image: '/assets/product-5.png',
-              updatedAt: dayjs().subtract(18, 'minutes').subtract(5, 'hour').toDate(),
-            },
-            {
-              id: 'PRD-004',
-              name: 'Necessaire Body Lotion',
-              image: '/assets/product-4.png',
-              updatedAt: dayjs().subtract(41, 'minutes').subtract(3, 'hour').toDate(),
-            },
-            {
-              id: 'PRD-003',
-              name: 'Ritual of Sakura',
-              image: '/assets/product-3.png',
-              updatedAt: dayjs().subtract(5, 'minutes').subtract(3, 'hour').toDate(),
-            },
-            {
-              id: 'PRD-002',
-              name: 'Lancome Rouge',
-              image: '/assets/product-2.png',
-              updatedAt: dayjs().subtract(23, 'minutes').subtract(2, 'hour').toDate(),
-            },
-            {
-              id: 'PRD-001',
-              name: 'Erbology Aloe Vera',
-              image: '/assets/product-1.png',
-              updatedAt: dayjs().subtract(10, 'minutes').toDate(),
-            },
-          ]}
-          sx={{ height: '100%' }}
-        />
-      </Grid>
-      <Grid lg={8} md={12} xs={12}>
-        <LatestOrders
-          orders={[
-            {
-              id: 'ORD-007',
-              customer: { name: 'Ekaterina Tankova' },
-              amount: 30.5,
-              status: 'pending',
-              createdAt: dayjs().subtract(10, 'minutes').toDate(),
-            },
-            {
-              id: 'ORD-006',
-              customer: { name: 'Cao Yu' },
-              amount: 25.1,
-              status: 'delivered',
-              createdAt: dayjs().subtract(10, 'minutes').toDate(),
-            },
-            {
-              id: 'ORD-004',
-              customer: { name: 'Alexa Richardson' },
-              amount: 10.99,
-              status: 'refunded',
-              createdAt: dayjs().subtract(10, 'minutes').toDate(),
-            },
-            {
-              id: 'ORD-003',
-              customer: { name: 'Anje Keizer' },
-              amount: 96.43,
-              status: 'pending',
-              createdAt: dayjs().subtract(10, 'minutes').toDate(),
-            },
-            {
-              id: 'ORD-002',
-              customer: { name: 'Clarke Gillebert' },
-              amount: 32.54,
-              status: 'delivered',
-              createdAt: dayjs().subtract(10, 'minutes').toDate(),
-            },
-            {
-              id: 'ORD-001',
-              customer: { name: 'Adam Denisov' },
-              amount: 16.76,
-              status: 'delivered',
-              createdAt: dayjs().subtract(10, 'minutes').toDate(),
-            },
-          ]}
-          sx={{ height: '100%' }}
-        />
-      </Grid>
-    </Grid>
+    </Box>
   );
 }
