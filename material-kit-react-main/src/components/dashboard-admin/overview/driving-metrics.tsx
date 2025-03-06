@@ -18,8 +18,6 @@ interface DrivingMetricsProps {
     acceleration: number;
     swerving: number;
     speeding: number;
-    phoneUse: number;
-    tiredness: number;
   };
 }
 
@@ -28,9 +26,7 @@ export function DrivingMetrics({ data }: DrivingMetricsProps) {
     { name: 'Harsh Braking', value: data.braking, color: '#2196F3' },
     { name: 'Harsh Acceleration', value: data.acceleration, color: '#FF9800' },
     { name: 'Swerving', value: data.swerving, color: '#00C853' },
-    { name: 'Speeding', value: data.speeding, color: '#F44336' },
-    { name: 'Phone Usage', value: data.phoneUse, color: '#9C27B0' },
-    { name: 'Driver Alertness', value: data.tiredness, color: '#607D8B' }
+    { name: 'Speeding', value: data.speeding, color: '#F44336' }
   ];
 
   const radarChartOptions = {

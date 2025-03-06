@@ -5,7 +5,7 @@ import CardContent from '@mui/material/CardContent';
 import Stack from '@mui/material/Stack';
 import Typography from '@mui/material/Typography';
 import Box from '@mui/material/Box';
-import Grid from '@mui/material/Unstable_Grid2';
+import Grid from '@mui/material/Grid'; // Changed from Unstable_Grid2
 import LinearProgress from '@mui/material/LinearProgress';
 import dynamic from 'next/dynamic';
 
@@ -18,8 +18,6 @@ interface DrivingMetricsProps {
     acceleration: number;
     swerving: number;
     speeding: number;
-    phoneUse: number;
-    tiredness: number;
   };
 }
 
@@ -28,9 +26,7 @@ export function DrivingMetrics({ data }: DrivingMetricsProps) {
     { name: 'Harsh Braking', value: data.braking, color: '#2196F3' },
     { name: 'Harsh Acceleration', value: data.acceleration, color: '#FF9800' },
     { name: 'Swerving', value: data.swerving, color: '#00C853' },
-    { name: 'Speeding', value: data.speeding, color: '#F44336' },
-    { name: 'Phone Usage', value: data.phoneUse, color: '#9C27B0' },
-    { name: 'Driver Alertness', value: data.tiredness, color: '#607D8B' }
+    { name: 'Speeding', value: data.speeding, color: '#F44336' }
   ];
 
   const radarChartOptions = {
@@ -103,7 +99,7 @@ export function DrivingMetrics({ data }: DrivingMetricsProps) {
             
             <Grid container spacing={2} sx={{ width: { xs: '100%', md: '50%' }, pl: { md: 3 } }}>
               {metricsData.map((metric) => (
-                <Grid xs={12} key={metric.name}>
+                <Grid item xs={12} key={metric.name}>
                   <Box sx={{ mb: 1, display: 'flex', justifyContent: 'space-between' }}>
                     <Typography variant="body2" color="text.secondary">
                       {metric.name}
