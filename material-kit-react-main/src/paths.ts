@@ -14,7 +14,7 @@ export const paths = {
   dashboardCustomer: {
     overview: '/dashboard-customer',
     page1: '/dashboard-customer/page1',
-    page2: '/dashboard-customer/page2',
+    ParentalControl: '/dashboard-customer/Parental-Control',
     carCustomers: '/dashboard-customer/car-customers',
   },
   errors: { notFound: '/errors/not-found' },
