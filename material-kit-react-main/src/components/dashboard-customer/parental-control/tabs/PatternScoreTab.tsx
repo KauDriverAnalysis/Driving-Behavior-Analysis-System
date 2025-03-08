@@ -284,13 +284,12 @@ const PatternScoreTab: React.FC<PatternScoreTabProps> = ({ showNotification }) =
               alignItems: 'center',
               mt: 3,
               p: 2,
-              bgcolor: 'primary.light',
               borderRadius: 2
             }}>
               <Box sx={{ display: 'flex', alignItems: 'center', gap: 2 }}>
                 <DirectionsCarIcon color="primary" sx={{ fontSize: 40 }} />
                 <Box>
-                  <Typography variant="body2" color="text.secondary">Overall Safety Score</Typography>
+                  <Typography variant="body2" color="primary.main">Overall Safety Score</Typography>
                   <Typography variant="h4" fontWeight="bold" color="primary.main">82/100</Typography>
                 </Box>
               </Box>

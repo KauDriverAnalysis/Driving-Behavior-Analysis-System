@@ -7,7 +7,6 @@ export const paths = {
   },
   dashboardCustomer: {
     overview: '/dashboard-customer',
-    page1: '/dashboard-customer/page1',
     parentalControl: '/dashboard-customer/parental-control', // Match the path name
     carCustomers: '/dashboard-customer/car-customers',
   },

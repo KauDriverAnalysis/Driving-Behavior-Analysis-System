@@ -17,7 +17,7 @@ import SpeedIcon from '@mui/icons-material/Speed';
 import { TimeFilter } from '@/components/dashboard-admin/overview/time-filter';
 import { DrivingMetrics } from '@/components/dashboard-admin/overview/driving-metrics';
 import { PerformanceTrend } from '@/components/dashboard-admin/overview/performance-trend';
-import { RiskAssessment } from '@/components/dashboard-admin/overview/risk-assessment';
+import { DriversPerformance } from '@/components/dashboard-admin/overview/drivers-performance';
 import { StatusBreakdown } from '@/components/dashboard-admin/overview/status-breakdown';
 
 // Enhanced fake data for different time frames
@@ -59,25 +59,19 @@ const fakeDrivingMetricsData = {
     braking: 75,
     acceleration: 68,
     swerving: 82,
-    speeding: 64,
-    phoneUse: 88,
-    tiredness: 92
+    speeding: 64
   },
   '7d': {
     braking: 82,
     acceleration: 74,
     swerving: 88,
-    speeding: 70,
-    phoneUse: 85,
-    tiredness: 89
+    speeding: 70
   },
   '30d': {
     braking: 78,
     acceleration: 71,
     swerving: 85,
-    speeding: 68,
-    phoneUse: 87,
-    tiredness: 90
+    speeding: 68
   }
 };
 
@@ -96,21 +90,24 @@ const fakePerformanceTrendData = {
   }
 };
 
-const fakeRiskData = {
+const fakeDriversPerformanceData = {
   '1d': {
-    high: 8,
-    medium: 15,
-    low: 22
+    excellent: 18,
+    good: 14,
+    average: 8,
+    poor: 5
   },
   '7d': {
-    high: 24,
-    medium: 45,
-    low: 87
+    excellent: 65,
+    good: 48,
+    average: 27,
+    poor: 16
   },
   '30d': {
-    high: 68,
-    medium: 134,
-    low: 285
+    excellent: 187,
+    good: 156,
+    average: 89,
+    poor: 55
   }
 };
 
@@ -137,7 +134,7 @@ export default function Overview(): React.JSX.Element {
   const [stats, setStats] = React.useState(fakeStatsData['1d']);
   const [drivingMetrics, setDrivingMetrics] = React.useState(fakeDrivingMetricsData['1d']);
   const [performanceTrend, setPerformanceTrend] = React.useState(fakePerformanceTrendData['1d']);
-  const [riskData, setRiskData] = React.useState(fakeRiskData['1d']);
+  const [driversPerformance, setDriversPerformance] = React.useState(fakeDriversPerformanceData['1d']);
   const [statusData, setStatusData] = React.useState(fakeStatusData['1d']);
 
   // Update all data when timeFrame changes
@@ -145,7 +142,7 @@ export default function Overview(): React.JSX.Element {
     setStats(fakeStatsData[timeFrame]);
     setDrivingMetrics(fakeDrivingMetricsData[timeFrame]);
     setPerformanceTrend(fakePerformanceTrendData[timeFrame]);
-    setRiskData(fakeRiskData[timeFrame]);
+    setDriversPerformance(fakeDriversPerformanceData[timeFrame]);
     setStatusData(fakeStatusData[timeFrame]);
     
     // TODO: Implement real API calls when backend is ready
@@ -262,9 +259,9 @@ export default function Overview(): React.JSX.Element {
           <PerformanceTrend timeFrame={timeFrame} data={performanceTrend} />
         </Grid>
 
-        {/* Risk Assessment */}
+        {/* Drivers Performance (replacing Risk Assessment) */}
         <Grid item xs={12} md={6}>
-          <RiskAssessment data={riskData} />
+          <DriversPerformance data={driversPerformance} />
         </Grid>
         
         {/* Car Status Breakdown */}

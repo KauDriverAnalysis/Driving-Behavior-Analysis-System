@@ -9,12 +9,6 @@ export const navItems: NavItemConfig[] = [
     icon: 'chart-pie' 
   },
   { 
-    key: 'page1', 
-    title: 'Page1', 
-    href: paths.dashboardCustomer.page1, 
-    icon: 'page1' 
-  },
-  { 
     key: 'parentalControl', 
     title: 'Parental Control', 
     href: paths.dashboardCustomer.parentalControl, // Fix typo in path name

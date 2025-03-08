@@ -1,16 +1,23 @@
-import type { Icon } from '@phosphor-icons/react/dist/lib/types';
-import { ChartPie as ChartPieIcon } from '@phosphor-icons/react/dist/ssr/ChartPie';
-import { GearSix as GearSixIcon } from '@phosphor-icons/react/dist/ssr/GearSix';
-import { PlugsConnected as PlugsConnectedIcon } from '@phosphor-icons/react/dist/ssr/PlugsConnected';
-import { User as UserIcon } from '@phosphor-icons/react/dist/ssr/User';
-import { Users as UsersIcon } from '@phosphor-icons/react/dist/ssr/Users';
+// Import the icons you need from Phosphor
+import { ChartPie } from '@phosphor-icons/react/dist/ssr/ChartPie';
+import { MapPin } from '@phosphor-icons/react/dist/ssr/MapPin';
+import { User } from '@phosphor-icons/react/dist/ssr/User';
+import { Users } from '@phosphor-icons/react/dist/ssr/Users';
+import { CarSimple } from '@phosphor-icons/react/dist/ssr/CarSimple';
+import { GearSix } from '@phosphor-icons/react/dist/ssr/GearSix';
 import { XSquare } from '@phosphor-icons/react/dist/ssr/XSquare';
 
+// Create a mapping of icon names to components
 export const navIcons = {
-  'chart-pie': ChartPieIcon,
-  'gear-six': GearSixIcon,
-  'plugs-connected': PlugsConnectedIcon,
+  'chart-pie': ChartPie,
+  'map': MapPin,          // This maps to your 'tracking' icon
+  'map-pin': MapPin,      // Alternative option 
+  'user': User,
+  'users': Users,
+  'car': CarSimple,       // This maps to your 'cars' icon
+  'car-simple': CarSimple, // Alternative option
+  'driver': User,         // This maps to your 'drivers' icon
+  'user-focus': User,     // Alternative option for 'drivers'
+  'gear-six': GearSix,
   'x-square': XSquare,
-  user: UserIcon,
-  users: UsersIcon,
-} as Record<string, Icon>;
+};
