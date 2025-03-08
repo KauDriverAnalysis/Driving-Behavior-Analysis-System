@@ -1,8 +1,8 @@
-// Overview.tsx
+// CustomerOverview.tsx
 'use client';
 
 import * as React from 'react';
-import Grid from '@mui/material/Grid'; // Changed from Unstable_Grid2
+import Grid from '@mui/material/Grid';
 import Card from '@mui/material/Card';
 import CardContent from '@mui/material/CardContent';
 import Typography from '@mui/material/Typography';
@@ -12,141 +12,128 @@ import Divider from '@mui/material/Divider';
 import TrendingUpIcon from '@mui/icons-material/TrendingUp';
 import TrendingDownIcon from '@mui/icons-material/TrendingDown';
 import DirectionsCarIcon from '@mui/icons-material/DirectionsCar';
-import WarningIcon from '@mui/icons-material/Warning';
 import SpeedIcon from '@mui/icons-material/Speed';
-import { TimeFilter } from '@/components/dashboard-admin/overview/time-filter';
-import { DrivingMetrics } from '@/components/dashboard-admin/overview/driving-metrics';
-import { PerformanceTrend } from '@/components/dashboard-admin/overview/performance-trend';
-import { DriversPerformance } from '@/components/dashboard-admin/overview/drivers-performance';
-import { StatusBreakdown } from '@/components/dashboard-admin/overview/status-breakdown';
+import LocationOnIcon from '@mui/icons-material/LocationOn';
+import { TimeFilter } from '@/components/dashboard-customer/overview/time-filter';
+import { DrivingMetrics } from '@/components/dashboard-customer/overview/driving-metrics';
+import { PerformanceTrend } from '@/components/dashboard-customer/overview/performance-trend';
+import { TripHistory } from '@/components/dashboard-customer/overview/trip-history';
+import { CarLocation } from '@/components/dashboard-customer/overview/car-location';
 
 // Enhanced fake data for different time frames
 const fakeStatsData = {
   '1d': {
-    carsUsed: 45,
-    averageAccidents: 2.3,
-    averageScore: 85,
+    totalTrips: 3,
+    averageScore: 87,
+    milesDriven: 42,
     trend: {
-      carsUsed: +8,
-      averageAccidents: -0.5,
-      averageScore: +3
+      averageScore: +2,
+      milesDriven: +5
     }
   },
   '7d': {
-    carsUsed: 156,
-    averageAccidents: 3.1,
-    averageScore: 82,
+    totalTrips: 12,
+    averageScore: 83,
+    milesDriven: 156,
     trend: {
-      carsUsed: +12,
-      averageAccidents: +0.2,
-      averageScore: -1
+      averageScore: -1,
+      milesDriven: +23
     }
   },
   '30d': {
-    carsUsed: 487,
-    averageAccidents: 2.8,
-    averageScore: 84,
+    totalTrips: 45,
+    averageScore: 85,
+    milesDriven: 487,
     trend: {
-      carsUsed: +23,
-      averageAccidents: -0.3,
-      averageScore: +2
+      averageScore: +3,
+      milesDriven: +65
     }
   }
 };
 
 const fakeDrivingMetricsData = {
   '1d': {
-    braking: 75,
-    acceleration: 68,
-    swerving: 82,
-    speeding: 64
+    braking: 82,
+    acceleration: 75,
+    swerving: 90,
+    speeding: 78
   },
   '7d': {
-    braking: 82,
-    acceleration: 74,
-    swerving: 88,
-    speeding: 70
+    braking: 78,
+    acceleration: 72,
+    swerving: 85,
+    speeding: 71
   },
   '30d': {
-    braking: 78,
-    acceleration: 71,
-    swerving: 85,
-    speeding: 68
+    braking: 80,
+    acceleration: 74,
+    swerving: 87,
+    speeding: 76
   }
 };
 
 const fakePerformanceTrendData = {
   '1d': {
-    hours: ['00:00', '03:00', '06:00', '09:00', '12:00', '15:00', '18:00', '21:00'],
-    scores: [82, 83, 88, 85, 78, 80, 84, 87]
+    hours: ['08:00', '10:00', '12:00', '14:00', '16:00', '18:00'],
+    scores: [85, 88, 82, 86, 90, 87]
   },
   '7d': {
     days: ['Mon', 'Tue', 'Wed', 'Thu', 'Fri', 'Sat', 'Sun'],
-    scores: [81, 83, 85, 82, 80, 88, 86]
+    scores: [84, 86, 82, 89, 85, 83, 87]
   },
   '30d': {
     weeks: ['Week 1', 'Week 2', 'Week 3', 'Week 4'],
-    scores: [83, 85, 82, 87]
+    scores: [85, 82, 86, 88]
   }
 };
 
-const fakeDriversPerformanceData = {
-  '1d': {
-    excellent: 18,
-    good: 14,
-    average: 8,
-    poor: 5
-  },
-  '7d': {
-    excellent: 65,
-    good: 48,
-    average: 27,
-    poor: 16
-  },
-  '30d': {
-    excellent: 187,
-    good: 156,
-    average: 89,
-    poor: 55
-  }
+const fakeTripHistoryData = {
+  '1d': [
+    { start: 'Home', destination: 'Office', time: '08:15 AM', score: 87, miles: 12 },
+    { start: 'Office', destination: 'Lunch', time: '12:30 PM', score: 90, miles: 5 },
+    { start: 'Lunch', destination: 'Office', time: '01:45 PM', score: 85, miles: 5 },
+    { start: 'Office', destination: 'Home', time: '05:30 PM', score: 86, miles: 12 }
+  ],
+  '7d': [
+    { start: 'Home', destination: 'Office', time: 'Mon 08:15 AM', score: 87, miles: 12 },
+    { start: 'Office', destination: 'Home', time: 'Mon 05:30 PM', score: 86, miles: 12 },
+    { start: 'Home', destination: 'Gym', time: 'Tue 07:00 AM', score: 89, miles: 8 },
+    { start: 'Gym', destination: 'Office', time: 'Tue 09:00 AM', score: 84, miles: 10 },
+    { start: 'Office', destination: 'Home', time: 'Tue 06:00 PM', score: 82, miles: 12 }
+  ],
+  '30d': [
+    { start: 'Home', destination: 'Office', time: 'Week 1', score: 87, miles: 60 },
+    { start: 'Office', destination: 'Home', time: 'Week 1', score: 86, miles: 60 },
+    { start: 'Home', destination: 'Grocery', time: 'Week 2', score: 89, miles: 15 },
+    { start: 'Home', destination: 'Office', time: 'Week 2', score: 84, miles: 60 },
+    { start: 'Office', destination: 'Home', time: 'Week 2', score: 82, miles: 60 }
+  ]
 };
 
-const fakeStatusData = {
-  '1d': {
-    active: 30,
-    maintenance: 8,
-    idle: 7
-  },
-  '7d': {
-    active: 98,
-    maintenance: 35,
-    idle: 23
-  },
-  '30d': {
-    active: 325,
-    maintenance: 87,
-    idle: 75
-  }
+const fakeCarLocationData = {
+  latitude: 37.7749,
+  longitude: -122.4194,
+  lastUpdated: '5 minutes ago',
+  address: '123 Main Street, San Francisco, CA',
+  status: 'Parked'
 };
 
-export default function Overview(): React.JSX.Element {
+export default function CustomerOverview(): React.JSX.Element {
   const [timeFrame, setTimeFrame] = React.useState<'1d' | '7d' | '30d'>('1d');
   const [stats, setStats] = React.useState(fakeStatsData['1d']);
   const [drivingMetrics, setDrivingMetrics] = React.useState(fakeDrivingMetricsData['1d']);
   const [performanceTrend, setPerformanceTrend] = React.useState(fakePerformanceTrendData['1d']);
-  const [driversPerformance, setDriversPerformance] = React.useState(fakeDriversPerformanceData['1d']);
-  const [statusData, setStatusData] = React.useState(fakeStatusData['1d']);
+  const [tripHistory, setTripHistory] = React.useState(fakeTripHistoryData['1d']);
 
   // Update all data when timeFrame changes
   React.useEffect(() => {
     setStats(fakeStatsData[timeFrame]);
     setDrivingMetrics(fakeDrivingMetricsData[timeFrame]);
     setPerformanceTrend(fakePerformanceTrendData[timeFrame]);
-    setDriversPerformance(fakeDriversPerformanceData[timeFrame]);
-    setStatusData(fakeStatusData[timeFrame]);
+    setTripHistory(fakeTripHistoryData[timeFrame]);
     
     // TODO: Implement real API calls when backend is ready
-    // fetch(`http://localhost:8000/api/overview-stats?timeFrame=${timeFrame}`)
+    // fetch(`http://localhost:8000/api/customer-stats?timeFrame=${timeFrame}`)
     //   .then(response => response.json())
     //   .then(data => {
     //     setStats(data.stats);
@@ -159,11 +146,16 @@ export default function Overview(): React.JSX.Element {
   return (
     <Box sx={{ pb: 5 }}>
       <Box sx={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', mb: 3 }}>
-        <Typography variant="h4" component="h1">Fleet Overview</Typography>
+        <Typography variant="h4" component="h1">My Driving Dashboard</Typography>
         <TimeFilter onFilterChange={setTimeFrame} selectedFilter={timeFrame} />
       </Box>
 
       <Grid container spacing={3}>
+        {/* Car Location Card */}
+        <Grid item xs={12}>
+          <CarLocation data={fakeCarLocationData} />
+        </Grid>
+        
         {/* Key Stats Cards */}
         <Grid item lg={4} sm={6} xs={12}>
           <Card sx={{ height: '100%' }}>
@@ -171,52 +163,13 @@ export default function Overview(): React.JSX.Element {
               <Box sx={{ display: 'flex', alignItems: 'center', mb: 2 }}>
                 <DirectionsCarIcon sx={{ color: 'primary.main', mr: 1 }} />
                 <Typography color="text.secondary" variant="overline">
-                  Cars Used
+                  Total Trips
                 </Typography>
               </Box>
-              <Typography variant="h4">{stats.carsUsed}</Typography>
-              <Box sx={{ 
-                display: 'flex', 
-                alignItems: 'center', 
-                mt: 1, 
-                color: stats.trend.carsUsed >= 0 ? 'success.main' : 'error.main' 
-              }}>
-                {stats.trend.carsUsed >= 0 ? 
-                  <TrendingUpIcon fontSize="small" sx={{ mr: 0.5 }} /> : 
-                  <TrendingDownIcon fontSize="small" sx={{ mr: 0.5 }} />
-                }
-                <Typography variant="body2">
-                  {stats.trend.carsUsed >= 0 ? '+' : ''}{stats.trend.carsUsed} from previous {timeFrame}
-                </Typography>
-              </Box>
-            </CardContent>
-          </Card>
-        </Grid>
-        
-        <Grid item lg={4} sm={6} xs={12}>
-          <Card sx={{ height: '100%' }}>
-            <CardContent>
-              <Box sx={{ display: 'flex', alignItems: 'center', mb: 2 }}>
-                <WarningIcon sx={{ color: 'warning.main', mr: 1 }} />
-                <Typography color="text.secondary" variant="overline">
-                  Average Accidents
-                </Typography>
-              </Box>
-              <Typography variant="h4">{stats.averageAccidents.toFixed(1)}</Typography>
-              <Box sx={{ 
-                display: 'flex', 
-                alignItems: 'center', 
-                mt: 1, 
-                color: stats.trend.averageAccidents <= 0 ? 'success.main' : 'error.main' 
-              }}>
-                {stats.trend.averageAccidents <= 0 ? 
-                  <TrendingDownIcon fontSize="small" sx={{ mr: 0.5 }} /> : 
-                  <TrendingUpIcon fontSize="small" sx={{ mr: 0.5 }} />
-                }
-                <Typography variant="body2">
-                  {stats.trend.averageAccidents <= 0 ? '' : '+'}{stats.trend.averageAccidents.toFixed(1)} from previous {timeFrame}
-                </Typography>
-              </Box>
+              <Typography variant="h4">{stats.totalTrips}</Typography>
+              <Typography variant="body2" color="text.secondary" sx={{ mt: 1 }}>
+                Trips taken in the last {timeFrame === '1d' ? 'day' : timeFrame === '7d' ? 'week' : 'month'}
+              </Typography>
             </CardContent>
           </Card>
         </Grid>
@@ -249,6 +202,30 @@ export default function Overview(): React.JSX.Element {
           </Card>
         </Grid>
         
+        <Grid item lg={4} sm={6} xs={12}>
+          <Card sx={{ height: '100%' }}>
+            <CardContent>
+              <Box sx={{ display: 'flex', alignItems: 'center', mb: 2 }}>
+                <LocationOnIcon sx={{ color: 'success.main', mr: 1 }} />
+                <Typography color="text.secondary" variant="overline">
+                  Miles Driven
+                </Typography>
+              </Box>
+              <Typography variant="h4">{stats.milesDriven}</Typography>
+              <Box sx={{ 
+                display: 'flex', 
+                alignItems: 'center', 
+                mt: 1,
+                color: 'text.secondary'
+              }}>
+                <Typography variant="body2">
+                  {stats.trend.milesDriven >= 0 ? '+' : ''}{stats.trend.milesDriven} miles from previous {timeFrame}
+                </Typography>
+              </Box>
+            </CardContent>
+          </Card>
+        </Grid>
+        
         {/* Driving Metrics */}
         <Grid item xs={12} md={6}>
           <DrivingMetrics data={drivingMetrics} />
@@ -259,14 +236,9 @@ export default function Overview(): React.JSX.Element {
           <PerformanceTrend timeFrame={timeFrame} data={performanceTrend} />
         </Grid>
 
-        {/* Drivers Performance (replacing Risk Assessment) */}
-        <Grid item xs={12} md={6}>
-          <DriversPerformance data={driversPerformance} />
-        </Grid>
-        
-        {/* Car Status Breakdown */}
-        <Grid item xs={12} md={6}>
-          <StatusBreakdown data={statusData} />
+        {/* Trip History */}
+        <Grid item xs={12}>
+          <TripHistory data={tripHistory} timeFrame={timeFrame} />
         </Grid>
       </Grid>
     </Box>
