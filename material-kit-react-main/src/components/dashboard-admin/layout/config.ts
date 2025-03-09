@@ -6,15 +6,13 @@ export const getNavItems = (userType?: string): NavItemConfig[] => {
   const navItems: NavItemConfig[] = [
     { key: 'overview', title: 'Overview', href: paths.dashboardAdmin.overview, icon: 'chart-pie' },
     { key: 'tracking', title: 'Tracking', href: paths.dashboardAdmin.tracking, icon: 'map' },
-    { key: 'drivers', title: 'Drivers', href: paths.dashboardAdmin.drivers, icon: 'driver' },
-    { key: 'cars', title: 'Cars', href: paths.dashboardAdmin.cars, icon: 'car' },
     { key: 'drivers', title: 'Drivers', href: paths.dashboardAdmin.drivers, icon: 'user' },  // Changed to 'user'
-    { key: 'cars', title: 'Cars', href: paths.dashboardAdmin.cars, icon: 'car' },  
+    { key: 'cars', title: 'Cars', href: paths.dashboardAdmin.cars, icon: 'car' },
     { key: 'settings', title: 'Settings', href: paths.dashboardAdmin.settings, icon: 'gear-six' },
     { key: 'account', title: 'Account', href: paths.dashboardAdmin.account, icon: 'user' },
     { key: 'error', title: 'Error', href: paths.errors.notFound, icon: 'x-square' },
   ];
-  
+
   console.log('config type:', userType); 
 
   // Add the employees menu item only if the user is an admin
@@ -27,6 +25,6 @@ export const getNavItems = (userType?: string): NavItemConfig[] => {
       ...navItems.slice(2) // The rest of the items
     ];
   }
-  
+
   return navItems;
 };

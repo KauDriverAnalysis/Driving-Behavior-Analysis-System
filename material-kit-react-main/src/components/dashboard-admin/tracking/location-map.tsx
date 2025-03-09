@@ -5,7 +5,6 @@ import L from 'leaflet';
 import 'leaflet/dist/leaflet.css';
 import { Box, Paper, Typography, CircularProgress } from '@mui/material';
 import SpeedIcon from '@mui/icons-material/Speed';
-import DirectionsIcon from '@mui/icons-material/Directions';
 
 // Define interface for location data
 interface LocationData {
@@ -25,10 +24,10 @@ let DefaultIcon = L.icon({
 
 // Car icon for more visual appeal
 let CarIcon = L.icon({
-  iconUrl: '/assets/car-marker.png', // You'll need to add this asset
-  iconSize: [32, 32],
-  iconAnchor: [16, 16],
-  popupAnchor: [0, -16]
+  iconUrl: '/assets/marker-icon.png', // You'll need to add this asset
+  iconSize: [25, 41],
+  iconAnchor: [12, 41]
+
 });
 
 L.Marker.prototype.options.icon = DefaultIcon;
@@ -245,40 +244,6 @@ export function LocationMap({ selectedCar }: LocationMapProps) {
     </Paper>
   );
 
-  const DirectionIndicator = () => (
-    <Paper
-      elevation={3}
-      sx={{
-        position: 'absolute',
-        bottom: '20px',
-        left: '110px',
-        zIndex: 1000,
-        borderRadius: '50%',
-        width: '80px',
-        height: '80px',
-        display: 'flex',
-        flexDirection: 'column',
-        justifyContent: 'center',
-        alignItems: 'center',
-        background: 'linear-gradient(135deg, #2c3e50, #4a90e2)',
-        color: 'white',
-        border: '2px solid #fff',
-        boxShadow: '0 4px 20px rgba(0,0,0,0.15)'
-      }}
-    >
-      <DirectionsIcon 
-        sx={{ 
-          fontSize: 24, 
-          transform: `rotate(${currentDirection}deg)`,
-          transition: 'transform 0.3s ease'
-        }} 
-      />
-      <Typography variant="caption" sx={{ fontSize: '10px', mt: 0.5 }}>
-        {currentDirection}°
-      </Typography>
-    </Paper>
-  );
-
   return (
     <Box sx={{ position: 'relative', height: '100%', width: '100%' }}>
       {isLoading && (
@@ -320,7 +285,6 @@ export function LocationMap({ selectedCar }: LocationMapProps) {
       <div ref={mapRef} style={{ height: '100%', width: '100%' }} />
       
       <SpeedCounter />
-      <DirectionIndicator />
     </Box>
   );
 }

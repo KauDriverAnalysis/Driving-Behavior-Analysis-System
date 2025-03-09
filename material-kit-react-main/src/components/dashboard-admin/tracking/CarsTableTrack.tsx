@@ -68,16 +68,16 @@ export function CarsTable({ cars, onSelectCar, selectedCar }: CarsTableProps): R
 
   // Filter cars based on search term
   const filteredCars = cars.filter(car => 
-    car.id.toLowerCase().includes(search.toLowerCase()) ||
-    car.model.toLowerCase().includes(search.toLowerCase()) ||
-    car.status.toLowerCase().includes(search.toLowerCase())
+    String(car.id).toLowerCase().includes(search.toLowerCase()) ||
+    String(car.model).toLowerCase().includes(search.toLowerCase()) ||
+    String(car.status).toLowerCase().includes(search.toLowerCase())
   );
 
   // Sort cars based on sort field and direction
   const sortedCars = sortBy 
     ? [...filteredCars].sort((a, b) => {
-        const aValue = a[sortBy.field];
-        const bValue = b[sortBy.field];
+        const aValue = a[sortBy.field as keyof Car];
+        const bValue = b[sortBy.field as keyof Car];
         
         // Handle undefined or null values
         if (aValue === undefined || aValue === null) return sortBy.direction === 'asc' ? -1 : 1;

@@ -42,7 +42,7 @@ export default function Tracking(): React.JSX.Element {
         console.log('Car data received:', data);
 
         // Add status field based on state property
-        const processedCars = data.map(car => {
+        const processedCars = data.map((car: any) => {
           const stateValue = car.state?.toLowerCase() || '';
 
           return {
