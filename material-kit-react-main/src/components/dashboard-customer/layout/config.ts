@@ -16,7 +16,7 @@ export const navItems: NavItemConfig[] = [
   },
   { 
     key: 'carCustomers', 
-    title: 'Car Customers', 
+    title: 'Cars', 
     href: paths.dashboardCustomer.carCustomers, 
     icon: 'car' 
   }
