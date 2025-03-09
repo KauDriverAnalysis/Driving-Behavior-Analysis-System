@@ -1,135 +1,201 @@
 'use client';
 
-import * as React from 'react';
-import { useState } from 'react';
-import Head from 'next/head';
-import Button from '@mui/material/Button';
-import Stack from '@mui/material/Stack';
-import Typography from '@mui/material/Typography';
+import React, { useState } from 'react';
+import {
+  Box,
+  Typography,
+  Card,
+  TextField,
+  InputAdornment,
+  Stack,
+  Button,
+  Dialog,
+  DialogActions,
+  DialogContent,
+  DialogContentText,
+  DialogTitle
+} from '@mui/material';
+import SearchIcon from '@mui/icons-material/Search';
 import AddIcon from '@mui/icons-material/Add';
-import EditIcon from '@mui/icons-material/Edit';
-import DeleteIcon from '@mui/icons-material/Delete';
-import dayjs from 'dayjs';
-import { config } from '@/config';
-import { EmployeesFilters } from '@/components/dashboard-admin/employee/employees-filters';
 import { EmployeesTable } from '@/components/dashboard-admin/employee/employees-table';
 import AddEmployeeDialog from './add-employee-dialog';
-import type { Employee } from '@/components/dashboard-admin/employee/employees-table';
+import EditEmployeeDialog from './edit-employee-dialog';
 
-const employees: Employee[] = [
+const MOCK_EMPLOYEES = [
   {
-    id: 'USR-001',
+    id: '1',
     name: 'John Doe',
-    avatar: '/assets/avatar-1.png',
-    email: 'john.doe@example.com',
-    phone: '123-456-7890',
-    address: { city: 'New York', country: 'USA', state: 'NY', street: '123 Main St' },
-    createdAt: dayjs().subtract(2, 'hours').toDate(),
-    gender: '',
-    company_id: ''
+    gender: 'Male',
+    phone_number: '+1 234-567-8901',
+    address: '123 Main St, City',
+    Email: 'john.doe@example.com',
+    department: 'IT',
+    joinDate: '2023-01-15'
   },
   {
-    id: 'USR-002',
+    id: '2',
     name: 'Jane Smith',
-    avatar: '/assets/avatar-2.png',
-    email: 'jane.smith@example.com',
-    phone: '987-654-3210',
-    address: { city: 'Los Angeles', country: 'USA', state: 'CA', street: '456 Elm St' },
-    createdAt: dayjs().subtract(1, 'day').toDate(),
-    gender: '',
-    company_id: ''
+    gender: 'Female',
+    phone_number: '+1 234-567-8902',
+    address: '456 Oak Ave, Town',
+    Email: 'jane.smith@example.com',
+    department: 'HR',
+    joinDate: '2023-02-20'
   },
   {
-    id: 'USR-003',
-    name: 'Alice Johnson',
-    avatar: '/assets/avatar-3.png',
-    email: 'alice.johnson@example.com',
-    phone: '555-123-4567',
-    address: { city: 'Chicago', country: 'USA', state: 'IL', street: '789 Oak St' },
-    createdAt: dayjs().subtract(3, 'days').toDate(),
-    gender: '',
-    company_id: ''
-  },
-  {
-    id: 'USR-004',
-    name: 'Bob Brown',
-    avatar: '/assets/avatar-4.png',
-    email: 'bob.brown@example.com',
-    phone: '444-555-6666',
-    address: { city: 'Houston', country: 'USA', state: 'TX', street: '101 Pine St' },
-    createdAt: dayjs().subtract(1, 'week').toDate(),
-    gender: '',
-    company_id: ''
-  },
+    id: '3',
+    name: 'Mike Johnson',
+    gender: 'Male',
+    phone_number: '+1 234-567-8903',
+    address: '789 Pine Rd, Village',
+    Email: 'mike.j@example.com',
+    department: 'Sales',
+    joinDate: '2023-03-10'
+  }
 ];
 
-function applyPagination(rows: Employee[], page: number, rowsPerPage: number): Employee[] {
-  return rows.slice(page * rowsPerPage, page * rowsPerPage + rowsPerPage);
-}
+export default function EmployeesPage(): React.JSX.Element {
+  const [searchTerm, setSearchTerm] = useState('');
+  const [page, setPage] = useState(0);
+  const [rowsPerPage, setRowsPerPage] = useState(5);
+  const [openDialog, setOpenDialog] = useState(false);
+  const [deleteConfirmOpen, setDeleteConfirmOpen] = useState(false);
+  const [employeeToDelete, setEmployeeToDelete] = useState<typeof MOCK_EMPLOYEES[0] | null>(null);
+  const [editDialogOpen, setEditDialogOpen] = useState(false);
+  const [selectedEmployee, setSelectedEmployee] = useState<typeof MOCK_EMPLOYEES[0] | null>(null);
 
-export default function Page(): React.JSX.Element {
-  const [open, setOpen] = useState(false);
-  const [refreshTrigger, setRefreshTrigger] = useState(0);
-  const page = 0;
-  const rowsPerPage = 5;
-
-  const paginatedEmployees = applyPagination(employees, page, rowsPerPage);
-
-  const refreshData = () => {
-    setRefreshTrigger(prev => prev + 1);
+  const handleSearch = (event: React.ChangeEvent<HTMLInputElement>) => {
+    setSearchTerm(event.target.value);
+    setPage(0);
   };
 
-  const handleOpen = () => {
-    setOpen(true);
+  const handleDeleteEmployee = (employee: typeof MOCK_EMPLOYEES[0]) => {
+    setEmployeeToDelete(employee);
+    setDeleteConfirmOpen(true);
   };
 
-  const handleClose = () => {
-    setOpen(false);
+  const handleConfirmDelete = () => {
+    if (employeeToDelete) {
+      console.log('Deleting employee:', employeeToDelete.name);
+    }
+    setDeleteConfirmOpen(false);
+    setEmployeeToDelete(null);
   };
 
-  const handleSuccessfulOperation = () => {
-    refreshData();
-    setOpen(false);
+  const handleEditEmployee = (employee: typeof MOCK_EMPLOYEES[0]) => {
+    setSelectedEmployee(employee);
+    setEditDialogOpen(true);
   };
+
+  const handleSaveEdit = (updatedEmployee: typeof MOCK_EMPLOYEES[0]) => {
+    console.log('Saving updated employee:', updatedEmployee);
+    // Add your update logic here
+    setEditDialogOpen(false);
+    setSelectedEmployee(null);
+  };
+
+  const filteredEmployees = MOCK_EMPLOYEES.filter(employee => 
+    employee.name.toLowerCase().includes(searchTerm.toLowerCase()) ||
+    employee.Email.toLowerCase().includes(searchTerm.toLowerCase()) ||
+    employee.department.toLowerCase().includes(searchTerm.toLowerCase())
+  );
 
   return (
-    <>
-      <Head>
-        <title>Employees | Dashboard | {config.site.name}</title>
-      </Head>
-      <Stack spacing={3}>
-        <Stack direction="row" spacing={3}>
-          <Stack spacing={1} sx={{ flex: '1 1 auto' }}>
-            <Typography variant="h4">Employees</Typography>
-            <Stack direction="row" spacing={1} sx={{ alignItems: 'center' }}>
-              <Button color="inherit" startIcon={<EditIcon />}>
-                Edit
-              </Button>
-              <Button color="inherit" startIcon={<DeleteIcon />}>
-                Delete
-              </Button>
-            </Stack>
-          </Stack>
-          <div>
-            <Button startIcon={<AddIcon />} variant="contained" onClick={handleOpen}>
-              Add
-            </Button>
-          </div>
+    <Box sx={{ p: 3 }}>
+      <Typography variant="h4" sx={{ mb: 3 }}>
+        Employees
+      </Typography>
+
+      {/* Filters */}
+      <Card sx={{ p: 2, mb: 3 }}>
+        <Stack
+          direction={{ xs: 'column', sm: 'row' }}
+          spacing={2}
+          alignItems={{ xs: 'stretch', sm: 'center' }}
+        >
+          <TextField
+            size="small"
+            placeholder="Search employees..."
+            value={searchTerm}
+            onChange={handleSearch}
+            InputProps={{
+              startAdornment: (
+                <InputAdornment position="start">
+                  <SearchIcon />
+                </InputAdornment>
+              ),
+            }}
+            sx={{ minWidth: 300 }}
+          />
+          <Button 
+            variant="contained" 
+            startIcon={<AddIcon />}
+            onClick={() => setOpenDialog(true)}
+            sx={{ ml: 'auto' }}
+          >
+            Add Employee
+          </Button>
         </Stack>
-        <EmployeesFilters />
+      </Card>
+
+      {/* Table */}
+      <Card>
         <EmployeesTable
-          count={paginatedEmployees.length}
+          items={filteredEmployees.slice(page * rowsPerPage, (page + 1) * rowsPerPage)}
+          count={filteredEmployees.length}
           page={page}
-          rows={paginatedEmployees}
           rowsPerPage={rowsPerPage}
-          refreshTrigger={refreshTrigger}
+          onPageChange={(newPage) => setPage(newPage)}
+          onRowsPerPageChange={(newRowsPerPage) => {
+            setRowsPerPage(newRowsPerPage);
+            setPage(0);
+          }}
+          onDelete={handleDeleteEmployee}
+          onEdit={handleEditEmployee}
         />
-        <AddEmployeeDialog 
-          open={open} 
-          onClose={handleClose}
-          onSuccess={handleSuccessfulOperation} 
-        />
-      </Stack>
-    </>
+      </Card>
+
+      {/* Add Employee Dialog */}
+      <AddEmployeeDialog
+        open={openDialog}
+        onClose={() => setOpenDialog(false)}
+        onSubmit={(data) => {
+          console.log('New employee:', data);
+          setOpenDialog(false);
+        }}
+      />
+
+      {/* Edit Employee Dialog */}
+      <EditEmployeeDialog
+        open={editDialogOpen}
+        onClose={() => {
+          setEditDialogOpen(false);
+          setSelectedEmployee(null);
+        }}
+        onSubmit={handleSaveEdit}
+        employee={selectedEmployee}
+      />
+
+      {/* Delete Confirmation Dialog */}
+      <Dialog
+        open={deleteConfirmOpen}
+        onClose={() => setDeleteConfirmOpen(false)}
+      >
+        <DialogTitle>Confirm Delete</DialogTitle>
+        <DialogContent>
+          <DialogContentText>
+            Are you sure you want to delete {employeeToDelete?.name}? This action cannot be undone.
+          </DialogContentText>
+        </DialogContent>
+        <DialogActions>
+          <Button onClick={() => setDeleteConfirmOpen(false)}>
+            Cancel
+          </Button>
+          <Button onClick={handleConfirmDelete} color="error" autoFocus>
+            Delete
+          </Button>
+        </DialogActions>
+      </Dialog>
+    </Box>
   );
 }

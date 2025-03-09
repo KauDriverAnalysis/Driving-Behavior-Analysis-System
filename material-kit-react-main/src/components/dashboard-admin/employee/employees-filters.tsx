@@ -1,23 +1,33 @@
 import * as React from 'react';
-import Card from '@mui/material/Card';
-import InputAdornment from '@mui/material/InputAdornment';
-import OutlinedInput from '@mui/material/OutlinedInput';
-import { MagnifyingGlass as MagnifyingGlassIcon } from '@phosphor-icons/react/dist/ssr/MagnifyingGlass';
+import {
+  Stack,
+  TextField,
+  InputAdornment,
+} from '@mui/material';
+import SearchIcon from '@mui/icons-material/Search';
 
-export function EmployeesFilters(): React.JSX.Element {
+interface EmployeesFiltersProps {
+  onSearch: (value: string) => void;
+  searchValue: string;
+}
+
+export function EmployeesFilters({ onSearch, searchValue }: EmployeesFiltersProps): React.JSX.Element {
   return (
-    <Card sx={{ p: 2 }}>
-      <OutlinedInput
-        defaultValue=""
-        fullWidth
-        placeholder="Search employee"
-        startAdornment={
-          <InputAdornment position="start">
-            <MagnifyingGlassIcon fontSize="var(--icon-fontSize-md)" />
-          </InputAdornment>
-        }
-        sx={{ maxWidth: '500px' }}
+    <Stack direction="row" spacing={2}>
+      <TextField
+        size="small"
+        placeholder="Search employees..."
+        value={searchValue}
+        onChange={(e) => onSearch(e.target.value)}
+        InputProps={{
+          startAdornment: (
+            <InputAdornment position="start">
+              <SearchIcon />
+            </InputAdornment>
+          ),
+        }}
+        sx={{ minWidth: 300 }}
       />
-    </Card>
+    </Stack>
   );
 }

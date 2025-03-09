@@ -1,42 +1,62 @@
+'use client';
+
 import * as React from 'react';
-import Table from '@mui/material/Table';
-import TableBody from '@mui/material/TableBody';
-import TableCell from '@mui/material/TableCell';
-import TableHead from '@mui/material/TableHead';
-import TableRow from '@mui/material/TableRow';
-import Paper from '@mui/material/Paper';
-import TableContainer from '@mui/material/TableContainer';
-import Checkbox from '@mui/material/Checkbox';
-import Card from '@mui/material/Card';
-import Box from '@mui/material/Box';
-import Divider from '@mui/material/Divider';
-import TablePagination from '@mui/material/TablePagination';
-import { useSelection } from '@/hooks/use-selection';
+import {
+  Table,
+  TableBody,
+  TableCell,
+  TableHead,
+  TableRow,
+  Paper,
+  TableContainer,
+  IconButton,
+  Tooltip,
+  Card,
+  TablePagination,
+  Chip,
+  CircularProgress,
+  Box
+} from '@mui/material';
+import EditIcon from '@mui/icons-material/Edit';
+import DeleteIcon from '@mui/icons-material/Delete';
 
 interface Driver {
   id: string;
   name: string;
-  gender: 'male' | 'female';
+  gender: string;
   phone_number: string;
-  company_id: string; // Adjust this type as needed
+  company_id: string;
+  car_id: string;
+  status?: 'active' | 'inactive';
+  email?: string;
 }
 
 interface DriversTableProps {
-  rows?: Driver[];
-  count?: number;
-  page?: number;
-  rowsPerPage?: number;
-  refreshTrigger?: number;
+  items: Driver[];
+  count: number;
+  page: number;
+  rowsPerPage: number;
+  onPageChange: (newPage: number) => void;
+  onRowsPerPageChange: (newRowsPerPage: number) => void;
+  onEdit: (driver: Driver) => void;
+  onDelete: (driver: Driver) => void;
+  onStatusChange: (driver: Driver, newStatus: 'active' | 'inactive') => void;
 }
 
-function noop(): void {
-  // do nothing
-}
-
-export function DriversTable({ rows = [], count = 0, page = 0, rowsPerPage = 0, refreshTrigger = 0 }: DriversTableProps): React.JSX.Element {
+export function DriversTable({
+  items,
+  count,
+  page,
+  rowsPerPage,
+  onPageChange,
+  onRowsPerPageChange,
+  onEdit,
+  onDelete,
+  onStatusChange
+}: DriversTableProps) {
+  const [loading, setLoading] = React.useState(true);
   const [drivers, setDrivers] = React.useState<Driver[]>([]);
-  const [loading, setLoading] = React.useState<boolean>(true);
-
+  
   React.useEffect(() => {
     setLoading(true);
     fetch('http://localhost:8000/api/drivers/')
@@ -49,84 +69,79 @@ export function DriversTable({ rows = [], count = 0, page = 0, rowsPerPage = 0, 
         console.error('Error fetching driver data:', error);
         setLoading(false);
       });
-  }, [refreshTrigger]);
-
-  const rowIds = React.useMemo(() => {
-    return drivers.map((driver) => driver.id);
-  }, [drivers]);
-
-  const { selectAll, deselectAll, selectOne, deselectOne, selected } = useSelection(rowIds);
-
-  const selectedSome = (selected?.size ?? 0) > 0 && (selected?.size ?? 0) < drivers.length;
-  const selectedAll = drivers.length > 0 && selected?.size === drivers.length;
+  }, []);
 
   if (loading) {
-    return <div>Loading...</div>;
+    return (
+      <Box sx={{ display: 'flex', justifyContent: 'center', p: 3 }}>
+        <CircularProgress />
+      </Box>
+    );
   }
 
   return (
     <Card>
-      <Box sx={{ overflowX: 'auto' }}>
-        <TableContainer component={Paper}>
-          <Table>
-            <TableHead>
-              <TableRow>
-                <TableCell padding="checkbox">
-                  <Checkbox
-                    checked={selectedAll}
-                    indeterminate={selectedSome}
-                    onChange={(event) => {
-                      if (event.target.checked) {
-                        selectAll();
-                      } else {
-                        deselectAll();
-                      }
-                    }}
-                  />
+      <TableContainer>
+        <Table>
+          <TableHead>
+            <TableRow>
+              <TableCell>Name</TableCell>
+              <TableCell>Gender</TableCell>
+              <TableCell>Phone Number</TableCell>
+              <TableCell>Company ID</TableCell>
+              <TableCell>Car ID</TableCell>
+              <TableCell>Status</TableCell>
+              <TableCell align="right">Actions</TableCell>
+            </TableRow>
+          </TableHead>
+          <TableBody>
+            {drivers.map((driver) => (
+              <TableRow hover key={driver.id}>
+                <TableCell>{driver.name}</TableCell>
+                <TableCell>{driver.gender}</TableCell>
+                <TableCell>{driver.phone_number}</TableCell>
+                <TableCell>{driver.company_id}</TableCell>
+                <TableCell>{driver.car_id}</TableCell>
+                <TableCell>
+                  <Tooltip title="Click to change status">
+                    <Chip
+                      label={driver.status || 'active'}
+                      color={driver.status === 'inactive' ? 'error' : 'success'}
+                      size="small"
+                      onClick={() => onStatusChange(driver, driver.status === 'active' ? 'inactive' : 'active')}
+                      sx={{ 
+                        cursor: 'pointer',
+                        '&:hover': {
+                          opacity: 0.8
+                        }
+                      }}
+                    />
+                  </Tooltip>
                 </TableCell>
-                <TableCell>Name</TableCell>
-                <TableCell>Gender</TableCell>
-                <TableCell>Phone Number</TableCell>
-                <TableCell>Company ID</TableCell>
+                <TableCell align="right">
+                  <Tooltip title="Edit">
+                    <IconButton size="small" onClick={() => onEdit(driver)}>
+                      <EditIcon fontSize="small" />
+                    </IconButton>
+                  </Tooltip>
+                  <Tooltip title="Delete">
+                    <IconButton size="small" color="error" onClick={() => onDelete(driver)}>
+                      <DeleteIcon fontSize="small" />
+                    </IconButton>
+                  </Tooltip>
+                </TableCell>
               </TableRow>
-            </TableHead>
-            <TableBody>
-              {drivers.map((row) => {
-                const isSelected = selected?.has(row.id);
-
-                return (
-                  <TableRow hover key={row.id} selected={isSelected}>
-                    <TableCell padding="checkbox">
-                      <Checkbox
-                        checked={isSelected}
-                        onChange={(event) => {
-                          if (event.target.checked) {
-                            selectOne(row.id);
-                          } else {
-                            deselectOne(row.id);
-                          }
-                        }}
-                      />
-                    </TableCell>
-                    <TableCell>{row.name}</TableCell>
-                    <TableCell>{row.gender}</TableCell>
-                    <TableCell>{row.phone_number}</TableCell>
-                    <TableCell>{row.company_id}</TableCell>
-                  </TableRow>
-                );
-              })}
-            </TableBody>
-          </Table>
-        </TableContainer>
-      </Box>
-      <Divider />
+            ))}
+          </TableBody>
+        </Table>
+      </TableContainer>
       <TablePagination
         component="div"
         count={count}
-        onPageChange={noop}
-        onRowsPerPageChange={noop}
         page={page}
         rowsPerPage={rowsPerPage}
+        onPageChange={(_, newPage) => onPageChange(newPage)}
+        onRowsPerPageChange={(event) => onRowsPerPageChange(parseInt(event.target.value, 10))}
         rowsPerPageOptions={[5, 10, 25]}
       />
     </Card>

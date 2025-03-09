@@ -14,45 +14,47 @@ import {
   Typography
 } from '@mui/material';
 import { useTheme } from '@mui/material/styles';
-import AddIcon from '@mui/icons-material/Add';
+import EditIcon from '@mui/icons-material/Edit';
 
-interface FormData {
+interface Driver {
+  id: string;
   name: string;
   gender: string;
   phone_number: string;
   company_id: string;
   car_id: string;
-  email: string;
   status: 'active' | 'inactive';
 }
 
-interface AddDriverDialogProps {
+interface EditDriverDialogProps {
   open: boolean;
   onClose: () => void;
-  onSubmit: (data: FormData) => void;
+  onSubmit: (driver: Driver) => void;
+  driver: Driver | null;
 }
 
-export default function AddDriverDialog({
+export default function EditDriverDialog({
   open,
   onClose,
-  onSubmit
-}: AddDriverDialogProps) {
+  onSubmit,
+  driver
+}: EditDriverDialogProps) {
   const theme = useTheme();
-  const [formData, setFormData] = React.useState<FormData>({
-    name: '',
-    gender: '',
-    phone_number: '',
-    company_id: '',
-    car_id: '',
-    email: '',
-    status: 'active'
-  });
+  const [formData, setFormData] = React.useState<Driver | null>(null);
 
-  const handleChange = (field: keyof FormData) => (
+  React.useEffect(() => {
+    if (driver) {
+      setFormData(driver);
+    }
+  }, [driver]);
+
+  if (!formData || !driver) return null;
+
+  const handleChange = (field: keyof Driver) => (
     event: React.ChangeEvent<HTMLInputElement | { value: unknown }>
   ) => {
     setFormData(prev => ({
-      ...prev,
+      ...prev!,
       [field]: event.target.value
     }));
   };
@@ -60,26 +62,6 @@ export default function AddDriverDialog({
   const handleSubmit = (event: React.FormEvent) => {
     event.preventDefault();
     onSubmit(formData);
-    setFormData({
-      name: '',
-      gender: '',
-      phone_number: '',
-      company_id: '',
-      car_id: '',
-      email: '',
-      status: 'active'
-    });
-  };
-
-  const isFormValid = () => {
-    return (
-      formData.name.trim() !== '' &&
-      formData.gender !== '' &&
-      formData.phone_number.trim() !== '' &&
-      formData.company_id.trim() !== '' &&
-      formData.car_id.trim() !== '' &&
-      formData.email.trim() !== ''
-    );
   };
 
   return (
@@ -93,8 +75,8 @@ export default function AddDriverDialog({
           gap: 1
         }}
       >
-        <AddIcon />
-        <Typography variant="h6">Add New Driver</Typography>
+        <EditIcon />
+        <Typography variant="h6">Edit Driver</Typography>
       </DialogTitle>
       <form onSubmit={handleSubmit}>
         <DialogContent dividers>
@@ -154,13 +136,15 @@ export default function AddDriverDialog({
             </Grid>
             <Grid item xs={12}>
               <FormControl fullWidth required>
-                <InputLabel>Email</InputLabel>
-                <OutlinedInput
-                  label="Email"
-                  type="email"
-                  value={formData.email}
-                  onChange={handleChange('email')}
-                />
+                <InputLabel>Status</InputLabel>
+                <Select
+                  value={formData.status}
+                  label="Status"
+                  onChange={handleChange('status')}
+                >
+                  <MenuItem value="active">Active</MenuItem>
+                  <MenuItem value="inactive">Inactive</MenuItem>
+                </Select>
               </FormControl>
             </Grid>
           </Grid>
@@ -170,10 +154,9 @@ export default function AddDriverDialog({
           <Button
             type="submit"
             variant="contained"
-            disabled={!isFormValid()}
-            startIcon={<AddIcon />}
+            startIcon={<EditIcon />}
           >
-            Add Driver
+            Save Changes
           </Button>
         </DialogActions>
       </form>

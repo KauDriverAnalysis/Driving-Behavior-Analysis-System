@@ -1,52 +1,84 @@
 import * as React from 'react';
-import Table from '@mui/material/Table';
-import TableBody from '@mui/material/TableBody';
-import TableCell from '@mui/material/TableCell';
-import TableHead from '@mui/material/TableHead';
-import TableRow from '@mui/material/TableRow';
-import Paper from '@mui/material/Paper';
-import TableContainer from '@mui/material/TableContainer';
-import Checkbox from '@mui/material/Checkbox';
-import Card from '@mui/material/Card';
-import Box from '@mui/material/Box';
-import Divider from '@mui/material/Divider';
-import TablePagination from '@mui/material/TablePagination';
-import { useSelection } from '@/hooks/use-selection';
+import {
+  Table,
+  TableBody,
+  TableCell,
+  TableHead,
+  TableRow,
+  Paper,
+  TableContainer,
+  IconButton,
+  Tooltip,
+  Card,
+  TablePagination,
+  Chip,
+  CircularProgress,
+  Box
+} from '@mui/material';
+import EditIcon from '@mui/icons-material/Edit';
+import DeleteIcon from '@mui/icons-material/Delete';
 
 interface Car {
   id: string;
-  model: string;
-  type: string;
-  plateNumber: string;
-  releaseYear: number;
-  state: string;
-  deviceId: string;
-  customerId?: string | null;
-  companyId?: string | null;
+  Model: string;
+  Type: string;
+  plate_number: string;
+  release_year: string;
+  state: 'online' | 'offline';
+  device_id: string;
+  customer_id: string;
+  company_id: string;
 }
 
 interface CarsTableProps {
-  rows?: Car[];
-  count?: number;
-  page?: number;
-  rowsPerPage?: number;
-  refreshTrigger?: number;
+  items: Car[];
+  count: number;
+  page: number;
+  rowsPerPage: number;
+  onPageChange: (newPage: number) => void;
+  onRowsPerPageChange: (newRowsPerPage: number) => void;
+  onEdit: (car: Car) => void;
+  onDelete: (car: Car) => void;
+  onStatusChange: (car: Car, newStatus: 'online' | 'offline') => void;
 }
 
-function noop(): void {
-  // do nothing
-}
-
-export function CarsTable({ rows = [], count = 0, page = 0, rowsPerPage = 0, refreshTrigger = 0 }: CarsTableProps): React.JSX.Element {
+export function CarsTable({
+  items,
+  count,
+  page,
+  rowsPerPage,
+  onPageChange,
+  onRowsPerPageChange,
+  onEdit,
+  onDelete,
+  onStatusChange
+}: CarsTableProps) {
   const [cars, setCars] = React.useState<Car[]>([]);
-  const [loading, setLoading] = React.useState<boolean>(true);
+  const [loading, setLoading] = React.useState(true);
+  const [refreshTrigger, setRefreshTrigger] = React.useState(0);
 
   React.useEffect(() => {
     setLoading(true);
     fetch('http://localhost:8000/api/cars/')
       .then((response) => response.json())
       .then((data) => {
-        setCars(data);
+        // Log the received data to check its structure
+        console.log('Received data:', data);
+        
+        // Map the API response to match your Car interface
+        const mappedCars = data.map((item: any) => ({
+          id: item.id,
+          Model: item.model || item.Model || '',
+          Type: item.type || item.Type || '',
+          plate_number: item.plate_number || '',
+          release_year: item.release_year || '',
+          state: item.state || 'offline',
+          device_id: item.device_id || '',
+          customer_id: item.customer_id || '',
+          company_id: item.company_id || ''
+        }));
+        
+        setCars(mappedCars);
         setLoading(false);
       })
       .catch((error) => {
@@ -55,92 +87,83 @@ export function CarsTable({ rows = [], count = 0, page = 0, rowsPerPage = 0, ref
       });
   }, [refreshTrigger]);
 
-  const rowIds = React.useMemo(() => {
-    return cars.map((car) => car.id);
-  }, [cars]);
-
-  const { selectAll, deselectAll, selectOne, deselectOne, selected } = useSelection(rowIds);
-
-  const selectedSome = (selected?.size ?? 0) > 0 && (selected?.size ?? 0) < cars.length;
-  const selectedAll = cars.length > 0 && selected?.size === cars.length;
-
   if (loading) {
-    return <div>Loading...</div>;
+    return (
+      <Box sx={{ display: 'flex', justifyContent: 'center', p: 3 }}>
+        <CircularProgress />
+      </Box>
+    );
   }
 
   return (
     <Card>
-      <Box sx={{ overflowX: 'auto' }}>
-        <TableContainer component={Paper}>
-          <Table>
-            <TableHead>
-              <TableRow>
-                <TableCell padding="checkbox">
-                  <Checkbox
-                    checked={selectedAll}
-                    indeterminate={selectedSome}
-                    onChange={(event) => {
-                      if (event.target.checked) {
-                        selectAll();
-                      } else {
-                        deselectAll();
-                      }
-                    }}
-                  />
+      <TableContainer>
+        <Table>
+          <TableHead>
+            <TableRow>
+              <TableCell>ID</TableCell>
+              <TableCell>Model</TableCell>
+              <TableCell>Type</TableCell>
+              <TableCell>Plate Number</TableCell>
+              <TableCell>Release Year</TableCell>
+              <TableCell>State</TableCell>
+              <TableCell>Device ID</TableCell>
+              <TableCell>Customer ID</TableCell>
+              <TableCell>Company ID</TableCell>
+              <TableCell align="right">Actions</TableCell>
+            </TableRow>
+          </TableHead>
+          <TableBody>
+            {cars.map((car) => (
+              <TableRow hover key={car.id}>
+                <TableCell>{car.id}</TableCell>
+                <TableCell>{car.Model}</TableCell>
+                <TableCell>{car.Type}</TableCell>
+                <TableCell>{car.plate_number}</TableCell>
+                <TableCell>{car.release_year}</TableCell>
+                <TableCell>
+                  <Tooltip title="Click to change state">
+                    <Chip 
+                      label={car.state} 
+                      color={car.state === 'online' ? 'success' : 'error'}
+                      size="small"
+                      onClick={() => onStatusChange(car, car.state === 'online' ? 'offline' : 'online')}
+                      sx={{ 
+                        cursor: 'pointer',
+                        '&:hover': {
+                          opacity: 0.8
+                        }
+                      }}
+                    />
+                  </Tooltip>
                 </TableCell>
-                <TableCell>ID</TableCell>
-                <TableCell>Model</TableCell>
-                <TableCell>Type</TableCell>
-                <TableCell>Plate Number</TableCell>
-                <TableCell>Release Year</TableCell>
-                <TableCell>State</TableCell>
-                <TableCell>Device ID</TableCell>
-                <TableCell>Customer ID</TableCell>
-                <TableCell>Company ID</TableCell>
+                <TableCell>{car.device_id}</TableCell>
+                <TableCell>{car.customer_id}</TableCell>
+                <TableCell>{car.company_id}</TableCell>
+                <TableCell align="right">
+                  <Tooltip title="Edit">
+                    <IconButton size="small" color="primary" onClick={() => onEdit(car)}>
+                      <EditIcon fontSize="small" />
+                    </IconButton>
+                  </Tooltip>
+                  <Tooltip title="Delete">
+                    <IconButton size="small" color="error" onClick={() => onDelete(car)}>
+                      <DeleteIcon fontSize="small" />
+                    </IconButton>
+                  </Tooltip>
+                </TableCell>
               </TableRow>
-            </TableHead>
-            <TableBody>
-              {cars.map((row) => {
-                const isSelected = selected?.has(row.id);
-
-                return (
-                  <TableRow hover key={row.id} selected={isSelected}>
-                    <TableCell padding="checkbox">
-                      <Checkbox
-                        checked={isSelected}
-                        onChange={(event) => {
-                          if (event.target.checked) {
-                            selectOne(row.id);
-                          } else {
-                            deselectOne(row.id);
-                          }
-                        }}
-                      />
-                    </TableCell>
-                    <TableCell>{row.id}</TableCell>
-                    <TableCell>{row.model}</TableCell>
-                    <TableCell>{row.type}</TableCell>
-                    <TableCell>{row.plateNumber}</TableCell>
-                    <TableCell>{row.releaseYear}</TableCell>
-                    <TableCell>{row.state}</TableCell>
-                    <TableCell>{row.deviceId}</TableCell>
-                    <TableCell>{row.customerId}</TableCell>
-                    <TableCell>{row.companyId}</TableCell>
-                  </TableRow>
-                );
-              })}
-            </TableBody>
-          </Table>
-        </TableContainer>
-      </Box>
-      <Divider />
+            ))}
+          </TableBody>
+        </Table>
+      </TableContainer>
       <TablePagination
         component="div"
-        count={count}
-        onPageChange={noop}
-        onRowsPerPageChange={noop}
+        count={cars.length}
         page={page}
         rowsPerPage={rowsPerPage}
+        onPageChange={(_, newPage) => onPageChange(newPage)}
+        onRowsPerPageChange={(event) => onRowsPerPageChange(parseInt(event.target.value, 10))}
         rowsPerPageOptions={[5, 10, 25]}
       />
     </Card>

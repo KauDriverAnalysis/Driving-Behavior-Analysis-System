@@ -20,6 +20,15 @@ interface AddEmployeeDialogProps {
   onSuccess?: () => void; // Optional callback for when an employee is successfully added
 }
 
+interface FormData {
+  name: string;
+  phone_number: string;
+  address: string;
+  Email: string;
+  Password: string;
+}
+
+// Update the component to include form validation
 export default function AddEmployeeDialog({ 
   open, 
   onClose,
@@ -30,11 +39,38 @@ export default function AddEmployeeDialog({
     male: false,
     female: false,
   });
+  const [formData, setFormData] = React.useState<FormData>({
+    name: '',
+    phone_number: '',
+    address: '',
+    Email: '',
+    Password: ''
+  });
   const [alertState, setAlertState] = React.useState({
     open: false,
     message: '',
     severity: 'success' as 'success' | 'error'
   });
+
+  const handleInputChange = (field: keyof FormData) => (
+    event: React.ChangeEvent<HTMLInputElement>
+  ) => {
+    setFormData(prev => ({
+      ...prev,
+      [field]: event.target.value
+    }));
+  };
+
+  const isFormValid = () => {
+    return (
+      formData.name.trim() !== '' &&
+      formData.phone_number.trim() !== '' &&
+      formData.address.trim() !== '' &&
+      formData.Email.trim() !== '' &&
+      formData.Password.trim() !== '' &&
+      (gender.male || gender.female) // At least one gender must be selected
+    );
+  };
 
   const handleGenderChange = (event: React.ChangeEvent<HTMLInputElement>) => {
     setGender({
@@ -166,11 +202,17 @@ export default function AddEmployeeDialog({
               <Grid item xs={12}>
                 <FormControl fullWidth required>
                   <InputLabel>Name</InputLabel>
-                  <OutlinedInput label="Name" name="Name" />
+                  <OutlinedInput 
+                    label="Name" 
+                    name="Name"
+                    value={formData.name}
+                    onChange={handleInputChange('name')}
+                    error={formData.name.trim() === ''}
+                  />
                 </FormControl>
               </Grid>
               <Grid item xs={12}>
-                <FormControl component="fieldset" fullWidth required>
+                <FormControl component="fieldset" fullWidth required error={!gender.male && !gender.female}>
                   <Grid container spacing={1}>
                     <Grid item>
                       <FormControlLabel
@@ -204,28 +246,53 @@ export default function AddEmployeeDialog({
               <Grid item xs={12}>
                 <FormControl fullWidth required>
                   <InputLabel>Phone number</InputLabel>
-                  <OutlinedInput label="Phone number" name="phone_number" />
+                  <OutlinedInput 
+                    label="Phone number" 
+                    name="phone_number"
+                    value={formData.phone_number}
+                    onChange={handleInputChange('phone_number')}
+                    error={formData.phone_number.trim() === ''}
+                  />
                 </FormControl>
               </Grid>
               <Grid item xs={12}>
                 <FormControl fullWidth required>
                   <InputLabel>Address</InputLabel>
-                  <OutlinedInput label="Address" name="address" placeholder="City, State, Country, Street" />
+                  <OutlinedInput 
+                    label="Address" 
+                    name="address"
+                    value={formData.address}
+                    onChange={handleInputChange('address')}
+                    error={formData.address.trim() === ''}
+                    placeholder="City, State, Country, Street"
+                  />
                 </FormControl>
               </Grid>
               <Grid item xs={12}>
                 <FormControl fullWidth required>
                   <InputLabel>Email</InputLabel>
-                  <OutlinedInput label="Email" name="Email" type="email" />
+                  <OutlinedInput 
+                    label="Email" 
+                    name="Email"
+                    type="email"
+                    value={formData.Email}
+                    onChange={handleInputChange('Email')}
+                    error={formData.Email.trim() === ''}
+                  />
                 </FormControl>
               </Grid>
               <Grid item xs={12}>
                 <FormControl fullWidth required>
                   <InputLabel>Password</InputLabel>
-                  <OutlinedInput label="Password" name="Password" type="password" />
+                  <OutlinedInput 
+                    label="Password" 
+                    name="Password"
+                    type="password"
+                    value={formData.Password}
+                    onChange={handleInputChange('Password')}
+                    error={formData.Password.trim() === ''}
+                  />
                 </FormControl>
-              </Grid>
-              <Grid item xs={12}>
               </Grid>
             </Grid>
           </DialogContent>
@@ -233,7 +300,12 @@ export default function AddEmployeeDialog({
             <Button onClick={onClose} variant="outlined" sx={{ marginRight: theme.spacing(2) }}>
               Cancel
             </Button>
-            <Button type="submit" variant="contained" color="primary">
+            <Button 
+              type="submit" 
+              variant="contained" 
+              color="primary"
+              disabled={!isFormValid()}
+            >
               Add
             </Button>
           </DialogActions>

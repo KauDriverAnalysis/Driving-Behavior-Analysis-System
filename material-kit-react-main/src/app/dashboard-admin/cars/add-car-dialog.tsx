@@ -1,92 +1,73 @@
 import * as React from 'react';
-import Dialog from '@mui/material/Dialog';
-import DialogActions from '@mui/material/DialogActions';
-import DialogContent from '@mui/material/DialogContent';
-import DialogTitle from '@mui/material/DialogTitle';
-import Button from '@mui/material/Button';
-import FormControl from '@mui/material/FormControl';
-import InputLabel from '@mui/material/InputLabel';
-import OutlinedInput from '@mui/material/OutlinedInput';
-import Grid from '@mui/material/Grid';
+import {
+  Dialog,
+  DialogTitle,
+  DialogContent,
+  DialogActions,
+  Button,
+  Grid,
+  FormControl,
+  InputLabel,
+  OutlinedInput,
+  Typography,
+  Select,
+  MenuItem
+} from '@mui/material';
 import { useTheme } from '@mui/material/styles';
-import { useState } from 'react';
-import { AlertColor } from '@mui/material/Alert';
-import FormHelperText from '@mui/material/FormHelperText';
-import Select from '@mui/material/Select';
-import MenuItem from '@mui/material/MenuItem';
+import AddIcon from '@mui/icons-material/Add';
 
 interface AddCarDialogProps {
   open: boolean;
   onClose: () => void;
-  onSuccess?: () => void; // Add this prop
+  onSubmit: (data: CarFormData) => void;
 }
 
-export default function AddCarDialog({ open, onClose, onSuccess }: AddCarDialogProps): React.JSX.Element {
+interface CarFormData {
+  name: string;
+  brand: string;
+  model: string;
+  year: string;
+  plate_number: string;
+  owner: string;
+  // Removed status from form
+}
+
+export default function AddCarDialog({ open, onClose, onSubmit }: AddCarDialogProps) {
   const theme = useTheme();
-  const [alertState, setAlertState] = useState({
-    open: false,
-    message: '',
-    severity: 'success' as AlertColor
+  const [formData, setFormData] = React.useState<CarFormData>({
+    name: '',
+    brand: '',
+    model: '',
+    year: '',
+    plate_number: '',
+    owner: ''
   });
 
-  const handleSubmit = async (event: React.FormEvent) => {
-    event.preventDefault();
-    const formData = new FormData(event.target as HTMLFormElement);
-    const formDataObject: Record<string, any> = {};
-    
-    formData.forEach((value, key) => {
-      formDataObject[key] = value;
-    });
-    
-    // Auto-convert plate number to uppercase
-    if (formDataObject.Plate_number) {
-      formDataObject.Plate_number = formDataObject.Plate_number.toUpperCase();
-    }
+  const handleChange = (field: keyof CarFormData) => (
+    event: React.ChangeEvent<HTMLInputElement | { value: unknown }>
+  ) => {
+    setFormData(prev => ({
+      ...prev,
+      [field]: event.target.value
+    }));
+  };
 
-    console.log('Form data being sent:', formDataObject);
-    
-    try {
-      const response = await fetch('http://localhost:8000/api/create_car/', {
-        method: 'POST',
-        headers: {
-          'Content-Type': 'application/json',
-        },
-        body: JSON.stringify(formDataObject),
-        credentials: 'include',
-      });
-      
-      if (!response.ok) {
-        const errorData = await response.json();
-        console.error('Error:', errorData);
-        setAlertState({
-          open: true,
-          message: `Error: ${JSON.stringify(errorData.errors || errorData.error || 'Unknown error')}`,
-          severity: 'error'
-        });
-        return;
-      }
-      
-      const result = await response.json();
-      console.log('Success:', result);
-      setAlertState({
-        open: true,
-        message: 'Car created successfully!',
-        severity: 'success'
-      });
-      
-      if (onSuccess) {
-        onSuccess(); // Call onSuccess when car is created successfully
-      } else {
-        onClose(); // Fallback to just closing if onSuccess not provided
-      }
-    } catch (error) {
-      console.error('Error:', error);
-      setAlertState({
-        open: true,
-        message: `Error: ${error}`,
-        severity: 'error'
-      });
-    }
+  const handleSubmit = (event: React.FormEvent) => {
+    event.preventDefault();
+    // Add default inactive status when submitting
+    onSubmit({ ...formData, status: 'inactive' as const });
+    setFormData({
+      name: '',
+      brand: '',
+      model: '',
+      year: '',
+      plate_number: '',
+      owner: ''
+    });
+  };
+
+  const isFormValid = () => {
+    return Object.values(formData).every(value => value !== '');
   };
 
   return (
@@ -95,96 +76,88 @@ export default function AddCarDialog({ open, onClose, onSuccess }: AddCarDialogP
         sx={{
           backgroundColor: theme.palette.primary.main,
           color: 'white',
-          textAlign: 'center',
-          fontWeight: 'bold',
-          padding: theme.spacing(2),
-          borderTopLeftRadius: theme.shape.borderRadius,
-          borderTopRightRadius: theme.shape.borderRadius,
+          display: 'flex',
+          alignItems: 'center',
+          gap: 1
         }}
       >
-        Add Car
+        <AddIcon />
+        <Typography variant="h6">Add New Car</Typography>
       </DialogTitle>
       <form onSubmit={handleSubmit}>
         <DialogContent dividers>
           <Grid container spacing={2}>
             <Grid item xs={12}>
               <FormControl fullWidth required>
-                <InputLabel>Car Model</InputLabel>
-                <OutlinedInput label="Car Model" name="Model_of_car" />
+                <InputLabel>Name</InputLabel>
+                <OutlinedInput
+                  label="Name"
+                  value={formData.name}
+                  onChange={handleChange('name')}
+                />
               </FormControl>
             </Grid>
-            
-            <Grid item xs={12}>
+            <Grid item xs={12} sm={6}>
               <FormControl fullWidth required>
-                <InputLabel>Type</InputLabel>
-                <OutlinedInput label="Type" name="TypeOfCar" />
+                <InputLabel>Brand</InputLabel>
+                <OutlinedInput
+                  label="Brand"
+                  value={formData.brand}
+                  onChange={handleChange('brand')}
+                />
               </FormControl>
             </Grid>
-            
-            <Grid item xs={12}>
+            <Grid item xs={12} sm={6}>
+              <FormControl fullWidth required>
+                <InputLabel>Model</InputLabel>
+                <OutlinedInput
+                  label="Model"
+                  value={formData.model}
+                  onChange={handleChange('model')}
+                />
+              </FormControl>
+            </Grid>
+            <Grid item xs={12} sm={6}>
+              <FormControl fullWidth required>
+                <InputLabel>Year</InputLabel>
+                <OutlinedInput
+                  label="Year"
+                  value={formData.year}
+                  onChange={handleChange('year')}
+                />
+              </FormControl>
+            </Grid>
+            <Grid item xs={12} sm={6}>
               <FormControl fullWidth required>
                 <InputLabel>Plate Number</InputLabel>
-                <OutlinedInput 
-                  label="Plate Number" 
-                  name="Plate_number" 
-                />
-                <FormHelperText>Format: ABC 1234 (3 uppercase letters, space, 4 digits)</FormHelperText>
-              </FormControl>
-            </Grid>
-            
-            <Grid item xs={12}>
-              <FormControl fullWidth required>
-                <InputLabel>Release Year</InputLabel>
-                <OutlinedInput 
-                  label="Release Year" 
-                  name="Release_Year_car" 
-                  type="number" 
+                <OutlinedInput
+                  label="Plate Number"
+                  value={formData.plate_number}
+                  onChange={handleChange('plate_number')}
                 />
               </FormControl>
             </Grid>
-            
             <Grid item xs={12}>
               <FormControl fullWidth required>
-                <InputLabel>Status</InputLabel>
-                <Select
-                  name="State_of_car"
-                  label="Status"
-                  defaultValue=""
-                >
-                  <MenuItem value="online">Online</MenuItem>
-                  <MenuItem value="offline">Offline</MenuItem>
-                </Select>
-              </FormControl>
-            </Grid>
-            
-            <Grid item xs={12}>
-              <FormControl fullWidth required>
-                <InputLabel>Device ID</InputLabel>
-                <OutlinedInput label="Device ID" name="device_id" />
-              </FormControl>
-            </Grid>
-            
-            <Grid item xs={12}>
-              <FormControl fullWidth>
-                <InputLabel>Customer ID</InputLabel>
-                <OutlinedInput label="Customer ID" name="customer_id" />
-              </FormControl>
-            </Grid>
-            
-            <Grid item xs={12}>
-              <FormControl fullWidth>
-                <InputLabel>Company ID</InputLabel>
-                <OutlinedInput label="Company ID" name="company_id" />
+                <InputLabel>Owner</InputLabel>
+                <OutlinedInput
+                  label="Owner"
+                  value={formData.owner}
+                  onChange={handleChange('owner')}
+                />
               </FormControl>
             </Grid>
           </Grid>
         </DialogContent>
-        <DialogActions sx={{ justifyContent: 'flex-end', padding: theme.spacing(2) }}>
-          <Button onClick={onClose} variant="outlined" sx={{ marginRight: theme.spacing(2) }}>
-            Cancel
-          </Button>
-          <Button type="submit" variant="contained" color="primary">
-            Add
+        <DialogActions sx={{ p: 2 }}>
+          <Button onClick={onClose}>Cancel</Button>
+          <Button
+            type="submit"
+            variant="contained"
+            disabled={!isFormValid()}
+            startIcon={<AddIcon />}
+          >
+            Add Car
           </Button>
         </DialogActions>
       </form>

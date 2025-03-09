@@ -13,10 +13,16 @@ import Link from '@mui/material/Link';
 import OutlinedInput from '@mui/material/OutlinedInput';
 import Stack from '@mui/material/Stack';
 import Typography from '@mui/material/Typography';
+import Paper from '@mui/material/Paper';
+import Box from '@mui/material/Box';
+import Tabs from '@mui/material/Tabs';
+import Tab from '@mui/material/Tab';
 import { Eye as EyeIcon } from '@phosphor-icons/react/dist/ssr/Eye';
 import { EyeSlash as EyeSlashIcon } from '@phosphor-icons/react/dist/ssr/EyeSlash';
 import { Controller, useForm } from 'react-hook-form';
 import { z as zod } from 'zod';
+import { Buildings as CompanyIcon } from '@phosphor-icons/react/dist/ssr/Buildings';
+import { User as CustomerIcon } from '@phosphor-icons/react/dist/ssr/User';
 
 import { paths } from '@/paths';
 import { authClient } from '@/lib/auth/client';
@@ -37,7 +43,7 @@ export function SignInForm(): React.JSX.Element {
 
   const [showPassword, setShowPassword] = React.useState<boolean>(false);
   const [isPending, setIsPending] = React.useState<boolean>(false);
-  const [isEmployee, setIsEmployee] = React.useState<boolean>(false);
+  const [accountType, setAccountType] = React.useState<'customer' | 'company'>('customer');
 
   const {
     control,
@@ -50,7 +56,10 @@ export function SignInForm(): React.JSX.Element {
     async (values: Values): Promise<void> => {
       setIsPending(true);
 
-      const { userType, error } = await authClient.signInWithPassword(values);
+      const { userType, error } = await authClient.signInWithPassword({
+        ...values,
+        accountType
+      });
 
       if (error) {
         setError('root', { type: 'server', message: error });
@@ -68,34 +77,51 @@ export function SignInForm(): React.JSX.Element {
         router.push(paths.dashboardAdmin.overview);
       } else if (userType === 'customer') {
         router.push(paths.dashboardCustomer.overview);
+      } else if (userType === 'company') {
+        router.push(paths.dashboardCompany.overview);
       } else if (userType === 'employee') {
-        setIsEmployee(true);
         router.push(paths.dashboardAdmin.overview);
       }
     },
-    [checkSession, router, setError, setUserType]  // Add setUserType to dependencies
+    [checkSession, router, setError, setUserType, accountType]
   );
 
   return (
-    <Stack spacing={4}>
-      <Stack spacing={1}>
-        <Typography variant="h4">Sign in</Typography>
-        <Typography color="text.secondary" variant="body2">
-          Don&apos;t have an account?{' '}
-          <Link component={RouterLink} href={paths.auth.signUp} underline="hover" variant="subtitle2">
-            Sign up
-          </Link>
-        </Typography>
-      </Stack>
+    <Box sx={{ width: '100%', maxWidth: '450px' }}>
+      <Tabs
+        value={accountType}
+        onChange={(_, value) => setAccountType(value)}
+        variant="fullWidth"
+        sx={{ mb: 3 }}
+      >
+        <Tab 
+          value="customer" 
+          label="Customer" 
+          icon={<CustomerIcon size={20} />} 
+          iconPosition="start"
+        />
+        <Tab 
+          value="company" 
+          label="Company" 
+          icon={<CompanyIcon size={20} />} 
+          iconPosition="start"
+        />
+      </Tabs>
+      
       <form onSubmit={handleSubmit(onSubmit)}>
-        <Stack spacing={2}>
+        <Stack spacing={3}>
           <Controller
             control={control}
             name="email"
             render={({ field }) => (
-              <FormControl error={Boolean(errors.email)}>
+              <FormControl fullWidth error={Boolean(errors.email)}>
                 <InputLabel>Email address</InputLabel>
-                <OutlinedInput {...field} label="Email address" type="email" />
+                <OutlinedInput 
+                  {...field} 
+                  label="Email address" 
+                  type="email" 
+                  placeholder={accountType === 'customer' ? "customer@example.com" : "company@example.com"}
+                />
                 {errors.email ? <FormHelperText>{errors.email.message}</FormHelperText> : null}
               </FormControl>
             )}
@@ -104,7 +130,7 @@ export function SignInForm(): React.JSX.Element {
             control={control}
             name="password"
             render={({ field }) => (
-              <FormControl error={Boolean(errors.password)}>
+              <FormControl fullWidth error={Boolean(errors.password)}>
                 <InputLabel>Password</InputLabel>
                 <OutlinedInput
                   {...field}
@@ -134,50 +160,41 @@ export function SignInForm(): React.JSX.Element {
               </FormControl>
             )}
           />
-          <div>
-            <Link component={RouterLink} href={paths.auth.resetPassword} variant="subtitle2">
+          <Box sx={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
+            <Typography variant="body2" color="text.secondary">
+              Don&apos;t have an account?{' '}
+              <Link component={RouterLink} href={paths.auth.signUp} underline="hover" fontWeight="medium">
+                Sign up
+              </Link>
+            </Typography>
+            <Link component={RouterLink} href={paths.auth.resetPassword} variant="body2" fontWeight="medium">
               Forgot password?
             </Link>
-          </div>
-          {errors.root ? <Alert color="error">{errors.root.message}</Alert> : null}
-          <Button disabled={isPending} type="submit" variant="contained">
-            Sign in
+          </Box>
+          {errors.root ? <Alert severity="error">{errors.root.message}</Alert> : null}
+          <Button 
+            disabled={isPending} 
+            type="submit" 
+            variant="contained" 
+            fullWidth
+            size="large"
+            sx={{ py: 1.2 }}
+          >
+            {isPending ? 'Signing In...' : 'Sign In'}
           </Button>
         </Stack>
       </form>
-      <Alert color="warning">
-        Use{' '}
-        <Typography component="span" sx={{ fontWeight: 700 }} variant="inherit">
-          admin@example.com
-        </Typography>{' '}
-        with password{' '}
-        <Typography component="span" sx={{ fontWeight: 700 }} variant="inherit">
-          AdminSecret
-        </Typography>{' '}
-        for admin access.
-      </Alert>
-      <Alert color="warning">
-        Use{' '}
-        <Typography component="span" sx={{ fontWeight: 700 }} variant="inherit">
-          customer@example.com
-        </Typography>{' '}
-        with password{' '}
-        <Typography component="span" sx={{ fontWeight: 700 }} variant="inherit">
-          CustomerSecret
-        </Typography>{' '}
-        for customer access.
-      </Alert>
-      <Alert color="warning">
-        Use{' '}
-        <Typography component="span" sx={{ fontWeight: 700 }} variant="inherit">
-          employee@example.com
-        </Typography>{' '}
-        with password{' '}
-        <Typography component="span" sx={{ fontWeight: 700 }} variant="inherit">
-          EmployeeSecret
-        </Typography>{' '}
-        for employee access.
-      </Alert>
-    </Stack>
+
+      <Box sx={{ mt: 4 }}>
+        <Alert severity="info" sx={{ mb: 2 }}>
+          <Typography variant="subtitle2" sx={{ mb: 0.5 }}>Demo Accounts:</Typography>
+          <Box component="ul" sx={{ m: 0, pl: 2 }}>
+            <li><b>Customer:</b> customer@example.com / CustomerSecret</li>
+            <li><b>Company:</b> company@example.com / CompanySecret</li>
+            <li><b>Admin:</b> admin@example.com / AdminSecret</li>
+          </Box>
+        </Alert>
+      </Box>
+    </Box>
   );
 }

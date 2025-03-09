@@ -1,4 +1,3 @@
-
 'use client';
 
 import * as React from 'react';
@@ -7,151 +6,523 @@ import { useRouter } from 'next/navigation';
 import { zodResolver } from '@hookform/resolvers/zod';
 import Alert from '@mui/material/Alert';
 import Button from '@mui/material/Button';
-import Checkbox from '@mui/material/Checkbox';
 import FormControl from '@mui/material/FormControl';
-import FormControlLabel from '@mui/material/FormControlLabel';
 import FormHelperText from '@mui/material/FormHelperText';
 import InputLabel from '@mui/material/InputLabel';
 import Link from '@mui/material/Link';
 import OutlinedInput from '@mui/material/OutlinedInput';
 import Stack from '@mui/material/Stack';
 import Typography from '@mui/material/Typography';
+import Box from '@mui/material/Box';
+import Tabs from '@mui/material/Tabs';
+import Tab from '@mui/material/Tab';
+import MenuItem from '@mui/material/MenuItem';
+import Select from '@mui/material/Select';
+import { Eye as EyeIcon } from '@phosphor-icons/react/dist/ssr/Eye';
+import { EyeSlash as EyeSlashIcon } from '@phosphor-icons/react/dist/ssr/EyeSlash';
 import { Controller, useForm } from 'react-hook-form';
 import { z as zod } from 'zod';
+import { Buildings as CompanyIcon } from '@phosphor-icons/react/dist/ssr/Buildings';
+import { User as CustomerIcon } from '@phosphor-icons/react/dist/ssr/User';
 
 import { paths } from '@/paths';
-import { authClient } from '@/lib/auth/client';
-import { useUser } from '@/hooks/use-user';
 
-const schema = zod.object({
-  firstName: zod.string().min(1, { message: 'First name is required' }),
-  lastName: zod.string().min(1, { message: 'Last name is required' }),
+// Customer schema
+const customerSchema = zod.object({
+  name: zod.string().min(1, { message: 'Name is required' }),
+  gender: zod.enum(['male', 'female'], { required_error: 'Gender is required' }),
+  phone_number: zod.string()
+    .min(1, { message: 'Phone number is required' })
+    .regex(/^(?:\+966|05)\d{8}$/, { message: 'Invalid phone number format for Saudi Arabia' }),
+  address: zod.string().optional(),
   email: zod.string().min(1, { message: 'Email is required' }).email(),
-  password: zod.string().min(6, { message: 'Password should be at least 6 characters' }),
-  terms: zod.boolean().refine((value) => value, 'You must accept the terms and conditions'),
+  password: zod.string()
+    .min(8, { message: 'Password must be at least 8 characters long' })
+    .regex(/[A-Z]/, { message: 'Password must contain at least one uppercase letter' })
+    .regex(/[a-z]/, { message: 'Password must contain at least one lowercase letter' })
+    .regex(/[0-9]/, { message: 'Password must contain at least one number' }),
+  confirm_password: zod.string().min(1, { message: 'Confirm password is required' }),
+}).refine((data) => data.password === data.confirm_password, {
+  message: "Passwords don't match",
+  path: ['confirm_password'],
 });
 
-type Values = zod.infer<typeof schema>;
+type CustomerValues = zod.infer<typeof customerSchema>;
 
-const defaultValues = { firstName: '', lastName: '', email: '', password: '', terms: false } satisfies Values;
+// Company schema
+const companySchema = zod.object({
+  company_name: zod.string().min(1, { message: 'Company name is required' }),
+  contact_number: zod.string()
+    .min(1, { message: 'Contact number is required' })
+    .regex(/^(?:\+966|05)\d{8}$/, { message: 'Invalid phone number format for Saudi Arabia' }),
+  email: zod.string().min(1, { message: 'Email is required' }).email(),
+  location: zod.string().min(1, { message: 'Location is required' }),
+  password: zod.string()
+    .min(8, { message: 'Password must be at least 8 characters long' })
+    .regex(/[A-Z]/, { message: 'Password must contain at least one uppercase letter' })
+    .regex(/[a-z]/, { message: 'Password must contain at least one lowercase letter' })
+    .regex(/[0-9]/, { message: 'Password must contain at least one number' }),
+  confirm_password: zod.string().min(1, { message: 'Confirm password is required' }),
+}).refine((data) => data.password === data.confirm_password, {
+  message: "Passwords don't match",
+  path: ['confirm_password'],
+});
+
+type CompanyValues = zod.infer<typeof companySchema>;
+
+const defaultCustomerValues = {
+  name: '',
+  gender: 'male' as const,
+  phone_number: '',
+  address: '',
+  email: '',
+  password: '',
+  confirm_password: '',
+};
+
+const defaultCompanyValues = {
+  company_name: '',
+  contact_number: '',
+  email: '',
+  location: '',
+  password: '',
+  confirm_password: '',
+};
 
 export function SignUpForm(): React.JSX.Element {
   const router = useRouter();
-
-  const { checkSession } = useUser();
-
+  const [showPassword, setShowPassword] = React.useState<boolean>(false);
+  const [showConfirmPassword, setShowConfirmPassword] = React.useState<boolean>(false);
   const [isPending, setIsPending] = React.useState<boolean>(false);
+  const [accountType, setAccountType] = React.useState<'customer' | 'company'>('customer');
 
-  const {
-    control,
-    handleSubmit,
-    setError,
-    formState: { errors },
-  } = useForm<Values>({ defaultValues, resolver: zodResolver(schema) });
+  const customerForm = useForm<CustomerValues>({
+    defaultValues: defaultCustomerValues,
+    resolver: zodResolver(customerSchema),
+  });
 
-  const onSubmit = React.useCallback(
-    async (values: Values): Promise<void> => {
+  const companyForm = useForm<CompanyValues>({
+    defaultValues: defaultCompanyValues,
+    resolver: zodResolver(companySchema),
+  });
+
+  const handleTabChange = (event: React.SyntheticEvent, newValue: 'customer' | 'company') => {
+    setAccountType(newValue);
+  };
+
+  const onSubmitCustomer = React.useCallback(
+    async (values: CustomerValues): Promise<void> => {
       setIsPending(true);
 
-      const { error } = await authClient.signUp(values);
+      try {
+        const response = await fetch('http://localhost:8000/api/create_customer/', {
+          method: 'POST',
+          headers: {
+            'Content-Type': 'application/json',
+          },
+          body: JSON.stringify({
+            Name: values.name,
+            gender: values.gender,
+            phone_number: values.phone_number,
+            address: values.address || '',
+            Email: values.email,
+            Password: values.password,
+          }),
+        });
 
-      if (error) {
-        setError('root', { type: 'server', message: error });
+        if (!response.ok) {
+          const errorData = await response.json();
+          throw new Error(errorData.errors || 'Failed to register');
+        }
+
+        router.push(paths.auth.signIn);
+      } catch (error) {
+        customerForm.setError('root', { 
+          message: error instanceof Error ? error.message : 'Registration failed' 
+        });
         setIsPending(false);
-        return;
       }
-
-      // Refresh the auth state
-      await checkSession?.();
-
-      // UserProvider, for this case, will not refresh the router
-      // After refresh, GuestGuard will handle the redirect
-      router.refresh();
     },
-    [checkSession, router, setError]
+    [router, customerForm]
+  );
+
+  const onSubmitCompany = React.useCallback(
+    async (values: CompanyValues): Promise<void> => {
+      setIsPending(true);
+
+      try {
+        const response = await fetch('http://localhost:8000/api/create_company/', {
+          method: 'POST',
+          headers: {
+            'Content-Type': 'application/json',
+          },
+          body: JSON.stringify({
+            Company_name: values.company_name,
+            Contact_number: values.contact_number,
+            Email: values.email,
+            location: values.location,
+            Password: values.password,
+          }),
+        });
+
+        if (!response.ok) {
+          const errorData = await response.json();
+          throw new Error(errorData.errors || 'Failed to register');
+        }
+
+        router.push(paths.auth.signIn);
+      } catch (error) {
+        companyForm.setError('root', { 
+          message: error instanceof Error ? error.message : 'Registration failed' 
+        });
+        setIsPending(false);
+      }
+    },
+    [router, companyForm]
   );
 
   return (
-    <Stack spacing={3}>
-      <Stack spacing={1}>
-        <Typography variant="h4">Sign up</Typography>
-        <Typography color="text.secondary" variant="body2">
-          Already have an account?{' '}
-          <Link component={RouterLink} href={paths.auth.signIn} underline="hover" variant="subtitle2">
-            Sign in
-          </Link>
-        </Typography>
-      </Stack>
-      <form onSubmit={handleSubmit(onSubmit)}>
-        <Stack spacing={2}>
-          <Controller
-            control={control}
-            name="firstName"
-            render={({ field }) => (
-              <FormControl error={Boolean(errors.firstName)}>
-                <InputLabel>First name</InputLabel>
-                <OutlinedInput {...field} label="First name" />
-                {errors.firstName ? <FormHelperText>{errors.firstName.message}</FormHelperText> : null}
-              </FormControl>
-            )}
-          />
-          <Controller
-            control={control}
-            name="lastName"
-            render={({ field }) => (
-              <FormControl error={Boolean(errors.firstName)}>
-                <InputLabel>Last name</InputLabel>
-                <OutlinedInput {...field} label="Last name" />
-                {errors.firstName ? <FormHelperText>{errors.firstName.message}</FormHelperText> : null}
-              </FormControl>
-            )}
-          />
-          <Controller
-            control={control}
-            name="email"
-            render={({ field }) => (
-              <FormControl error={Boolean(errors.email)}>
-                <InputLabel>Email address</InputLabel>
-                <OutlinedInput {...field} label="Email address" type="email" />
-                {errors.email ? <FormHelperText>{errors.email.message}</FormHelperText> : null}
-              </FormControl>
-            )}
-          />
-          <Controller
-            control={control}
-            name="password"
-            render={({ field }) => (
-              <FormControl error={Boolean(errors.password)}>
-                <InputLabel>Password</InputLabel>
-                <OutlinedInput {...field} label="Password" type="password" />
-                {errors.password ? <FormHelperText>{errors.password.message}</FormHelperText> : null}
-              </FormControl>
-            )}
-          />
-          <Controller
-            control={control}
-            name="terms"
-            render={({ field }) => (
-              <div>
-                <FormControlLabel
-                  control={<Checkbox {...field} />}
-                  label={
-                    <React.Fragment>
-                      I have read the <Link>terms and conditions</Link>
-                    </React.Fragment>
-                  }
-                />
-                {errors.terms ? <FormHelperText error>{errors.terms.message}</FormHelperText> : null}
-              </div>
-            )}
-          />
-          {errors.root ? <Alert color="error">{errors.root.message}</Alert> : null}
-          <Button disabled={isPending} type="submit" variant="contained">
-            Sign up
-          </Button>
-        </Stack>
-      </form>
-      <Alert color="warning">Created users are not persisted</Alert>
-    </Stack>
+    <Box sx={{ width: '100%', maxWidth: '450px' }}>
+      <Typography variant="h5" sx={{ mb: 3, textAlign: 'center' }}>Create Account</Typography>
+      
+      <Tabs
+        value={accountType}
+        onChange={handleTabChange}
+        variant="fullWidth"
+        sx={{ mb: 3 }}
+      >
+        <Tab 
+          value="customer" 
+          label="Customer" 
+          icon={<CustomerIcon size={20} />} 
+          iconPosition="start"
+        />
+        <Tab 
+          value="company" 
+          label="Company" 
+          icon={<CompanyIcon size={20} />} 
+          iconPosition="start"
+        />
+      </Tabs>
+      
+      {accountType === 'customer' ? (
+        <form onSubmit={customerForm.handleSubmit(onSubmitCustomer)}>
+          <Stack spacing={2.5}>
+            <Controller
+              control={customerForm.control}
+              name="name"
+              render={({ field }) => (
+                <FormControl fullWidth error={Boolean(customerForm.formState.errors.name)}>
+                  <InputLabel>Full Name</InputLabel>
+                  <OutlinedInput {...field} label="Full Name" />
+                  {customerForm.formState.errors.name ? (
+                    <FormHelperText>{customerForm.formState.errors.name.message}</FormHelperText>
+                  ) : null}
+                </FormControl>
+              )}
+            />
+
+            <Controller
+              control={customerForm.control}
+              name="gender"
+              render={({ field }) => (
+                <FormControl fullWidth error={Boolean(customerForm.formState.errors.gender)}>
+                  <InputLabel>Gender</InputLabel>
+                  <Select {...field} label="Gender">
+                    <MenuItem value="male">Male</MenuItem>
+                    <MenuItem value="female">Female</MenuItem>
+                  </Select>
+                  {customerForm.formState.errors.gender ? (
+                    <FormHelperText>{customerForm.formState.errors.gender.message}</FormHelperText>
+                  ) : null}
+                </FormControl>
+              )}
+            />
+
+            <Controller
+              control={customerForm.control}
+              name="phone_number"
+              render={({ field }) => (
+                <FormControl fullWidth error={Boolean(customerForm.formState.errors.phone_number)}>
+                  <InputLabel>Phone Number</InputLabel>
+                  <OutlinedInput {...field} label="Phone Number" placeholder="+966XXXXXXXX or 05XXXXXXXX" />
+                  {customerForm.formState.errors.phone_number ? (
+                    <FormHelperText>{customerForm.formState.errors.phone_number.message}</FormHelperText>
+                  ) : null}
+                </FormControl>
+              )}
+            />
+
+            <Controller
+              control={customerForm.control}
+              name="address"
+              render={({ field }) => (
+                <FormControl fullWidth error={Boolean(customerForm.formState.errors.address)}>
+                  <InputLabel>Address (optional)</InputLabel>
+                  <OutlinedInput {...field} label="Address (optional)" />
+                  {customerForm.formState.errors.address ? (
+                    <FormHelperText>{customerForm.formState.errors.address.message}</FormHelperText>
+                  ) : null}
+                </FormControl>
+              )}
+            />
+
+            <Controller
+              control={customerForm.control}
+              name="email"
+              render={({ field }) => (
+                <FormControl fullWidth error={Boolean(customerForm.formState.errors.email)}>
+                  <InputLabel>Email Address</InputLabel>
+                  <OutlinedInput {...field} label="Email Address" type="email" />
+                  {customerForm.formState.errors.email ? (
+                    <FormHelperText>{customerForm.formState.errors.email.message}</FormHelperText>
+                  ) : null}
+                </FormControl>
+              )}
+            />
+
+            <Controller
+              control={customerForm.control}
+              name="password"
+              render={({ field }) => (
+                <FormControl fullWidth error={Boolean(customerForm.formState.errors.password)}>
+                  <InputLabel>Password</InputLabel>
+                  <OutlinedInput
+                    {...field}
+                    endAdornment={
+                      showPassword ? (
+                        <EyeIcon
+                          cursor="pointer"
+                          fontSize="var(--icon-fontSize-md)"
+                          onClick={(): void => setShowPassword(false)}
+                        />
+                      ) : (
+                        <EyeSlashIcon
+                          cursor="pointer"
+                          fontSize="var(--icon-fontSize-md)"
+                          onClick={(): void => setShowPassword(true)}
+                        />
+                      )
+                    }
+                    label="Password"
+                    type={showPassword ? 'text' : 'password'}
+                  />
+                  {customerForm.formState.errors.password ? (
+                    <FormHelperText>{customerForm.formState.errors.password.message}</FormHelperText>
+                  ) : null}
+                </FormControl>
+              )}
+            />
+
+            <Controller
+              control={customerForm.control}
+              name="confirm_password"
+              render={({ field }) => (
+                <FormControl fullWidth error={Boolean(customerForm.formState.errors.confirm_password)}>
+                  <InputLabel>Confirm Password</InputLabel>
+                  <OutlinedInput
+                    {...field}
+                    endAdornment={
+                      showConfirmPassword ? (
+                        <EyeIcon
+                          cursor="pointer"
+                          fontSize="var(--icon-fontSize-md)"
+                          onClick={(): void => setShowConfirmPassword(false)}
+                        />
+                      ) : (
+                        <EyeSlashIcon
+                          cursor="pointer"
+                          fontSize="var(--icon-fontSize-md)"
+                          onClick={(): void => setShowConfirmPassword(true)}
+                        />
+                      )
+                    }
+                    label="Confirm Password"
+                    type={showConfirmPassword ? 'text' : 'password'}
+                  />
+                  {customerForm.formState.errors.confirm_password ? (
+                    <FormHelperText>{customerForm.formState.errors.confirm_password.message}</FormHelperText>
+                  ) : null}
+                </FormControl>
+              )}
+            />
+
+            {customerForm.formState.errors.root ? (
+              <Alert severity="error">{customerForm.formState.errors.root.message}</Alert>
+            ) : null}
+
+            <Box sx={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', mt: 1 }}>
+              <Typography variant="body2" color="text.secondary">
+                Already have an account?{' '}
+                <Link component={RouterLink} href={paths.auth.signIn} underline="hover" fontWeight="medium">
+                  Sign in
+                </Link>
+              </Typography>
+            </Box>
+
+            <Button 
+              disabled={isPending} 
+              type="submit" 
+              variant="contained" 
+              fullWidth
+              size="large"
+              sx={{ py: 1.2, mt: 1 }}
+            >
+              {isPending ? 'Creating Account...' : 'Sign Up'}
+            </Button>
+          </Stack>
+        </form>
+      ) : (
+        <form onSubmit={companyForm.handleSubmit(onSubmitCompany)}>
+          <Stack spacing={2.5}>
+            <Controller
+              control={companyForm.control}
+              name="company_name"
+              render={({ field }) => (
+                <FormControl fullWidth error={Boolean(companyForm.formState.errors.company_name)}>
+                  <InputLabel>Company Name</InputLabel>
+                  <OutlinedInput {...field} label="Company Name" />
+                  {companyForm.formState.errors.company_name ? (
+                    <FormHelperText>{companyForm.formState.errors.company_name.message}</FormHelperText>
+                  ) : null}
+                </FormControl>
+              )}
+            />
+
+            <Controller
+              control={companyForm.control}
+              name="contact_number"
+              render={({ field }) => (
+                <FormControl fullWidth error={Boolean(companyForm.formState.errors.contact_number)}>
+                  <InputLabel>Contact Number</InputLabel>
+                  <OutlinedInput {...field} label="Contact Number" placeholder="+966XXXXXXXX or 05XXXXXXXX" />
+                  {companyForm.formState.errors.contact_number ? (
+                    <FormHelperText>{companyForm.formState.errors.contact_number.message}</FormHelperText>
+                  ) : null}
+                </FormControl>
+              )}
+            />
+
+            <Controller
+              control={companyForm.control}
+              name="email"
+              render={({ field }) => (
+                <FormControl fullWidth error={Boolean(companyForm.formState.errors.email)}>
+                  <InputLabel>Email Address</InputLabel>
+                  <OutlinedInput {...field} label="Email Address" type="email" />
+                  {companyForm.formState.errors.email ? (
+                    <FormHelperText>{companyForm.formState.errors.email.message}</FormHelperText>
+                  ) : null}
+                </FormControl>
+              )}
+            />
+
+            <Controller
+              control={companyForm.control}
+              name="location"
+              render={({ field }) => (
+                <FormControl fullWidth error={Boolean(companyForm.formState.errors.location)}>
+                  <InputLabel>Location</InputLabel>
+                  <OutlinedInput {...field} label="Location" />
+                  {companyForm.formState.errors.location ? (
+                    <FormHelperText>{companyForm.formState.errors.location.message}</FormHelperText>
+                  ) : null}
+                </FormControl>
+              )}
+            />
+
+            <Controller
+              control={companyForm.control}
+              name="password"
+              render={({ field }) => (
+                <FormControl fullWidth error={Boolean(companyForm.formState.errors.password)}>
+                  <InputLabel>Password</InputLabel>
+                  <OutlinedInput
+                    {...field}
+                    endAdornment={
+                      showPassword ? (
+                        <EyeIcon
+                          cursor="pointer"
+                          fontSize="var(--icon-fontSize-md)"
+                          onClick={(): void => setShowPassword(false)}
+                        />
+                      ) : (
+                        <EyeSlashIcon
+                          cursor="pointer"
+                          fontSize="var(--icon-fontSize-md)"
+                          onClick={(): void => setShowPassword(true)}
+                        />
+                      )
+                    }
+                    label="Password"
+                    type={showPassword ? 'text' : 'password'}
+                  />
+                  {companyForm.formState.errors.password ? (
+                    <FormHelperText>{companyForm.formState.errors.password.message}</FormHelperText>
+                  ) : null}
+                </FormControl>
+              )}
+            />
+
+            <Controller
+              control={companyForm.control}
+              name="confirm_password"
+              render={({ field }) => (
+                <FormControl fullWidth error={Boolean(companyForm.formState.errors.confirm_password)}>
+                  <InputLabel>Confirm Password</InputLabel>
+                  <OutlinedInput
+                    {...field}
+                    endAdornment={
+                      showConfirmPassword ? (
+                        <EyeIcon
+                          cursor="pointer"
+                          fontSize="var(--icon-fontSize-md)"
+                          onClick={(): void => setShowConfirmPassword(false)}
+                        />
+                      ) : (
+                        <EyeSlashIcon
+                          cursor="pointer"
+                          fontSize="var(--icon-fontSize-md)"
+                          onClick={(): void => setShowConfirmPassword(true)}
+                        />
+                      )
+                    }
+                    label="Confirm Password"
+                    type={showConfirmPassword ? 'text' : 'password'}
+                  />
+                  {companyForm.formState.errors.confirm_password ? (
+                    <FormHelperText>{companyForm.formState.errors.confirm_password.message}</FormHelperText>
+                  ) : null}
+                </FormControl>
+              )}
+            />
+
+            {companyForm.formState.errors.root ? (
+              <Alert severity="error">{companyForm.formState.errors.root.message}</Alert>
+            ) : null}
+
+            <Box sx={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', mt: 1 }}>
+              <Typography variant="body2" color="text.secondary">
+                Already have an account?{' '}
+                <Link component={RouterLink} href={paths.auth.signIn} underline="hover" fontWeight="medium">
+                  Sign in
+                </Link>
+              </Typography>
+            </Box>
+
+            <Button 
+              disabled={isPending} 
+              type="submit" 
+              variant="contained" 
+              fullWidth
+              size="large"
+              sx={{ py: 1.2, mt: 1 }}
+            >
+              {isPending ? 'Creating Account...' : 'Sign Up'}
+            </Button>
+          </Stack>
+        </form>
+      )}
+    </Box>
   );
 }

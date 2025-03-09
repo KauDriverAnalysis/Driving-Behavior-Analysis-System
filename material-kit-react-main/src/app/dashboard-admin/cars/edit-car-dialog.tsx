@@ -9,77 +9,63 @@ import {
   InputLabel,
   OutlinedInput,
   Grid,
-  Select,
-  MenuItem,
   Typography
 } from '@mui/material';
 import { useTheme } from '@mui/material/styles';
-import AddIcon from '@mui/icons-material/Add';
+import EditIcon from '@mui/icons-material/Edit';
 
-interface FormData {
+interface Car {
+  id: string;
   name: string;
-  gender: string;
-  phone_number: string;
-  company_id: string;
-  car_id: string;
-  email: string;
+  brand: string;
+  model: string;
+  year: string;
+  plate_number: string;
+  owner: string;
   status: 'active' | 'inactive';
 }
 
-interface AddDriverDialogProps {
+interface EditCarDialogProps {
   open: boolean;
   onClose: () => void;
-  onSubmit: (data: FormData) => void;
+  onSubmit: (car: Car) => void;
+  car: Car | null;
 }
 
-export default function AddDriverDialog({
+export default function EditCarDialog({
   open,
   onClose,
-  onSubmit
-}: AddDriverDialogProps) {
+  onSubmit,
+  car
+}: EditCarDialogProps) {
   const theme = useTheme();
-  const [formData, setFormData] = React.useState<FormData>({
-    name: '',
-    gender: '',
-    phone_number: '',
-    company_id: '',
-    car_id: '',
-    email: '',
-    status: 'active'
-  });
+  const [formData, setFormData] = React.useState<Car | null>(null);
 
-  const handleChange = (field: keyof FormData) => (
+  React.useEffect(() => {
+    if (car) {
+      // Keep all car data including status, but don't show it in the form
+      setFormData(car);
+    }
+  }, [car]);
+
+  if (!formData || !car) return null;
+
+  const handleChange = (field: keyof Car) => (
     event: React.ChangeEvent<HTMLInputElement | { value: unknown }>
   ) => {
     setFormData(prev => ({
-      ...prev,
+      ...prev!,
       [field]: event.target.value
     }));
   };
 
   const handleSubmit = (event: React.FormEvent) => {
     event.preventDefault();
-    onSubmit(formData);
-    setFormData({
-      name: '',
-      gender: '',
-      phone_number: '',
-      company_id: '',
-      car_id: '',
-      email: '',
-      status: 'active'
-    });
-  };
-
-  const isFormValid = () => {
-    return (
-      formData.name.trim() !== '' &&
-      formData.gender !== '' &&
-      formData.phone_number.trim() !== '' &&
-      formData.company_id.trim() !== '' &&
-      formData.car_id.trim() !== '' &&
-      formData.email.trim() !== ''
-    );
+    if (formData) {
+      // Preserve the existing status when submitting
+      onSubmit({ ...formData, status: car?.status || 'inactive' });
+    }
+    onClose();
   };
 
   return (
@@ -93,8 +79,8 @@ export default function AddDriverDialog({
           gap: 1
         }}
       >
-        <AddIcon />
-        <Typography variant="h6">Add New Driver</Typography>
+        <EditIcon />
+        <Typography variant="h6">Edit Car</Typography>
       </DialogTitle>
       <form onSubmit={handleSubmit}>
         <DialogContent dividers>
@@ -109,57 +95,53 @@ export default function AddDriverDialog({
                 />
               </FormControl>
             </Grid>
-            <Grid item xs={12}>
+            <Grid item xs={12} sm={6}>
               <FormControl fullWidth required>
-                <InputLabel>Gender</InputLabel>
-                <Select
-                  value={formData.gender}
-                  label="Gender"
-                  onChange={handleChange('gender')}
-                >
-                  <MenuItem value="Male">Male</MenuItem>
-                  <MenuItem value="Female">Female</MenuItem>
-                </Select>
-              </FormControl>
-            </Grid>
-            <Grid item xs={12}>
-              <FormControl fullWidth required>
-                <InputLabel>Phone Number</InputLabel>
+                <InputLabel>Brand</InputLabel>
                 <OutlinedInput
-                  label="Phone Number"
-                  value={formData.phone_number}
-                  onChange={handleChange('phone_number')}
+                  label="Brand"
+                  value={formData.brand}
+                  onChange={handleChange('brand')}
                 />
               </FormControl>
             </Grid>
             <Grid item xs={12} sm={6}>
               <FormControl fullWidth required>
-                <InputLabel>Company ID</InputLabel>
+                <InputLabel>Model</InputLabel>
                 <OutlinedInput
-                  label="Company ID"
-                  value={formData.company_id}
-                  onChange={handleChange('company_id')}
+                  label="Model"
+                  value={formData.model}
+                  onChange={handleChange('model')}
                 />
               </FormControl>
             </Grid>
             <Grid item xs={12} sm={6}>
               <FormControl fullWidth required>
-                <InputLabel>Car ID</InputLabel>
+                <InputLabel>Year</InputLabel>
                 <OutlinedInput
-                  label="Car ID"
-                  value={formData.car_id}
-                  onChange={handleChange('car_id')}
+                  label="Year"
+                  value={formData.year}
+                  onChange={handleChange('year')}
+                />
+              </FormControl>
+            </Grid>
+            <Grid item xs={12} sm={6}>
+              <FormControl fullWidth required>
+                <InputLabel>Plate Number</InputLabel>
+                <OutlinedInput
+                  label="Plate Number"
+                  value={formData.plate_number}
+                  onChange={handleChange('plate_number')}
                 />
               </FormControl>
             </Grid>
             <Grid item xs={12}>
               <FormControl fullWidth required>
-                <InputLabel>Email</InputLabel>
+                <InputLabel>Owner</InputLabel>
                 <OutlinedInput
-                  label="Email"
-                  type="email"
-                  value={formData.email}
-                  onChange={handleChange('email')}
+                  label="Owner"
+                  value={formData.owner}
+                  onChange={handleChange('owner')}
                 />
               </FormControl>
             </Grid>
@@ -170,10 +152,9 @@ export default function AddDriverDialog({
           <Button
             type="submit"
             variant="contained"
-            disabled={!isFormValid()}
-            startIcon={<AddIcon />}
+            startIcon={<EditIcon />}
           >
-            Add Driver
+            Save Changes
           </Button>
         </DialogActions>
       </form>
