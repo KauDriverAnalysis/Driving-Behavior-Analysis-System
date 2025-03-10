@@ -15,21 +15,13 @@ import {
 } from '@mui/material';
 import { useTheme } from '@mui/material/styles';
 import EditIcon from '@mui/icons-material/Edit';
-
-interface CarCustomer {
-  id: string;
-  name: string;
-  owner: string;
-  licensePlate: string;
-  status: string;
-  model: string;
-}
+import { Car } from '@/components/dashboard-customer/car-customers/car-customers-table';
 
 interface EditCarDialogProps {
   open: boolean;
   onClose: () => void;
-  onSubmit: (car: CarCustomer) => void;
-  car: CarCustomer | null;
+  onSubmit: (car: Car) => void;
+  car: Car | null;
 }
 
 export default function EditCarDialog({ 
@@ -39,7 +31,7 @@ export default function EditCarDialog({
   car 
 }: EditCarDialogProps) {
   const theme = useTheme();
-  const [formData, setFormData] = React.useState<CarCustomer | null>(null);
+  const [formData, setFormData] = React.useState<Car | null>(null);
 
   React.useEffect(() => {
     if (car) {
@@ -49,19 +41,19 @@ export default function EditCarDialog({
 
   if (!formData || !car) return null;
 
-  const handleChange = (field: keyof CarCustomer) => (
+  const handleChange = (field: keyof Car) => (
     event: React.ChangeEvent<HTMLInputElement | { value: unknown }>
   ) => {
+    const value = event.target.value;
     setFormData(prev => ({
       ...prev!,
-      [field]: event.target.value
+      [field]: field === 'releaseYear' ? Number(value) : value
     }));
   };
 
   const handleSubmit = (event: React.FormEvent) => {
     event.preventDefault();
     onSubmit(formData);
-    onClose();
   };
 
   return (
@@ -96,60 +88,72 @@ export default function EditCarDialog({
         <DialogContent sx={{ pt: 3 }}>
           <Grid container spacing={2}>
             <Grid item xs={12}>
-              <FormControl fullWidth>
-                <InputLabel>Car Name</InputLabel>
-                <OutlinedInput
-                  label="Car Name"
-                  value={formData.name}
-                  onChange={handleChange('name')}
-                  required
-                />
-              </FormControl>
-            </Grid>
-            <Grid item xs={12}>
-              <FormControl fullWidth>
-                <InputLabel>Owner</InputLabel>
-                <OutlinedInput
-                  label="Owner"
-                  value={formData.owner}
-                  onChange={handleChange('owner')}
-                  required
-                />
-              </FormControl>
-            </Grid>
-            <Grid item xs={12} sm={6}>
-              <FormControl fullWidth>
-                <InputLabel>License Plate</InputLabel>
-                <OutlinedInput
-                  label="License Plate"
-                  value={formData.licensePlate}
-                  onChange={handleChange('licensePlate')}
-                  required
-                />
-              </FormControl>
-            </Grid>
-            <Grid item xs={12} sm={6}>
-              <FormControl fullWidth>
+              <FormControl fullWidth required>
                 <InputLabel>Model</InputLabel>
                 <OutlinedInput
                   label="Model"
                   value={formData.model}
                   onChange={handleChange('model')}
-                  required
                 />
               </FormControl>
             </Grid>
+            
             <Grid item xs={12}>
+              <FormControl fullWidth required>
+                <InputLabel>Type</InputLabel>
+                <OutlinedInput
+                  label="Type"
+                  value={formData.type}
+                  onChange={handleChange('type')}
+                />
+              </FormControl>
+            </Grid>
+            
+            <Grid item xs={12} sm={6}>
+              <FormControl fullWidth required>
+                <InputLabel>Plate Number</InputLabel>
+                <OutlinedInput
+                  label="Plate Number"
+                  value={formData.plateNumber}
+                  onChange={handleChange('plateNumber')}
+                />
+              </FormControl>
+            </Grid>
+            
+            <Grid item xs={12} sm={6}>
+              <FormControl fullWidth required>
+                <InputLabel>Release Year</InputLabel>
+                <OutlinedInput
+                  label="Release Year"
+                  type="number"
+                  value={formData.releaseYear}
+                  onChange={handleChange('releaseYear')}
+                />
+              </FormControl>
+            </Grid>
+            
+            <Grid item xs={12} sm={6}>
               <FormControl fullWidth>
-                <InputLabel>Status</InputLabel>
+                <InputLabel>State</InputLabel>
                 <Select
-                  value={formData.status}
-                  label="Status"
-                  onChange={handleChange('status')}
+                  value={formData.state}
+                  label="State"
+                  onChange={handleChange('state')}
                 >
-                  <MenuItem value="active">Active</MenuItem>
-                  <MenuItem value="inactive">Inactive</MenuItem>
+                  <MenuItem value="online">Online</MenuItem>
+                  <MenuItem value="offline">Offline</MenuItem>
                 </Select>
+              </FormControl>
+            </Grid>
+            
+            <Grid item xs={12} sm={6}>
+              <FormControl fullWidth>
+                <InputLabel>Device ID</InputLabel>
+                <OutlinedInput
+                  label="Device ID"
+                  value={formData.deviceId}
+                  onChange={handleChange('deviceId')}
+                />
               </FormControl>
             </Grid>
           </Grid>

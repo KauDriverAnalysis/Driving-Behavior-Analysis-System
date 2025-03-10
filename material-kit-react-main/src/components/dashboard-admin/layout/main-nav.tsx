@@ -1,27 +1,34 @@
 'use client';
 
 import * as React from 'react';
-import Avatar from '@mui/material/Avatar';
-import Badge from '@mui/material/Badge';
+import { useRouter } from 'next/navigation';
+import { paths } from '@/paths';
 import Box from '@mui/material/Box';
+import Button from '@mui/material/Button';
 import IconButton from '@mui/material/IconButton';
 import Stack from '@mui/material/Stack';
-import Tooltip from '@mui/material/Tooltip';
-import { Bell as BellIcon } from '@phosphor-icons/react/dist/ssr/Bell';
 import { List as ListIcon } from '@phosphor-icons/react/dist/ssr/List';
-import { MagnifyingGlass as MagnifyingGlassIcon } from '@phosphor-icons/react/dist/ssr/MagnifyingGlass';
-import { Users as UsersIcon } from '@phosphor-icons/react/dist/ssr/Users';
-
-import { usePopover } from '@/hooks/use-popover';
+import { SignOut as SignOutIcon } from '@phosphor-icons/react/dist/ssr/SignOut';
 
 import { MobileNav } from './mobile-nav';
-import { UserPopover } from './user-popover';
 
 export function MainNav(): React.JSX.Element {
+  const router = useRouter();
   const [openNav, setOpenNav] = React.useState<boolean>(false);
-
-  const userPopover = usePopover<HTMLDivElement>();
-
+  const handleSignOut = async () => {
+    try {
+      console.log('Starting sign out...');
+      localStorage.clear();
+      sessionStorage.clear();
+      console.log('Storage cleared');
+      
+      console.log('Attempting navigation...');
+      await router.push('/auth/sign-in');
+    } catch (error) {
+      console.error('Sign out failed:', error);
+      window.location.href = '/auth/sign-in';
+    }
+  };
   return (
     <React.Fragment>
       <Box
@@ -37,46 +44,38 @@ export function MainNav(): React.JSX.Element {
         <Stack
           direction="row"
           spacing={2}
-          sx={{ alignItems: 'center', justifyContent: 'space-between', minHeight: '64px', px: 2 }}
+          sx={{ 
+            alignItems: 'center', 
+            justifyContent: 'space-between', 
+            minHeight: '64px', 
+            px: 2 
+          }}
         >
-          <Stack sx={{ alignItems: 'center' }} direction="row" spacing={2}>
-            <IconButton
-              onClick={(): void => {
-                setOpenNav(true);
-              }}
-              sx={{ display: { lg: 'none' } }}
-            >
-              <ListIcon />
-            </IconButton>
-            <Tooltip title="Search">
-              <IconButton>
-                <MagnifyingGlassIcon />
-              </IconButton>
-            </Tooltip>
-          </Stack>
-          <Stack sx={{ alignItems: 'center' }} direction="row" spacing={2}>
-            <Tooltip title="Contacts">
-              <IconButton>
-                <UsersIcon />
-              </IconButton>
-            </Tooltip>
-            <Tooltip title="Notifications">
-              <Badge badgeContent={4} color="success" variant="dot">
-                <IconButton>
-                  <BellIcon />
-                </IconButton>
-              </Badge>
-            </Tooltip>
-            <Avatar
-              onClick={userPopover.handleOpen}
-              ref={userPopover.anchorRef}
-              src="/assets/avatar.png"
-              sx={{ cursor: 'pointer' }}
-            />
-          </Stack>
+          <IconButton
+            onClick={(): void => {
+              setOpenNav(true);
+            }}
+            sx={{ display: { lg: 'none' } }}
+          >
+            <ListIcon />
+          </IconButton>
+
+          <Button 
+            variant="contained"
+            startIcon={<SignOutIcon />}
+            onClick={handleSignOut}
+            sx={{ 
+              ml: 'auto',
+              bgcolor: 'primary.main',
+              '&:hover': {
+                bgcolor: 'primary.dark',
+              }
+            }}
+          >
+            Sign Out
+          </Button>
         </Stack>
       </Box>
-      <UserPopover anchorEl={userPopover.anchorRef.current} onClose={userPopover.handleClose} open={userPopover.open} />
       <MobileNav
         onClose={() => {
           setOpenNav(false);

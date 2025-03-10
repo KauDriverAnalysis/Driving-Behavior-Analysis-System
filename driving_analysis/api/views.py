@@ -139,6 +139,27 @@ def car_list(request):
         for car in cars
     ]
     return JsonResponse(car_data, safe=False)
+@csrf_exempt
+def customer_cars(request, customer_id):
+    try:
+        cars = Car.objects.filter(customer_id=customer_id)
+        car_data = [
+            {
+                'id': car.id,
+                'model': car.Model_of_car,
+                'type': car.TypeOfCar,
+                'plateNumber': car.Plate_number,
+                'releaseYear': car.Release_Year_car,
+                'state': car.State_of_car,
+                'deviceId': car.device_id,
+                'customerId': car.customer_id_id,
+                'companyId': car.company_id_id,
+            }
+            for car in cars
+        ]
+        return JsonResponse(car_data, safe=False)
+    except Exception as e:
+        return JsonResponse({'error': str(e)}, status=500)
 
 @csrf_exempt
 def create_car(request):
@@ -158,7 +179,8 @@ def create_car(request):
                     
             if data.get('customer_id'):
                 try:
-                    customer = Customer.objects.get(id(data['customer_id']))
+                    # Fixed the syntax error here - was using id() function incorrectly
+                    customer = Customer.objects.get(id=data['customer_id'])
                     data['customer_id'] = customer
                 except Customer.DoesNotExist:
                     return JsonResponse({'errors': {'customer_id': 'Invalid customer ID'}}, status=400)
@@ -167,7 +189,11 @@ def create_car(request):
             form = CarForm(data)
             if form.is_valid():
                 car = form.save()
-                return JsonResponse({'success': True, 'id': car.id}, status=201)
+                return JsonResponse({
+                    'success': True, 
+                    'id': car.id,
+                    'message': 'Car created successfully'
+                }, status=201)
             else:
                 print(f"Form validation errors: {form.errors}")
                 return JsonResponse({'errors': form.errors}, status=400)
@@ -177,23 +203,68 @@ def create_car(request):
     
     return JsonResponse({'error': 'Method not allowed'}, status=405)
 
+@csrf_exempt
 def update_car(request, car_id):
     car = get_object_or_404(Car, pk=car_id)
     if request.method == 'POST':
-        form = CarForm(request.POST, instance=car)
-        if form.is_valid():
-            form.save()
-            return JsonResponse({'message': 'Car updated successfully'}, status=200)
-    else:
-        form = CarForm(instance=car)
-    return JsonResponse({'errors': form.errors}, status=400)
+        try:
+            # Parse JSON data from request body
+            data = json.loads(request.body)
+            print(f"Received update data for car {car_id}: {data}")  # Debug print
+            
+            # Handle foreign key fields if present
+            if data.get('company_id'):
+                try:
+                    company = Company.objects.get(id=data['company_id'])
+                    data['company_id'] = company
+                except Company.DoesNotExist:
+                    return JsonResponse({'errors': {'company_id': 'Invalid company ID'}}, status=400)
+                    
+            if data.get('customer_id'):
+                try:
+                    customer = Customer.objects.get(id=data['customer_id'])
+                    data['customer_id'] = customer
+                except Customer.DoesNotExist:
+                    return JsonResponse({'errors': {'customer_id': 'Invalid customer ID'}}, status=400)
+            
+            # Update the instance with the form
+            form = CarForm(data, instance=car)
+            if form.is_valid():
+                updated_car = form.save()
+                return JsonResponse({
+                    'success': True,
+                    'id': updated_car.id,
+                    'message': 'Car updated successfully'
+                }, status=200)
+            else:
+                print(f"Form validation errors: {form.errors}")
+                return JsonResponse({'errors': form.errors}, status=400)
+        except Exception as e:
+            print(f"Error updating car: {str(e)}")
+            return JsonResponse({'errors': {'server': str(e)}}, status=500)
+    
+    return JsonResponse({'error': 'Method not allowed'}, status=405)
 
+@csrf_exempt
 def delete_car(request, car_id):
-    car = get_object_or_404(Car, pk=car_id)
-    if request.method == 'POST':
-        car.delete()
-        return JsonResponse({'message': 'Car deleted successfully'}, status=200)
-    return JsonResponse({'error': 'Invalid request method'}, status=405)
+    try:
+        car = get_object_or_404(Car, pk=car_id)
+        if request.method in ['POST', 'DELETE']:
+            car.delete()
+            return JsonResponse({
+                'success': True,
+                'message': 'Car deleted successfully'
+            }, status=200)
+        return JsonResponse({
+            'success': False,
+            'error': 'This endpoint only accepts POST or DELETE requests'
+        }, status=405)
+    except Exception as e:
+        print(f"Error deleting car {car_id}: {str(e)}")
+        return JsonResponse({
+            'success': False,
+            'error': str(e)
+        }, status=500)
 
 # Driver views
 
@@ -209,7 +280,8 @@ def driver_list(request):
                 'name': driver.name,
                 'gender': driver.gender,
                 'phone_number': driver.phone_number,
-                'company_id': driver.company_id_id,  
+                'company_id': driver.company_id_id,
+                'car_id': driver.car_id_id,  # Added car_id field
             }
             for driver in drivers
         ]
@@ -248,23 +320,68 @@ def create_driver(request):
     
     return JsonResponse({'error': 'Method not allowed'}, status=405)
 
+@csrf_exempt
 def update_driver(request, driver_id):
     driver = get_object_or_404(Driver, pk=driver_id)
     if request.method == 'POST':
-        form = DriverForm(request.POST, instance=driver)
-        if form.is_valid():
-            form.save()
-            return JsonResponse({'message': 'Driver updated successfully'}, status=200)
-    else:
-        form = DriverForm(instance=driver)
-    return JsonResponse({'errors': form.errors}, status=400)
+        try:
+            # Parse JSON data from request body
+            data = json.loads(request.body)
+            print(f"Received update data for driver {driver_id}: {data}")  # Debug print
+            
+            # Handle foreign key fields if present
+            if data.get('company_id'):
+                try:
+                    company = Company.objects.get(id=data['company_id'])
+                    data['company_id'] = company
+                except Company.DoesNotExist:
+                    return JsonResponse({'errors': {'company_id': 'Invalid company ID'}}, status=400)
+            
+            if data.get('car_id'):
+                try:
+                    car = Car.objects.get(id=data['car_id'])
+                    data['car_id'] = car
+                except Car.DoesNotExist:
+                    return JsonResponse({'errors': {'car_id': 'Invalid car ID'}}, status=400)
+            
+            # Update the instance with the form
+            form = DriverForm(data, instance=driver)
+            if form.is_valid():
+                updated_driver = form.save()
+                return JsonResponse({
+                    'success': True,
+                    'id': updated_driver.id,
+                    'message': 'Driver updated successfully'
+                }, status=200)
+            else:
+                print(f"Form validation errors: {form.errors}")
+                return JsonResponse({'errors': form.errors}, status=400)
+        except Exception as e:
+            print(f"Error updating driver: {str(e)}")
+            return JsonResponse({'errors': {'server': str(e)}}, status=500)
+    
+    return JsonResponse({'error': 'Method not allowed'}, status=405)
 
+@csrf_exempt
 def delete_driver(request, driver_id):
-    driver = get_object_or_404(Driver, pk=driver_id)
-    if request.method == 'POST':
-        driver.delete()
-        return JsonResponse({'message': 'Driver deleted successfully'}, status=200)
-    return JsonResponse({'error': 'Invalid request method'}, status=405)
+    try:
+        driver = get_object_or_404(Driver, pk=driver_id)
+        if request.method in ['POST', 'DELETE']:
+            driver.delete()
+            return JsonResponse({
+                'success': True,
+                'message': 'Driver deleted successfully'
+            }, status=200)
+        return JsonResponse({
+            'success': False,
+            'error': 'This endpoint only accepts POST or DELETE requests'
+        }, status=405)
+    except Exception as e:
+        print(f"Error deleting driver {driver_id}: {str(e)}")
+        return JsonResponse({
+            'success': False,
+            'error': str(e)
+        }, status=500)
 
 # DrivingData views
 def create_driving_data(request):

@@ -11,7 +11,9 @@ import {
   Grid,
   Select,
   MenuItem,
-  Typography
+  Typography,
+  Alert,
+  CircularProgress
 } from '@mui/material';
 import { useTheme } from '@mui/material/styles';
 import EditIcon from '@mui/icons-material/Edit';
@@ -23,7 +25,6 @@ interface Driver {
   phone_number: string;
   company_id: string;
   car_id: string;
-  status: 'active' | 'inactive';
 }
 
 interface EditDriverDialogProps {
@@ -41,10 +42,13 @@ export default function EditDriverDialog({
 }: EditDriverDialogProps) {
   const theme = useTheme();
   const [formData, setFormData] = React.useState<Driver | null>(null);
+  const [loading, setLoading] = React.useState(false);
+  const [error, setError] = React.useState<string | null>(null);
 
   React.useEffect(() => {
     if (driver) {
       setFormData(driver);
+      setError(null);
     }
   }, [driver]);
 
@@ -59,20 +63,57 @@ export default function EditDriverDialog({
     }));
   };
 
-  const handleSubmit = (event: React.FormEvent) => {
+  const handleSubmit = async (event: React.FormEvent) => {
     event.preventDefault();
-    onSubmit(formData);
+    setLoading(true);
+    setError(null);
+    
+    try {
+      // Call API directly from dialog
+      const response = await fetch(`http://localhost:8000/api/update_driver/${formData.id}/`, {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+        },
+        body: JSON.stringify({
+          name: formData.name,
+          gender: formData.gender.toLowerCase(), // Ensure lowercase gender is sent to backend
+          phone_number: formData.phone_number,
+          company_id: formData.company_id,
+          car_id: formData.car_id
+        }),
+      });
+      
+      if (!response.ok) {
+        const errorData = await response.json();
+        throw new Error(errorData.error || 'Failed to update driver');
+      }
+      
+      onSubmit(formData);
+    } catch (err) {
+      console.error('Error updating driver:', err);
+      setError(err instanceof Error ? err.message : 'An unknown error occurred');
+    } finally {
+      setLoading(false);
+    }
   };
 
   return (
-    <Dialog open={open} onClose={onClose} maxWidth="sm" fullWidth>
+    <Dialog 
+      open={open} 
+      onClose={onClose} 
+      maxWidth="sm" 
+      fullWidth
+    >
       <DialogTitle
         sx={{
           backgroundColor: theme.palette.primary.main,
           color: 'white',
           display: 'flex',
           alignItems: 'center',
-          gap: 1
+          gap: 1,
+          px: 3,
+          py: 2
         }}
       >
         <EditIcon />
@@ -80,6 +121,12 @@ export default function EditDriverDialog({
       </DialogTitle>
       <form onSubmit={handleSubmit}>
         <DialogContent dividers>
+          {error && (
+            <Alert severity="error" sx={{ mb: 2 }}>
+              {error}
+            </Alert>
+          )}
+          
           <Grid container spacing={2}>
             <Grid item xs={12}>
               <FormControl fullWidth required>
@@ -99,8 +146,8 @@ export default function EditDriverDialog({
                   label="Gender"
                   onChange={handleChange('gender')}
                 >
-                  <MenuItem value="Male">Male</MenuItem>
-                  <MenuItem value="Female">Female</MenuItem>
+                  <MenuItem value="male">Male</MenuItem>
+                  <MenuItem value="female">Female</MenuItem>
                 </Select>
               </FormControl>
             </Grid>
@@ -134,29 +181,22 @@ export default function EditDriverDialog({
                 />
               </FormControl>
             </Grid>
-            <Grid item xs={12}>
-              <FormControl fullWidth required>
-                <InputLabel>Status</InputLabel>
-                <Select
-                  value={formData.status}
-                  label="Status"
-                  onChange={handleChange('status')}
-                >
-                  <MenuItem value="active">Active</MenuItem>
-                  <MenuItem value="inactive">Inactive</MenuItem>
-                </Select>
-              </FormControl>
-            </Grid>
           </Grid>
         </DialogContent>
         <DialogActions sx={{ p: 2 }}>
-          <Button onClick={onClose}>Cancel</Button>
+          <Button 
+            onClick={onClose}
+            disabled={loading}
+          >
+            Cancel
+          </Button>
           <Button
             type="submit"
             variant="contained"
-            startIcon={<EditIcon />}
+            startIcon={loading ? <CircularProgress size={20} /> : <EditIcon />}
+            disabled={loading}
           >
-            Save Changes
+            {loading ? 'Saving...' : 'Save Changes'}
           </Button>
         </DialogActions>
       </form>

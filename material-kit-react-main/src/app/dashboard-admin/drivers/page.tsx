@@ -1,7 +1,7 @@
 'use client';
 
 import * as React from 'react';
-import { useState } from 'react';
+import { useState, useEffect } from 'react';
 import {
   Box,
   Typography,
@@ -15,10 +15,7 @@ import {
   DialogContent,
   DialogContentText,
   DialogTitle,
-  TableCell,
-  Tooltip,
-  Chip,
-  MenuItem
+  CircularProgress
 } from '@mui/material';
 import SearchIcon from '@mui/icons-material/Search';
 import AddIcon from '@mui/icons-material/Add';
@@ -26,18 +23,14 @@ import { DriversTable } from '@/components/dashboard-admin/drivers/DriversTable'
 import AddDriverDialog from './add-driver-dialog';
 import EditDriverDialog from './edit-driver-dialog';
 
-// Mock data - replace with actual API call
-const MOCK_DRIVERS = [
-  {
-    id: '1',
-    name: 'John Doe',
-    gender: 'Male',
-    phone_number: '+1 234-567-8901',
-    company_id: 'COMP-1',
-    car_id: 'CAR-1'
-  },
-  // Add more mock drivers as needed
-];
+interface Driver {
+  id: string;
+  name: string;
+  gender: string;
+  phone_number: string;
+  company_id: string;
+  car_id: string;
+}
 
 export default function DriversPage(): React.JSX.Element {
   const [searchTerm, setSearchTerm] = useState('');
@@ -45,75 +38,85 @@ export default function DriversPage(): React.JSX.Element {
   const [rowsPerPage, setRowsPerPage] = useState(5);
   const [openDialog, setOpenDialog] = useState(false);
   const [deleteConfirmOpen, setDeleteConfirmOpen] = useState(false);
-  const [driverToDelete, setDriverToDelete] = useState<typeof MOCK_DRIVERS[0] | null>(null);
+  const [driverToDelete, setDriverToDelete] = useState<Driver | null>(null);
   const [editDialogOpen, setEditDialogOpen] = useState(false);
-  const [selectedDriver, setSelectedDriver] = useState<typeof MOCK_DRIVERS[0] | null>(null);
+  const [selectedDriver, setSelectedDriver] = useState<Driver | null>(null);
   const [refreshTrigger, setRefreshTrigger] = useState(0);
-  const [statusFilter, setStatusFilter] = useState('all');
+  const [drivers, setDrivers] = useState<Driver[]>([]);
+  const [loading, setLoading] = useState(true);
 
-  const handleSearch = (event: React.ChangeEvent<HTMLInputElement>) => {
+  // Fetch drivers data
+  useEffect(() => {
+    setLoading(true);
+    fetch('http://localhost:8000/api/drivers/')
+      .then(response => response.json())
+      .then(data => {
+        setDrivers(data);
+        setLoading(false);
+      })
+      .catch(error => {
+        console.error('Error fetching drivers:', error);
+        setLoading(false);
+      });
+  }, [refreshTrigger]);
+
+  const handleSearchChange = (event: React.ChangeEvent<HTMLInputElement>) => {
     setSearchTerm(event.target.value);
     setPage(0);
   };
 
-  const handleDeleteDriver = (driver: typeof MOCK_DRIVERS[0]) => {
+  const handleDeleteDriver = (driver: Driver) => {
     setDriverToDelete(driver);
     setDeleteConfirmOpen(true);
   };
 
   const handleConfirmDelete = () => {
     if (driverToDelete) {
-      console.log('Deleting driver:', driverToDelete);
+      fetch(`http://localhost:8000/api/delete_driver/${driverToDelete.id}/`, {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+        }
+      })
+        .then(response => {
+          if (!response.ok) {
+            return response.json().then(data => {
+              throw new Error(data.error || 'Failed to delete driver');
+            });
+          }
+          return response.json();
+        })
+        .then(data => {
+          console.log('Success:', data);
+          setRefreshTrigger(prev => prev + 1); // Refresh the list
+        })
+        .catch(error => {
+          console.error('Error deleting driver:', error);
+        })
+        .finally(() => {
+          setDeleteConfirmOpen(false);
+          setDriverToDelete(null);
+        });
     }
-    setDeleteConfirmOpen(false);
-    setDriverToDelete(null);
   };
 
-  const handleEditDriver = (driver: typeof MOCK_DRIVERS[0]) => {
+  const handleEditDriver = (driver: Driver) => {
     setSelectedDriver(driver);
     setEditDialogOpen(true);
   };
 
-  const handleSaveEdit = (updatedDriver: typeof MOCK_DRIVERS[0]) => {
-    console.log('Saving updated driver:', updatedDriver);
-    setEditDialogOpen(false);
-    setSelectedDriver(null);
-  };
+  // Filter drivers based on search term only (no status filter)
+  const filteredDrivers = drivers.filter(driver => 
+    driver.name.toLowerCase().includes(searchTerm.toLowerCase()) ||
+    driver.phone_number.toLowerCase().includes(searchTerm.toLowerCase()) ||
+    driver.gender.toLowerCase().includes(searchTerm.toLowerCase())
+  );
 
-  const handleStatusChange = async (driver: typeof MOCK_DRIVERS[0], newStatus: 'active' | 'inactive') => {
-    try {
-      const response = await fetch(`http://localhost:8000/api/drivers/${driver.id}/status`, {
-        method: 'PATCH',
-        headers: {
-          'Content-Type': 'application/json',
-        },
-        body: JSON.stringify({ status: newStatus }),
-      });
-
-      if (response.ok) {
-        setRefreshTrigger(prev => prev + 1); // Refresh the table
-      } else {
-        console.error('Failed to update driver status');
-      }
-    } catch (error) {
-      console.error('Error updating driver status:', error);
-    }
-  };
-
-  const handleStatusFilterChange = (event: React.ChangeEvent<HTMLInputElement>) => {
-    setStatusFilter(event.target.value);
-    setPage(0);
-  };
-
-  const filteredDrivers = MOCK_DRIVERS.filter(driver => {
-    const matchesSearch = 
-      driver.name.toLowerCase().includes(searchTerm.toLowerCase()) ||
-      driver.phone_number.toLowerCase().includes(searchTerm.toLowerCase());
-    
-    const matchesStatus = statusFilter === 'all' || driver.status === statusFilter;
-    
-    return matchesSearch && matchesStatus;
-  });
+  // Paginate drivers
+  const paginatedDrivers = filteredDrivers.slice(
+    page * rowsPerPage,
+    page * rowsPerPage + rowsPerPage
+  );
 
   return (
     <Box sx={{ p: 3 }}>
@@ -132,7 +135,7 @@ export default function DriversPage(): React.JSX.Element {
             size="small"
             placeholder="Search drivers..."
             value={searchTerm}
-            onChange={handleSearch}
+            onChange={handleSearchChange}
             InputProps={{
               startAdornment: (
                 <InputAdornment position="start">
@@ -142,18 +145,6 @@ export default function DriversPage(): React.JSX.Element {
             }}
             sx={{ minWidth: 300 }}
           />
-          <TextField
-            select
-            size="small"
-            value={statusFilter}
-            onChange={handleStatusFilterChange}
-            label="Status Filter"
-            sx={{ minWidth: 150 }}
-          >
-            <MenuItem value="all">All Status</MenuItem>
-            <MenuItem value="active">Active</MenuItem>
-            <MenuItem value="inactive">Inactive</MenuItem>
-          </TextField>
           <Button 
             variant="contained" 
             startIcon={<AddIcon />}
@@ -167,20 +158,25 @@ export default function DriversPage(): React.JSX.Element {
 
       {/* Table */}
       <Card>
-        <DriversTable
-          items={filteredDrivers.slice(page * rowsPerPage, (page + 1) * rowsPerPage)}
-          count={filteredDrivers.length}
-          page={page}
-          rowsPerPage={rowsPerPage}
-          onPageChange={(newPage) => setPage(newPage)}
-          onRowsPerPageChange={(newRowsPerPage) => {
-            setRowsPerPage(newRowsPerPage);
-            setPage(0);
-          }}
-          onDelete={handleDeleteDriver}
-          onEdit={handleEditDriver}
-          onStatusChange={handleStatusChange}
-        />
+        {loading ? (
+          <Box sx={{ display: 'flex', justifyContent: 'center', p: 3 }}>
+            <CircularProgress />
+          </Box>
+        ) : (
+          <DriversTable
+            items={paginatedDrivers}
+            count={filteredDrivers.length}
+            page={page}
+            rowsPerPage={rowsPerPage}
+            onPageChange={setPage}
+            onRowsPerPageChange={(newRowsPerPage) => {
+              setRowsPerPage(newRowsPerPage);
+              setPage(0);
+            }}
+            onDelete={handleDeleteDriver}
+            onEdit={handleEditDriver}
+          />
+        )}
       </Card>
 
       {/* Add Driver Dialog */}
@@ -188,7 +184,7 @@ export default function DriversPage(): React.JSX.Element {
         open={openDialog}
         onClose={() => setOpenDialog(false)}
         onSuccess={() => {
-          console.log('Driver added successfully');
+          setRefreshTrigger(prev => prev + 1); // Refresh the list
           setOpenDialog(false);
         }}
       />
@@ -222,10 +218,27 @@ export default function DriversPage(): React.JSX.Element {
           setSelectedDriver(null);
         }}
         onSubmit={(updatedDriver) => {
-          console.log('Updated driver:', updatedDriver);
-          // Add your update logic here
-          setEditDialogOpen(false);
-          setSelectedDriver(null);
+          // Call API to update driver
+          fetch(`http://localhost:8000/api/update_driver/${updatedDriver.id}/`, {
+            method: 'POST',
+            headers: {
+              'Content-Type': 'application/json',
+            },
+            body: JSON.stringify(updatedDriver),
+          })
+            .then(response => {
+              if (!response.ok) {
+                throw new Error('Failed to update driver');
+              }
+              setRefreshTrigger(prev => prev + 1); // Refresh the list
+            })
+            .catch(error => {
+              console.error('Error updating driver:', error);
+            })
+            .finally(() => {
+              setEditDialogOpen(false);
+              setSelectedDriver(null);
+            });
         }}
         driver={selectedDriver}
       />

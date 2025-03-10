@@ -22,7 +22,7 @@ from api import views
 urlpatterns = [
     path('admin/', admin.site.urls),
     path('', driver_map, name='home'),  # Redirect root URL to driver_map
-    path('driver-map``/', driver_map, name='driver_map'),
+    path('driver-map/', driver_map, name='driver_map'),  # Fixed typo with double backticks
     path('get-latest-data/', get_latest_data, name='get_latest_data'),  # Ensure this line is correct
     path('customers/', views.customer_list, name='customer_list'),
     path('create/', views.create_customer, name='create_customer'),
@@ -39,4 +39,11 @@ urlpatterns = [
     path('api/car-driving-data/<int:car_id>/', views.get_car_driving_data, name='get_car_driving_data'),
     path('api/create_car/', views.create_car, name='create_car'),
     path('api/create_driver/', views.create_driver, name='create_driver'),
+    path('api/customer-cars/<int:customer_id>/', views.customer_cars, name='customer_cars'),
+    path('api/update_car/<int:car_id>/', views.update_car, name='update_car'),
+    path('api/delete_car/<int:car_id>/', views.delete_car, name='delete_car'),
+    path('api/update_driver/<int:driver_id>/', views.update_driver, name='update_driver'),
+    path('api/delete_driver/<int:driver_id>/', views.delete_driver, name='delete_driver'),
+    
+    
 ]

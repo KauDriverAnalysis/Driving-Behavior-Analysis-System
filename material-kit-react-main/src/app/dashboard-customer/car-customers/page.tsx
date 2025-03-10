@@ -1,71 +1,79 @@
 'use client';
 
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 import {
   Box,
-  Typography,
-  Card,
-  TextField,
-  InputAdornment,
+  Button,
+  Container,
   Stack,
+  Typography,
+  TextField,
   MenuItem,
-  Button
+  Dialog,
+  DialogTitle,
+  DialogContent,
+  DialogActions,
+  DialogContentText,
+  CircularProgress
 } from '@mui/material';
 import SearchIcon from '@mui/icons-material/Search';
+import InputAdornment from '@mui/material/InputAdornment';
 import AddIcon from '@mui/icons-material/Add';
-import { CarCustomersTable } from '@/components/dashboard-customer/car-customers/car-customers-table';
+import { CarCustomersTable, Car } from '@/components/dashboard-customer/car-customers/car-customers-table';
 import EditCarDialog from './EditCarDialog';
-import Dialog from '@mui/material/Dialog';
-import DialogActions from '@mui/material/DialogActions';
-import DialogContent from '@mui/material/DialogContent';
-import DialogContentText from '@mui/material/DialogContentText';
-import DialogTitle from '@mui/material/DialogTitle';
 import AddCarCustomerDialog from './AddCarCustomerDialog';
 
-// Enhanced mock data
-const cars = [
-  {
-    id: '1',
-    name: 'Toyota Corolla',
-    owner: 'John Doe',
-    licensePlate: 'ABC-123',
-    status: 'active',
-    model: '2022',
-    lastUpdate: new Date().toLocaleDateString()
-  },
-  {
-    id: '2',
-    name: 'Honda Civic',
-    owner: 'Jane Smith',
-    licensePlate: 'XYZ-789',
-    status: 'active',
-    model: '2023',
-    lastUpdate: new Date().toLocaleDateString()
-  }
-];
-
 const CarCustomersPage = () => {
+  const [cars, setCars] = useState<Car[]>([]);
+  const [loading, setLoading] = useState(true);
   const [searchTerm, setSearchTerm] = useState('');
   const [statusFilter, setStatusFilter] = useState('all');
   const [page, setPage] = useState(0);
   const [rowsPerPage, setRowsPerPage] = useState(5);
   const [openDialog, setOpenDialog] = useState(false);
   const [deleteConfirmOpen, setDeleteConfirmOpen] = useState(false);
-  const [carToDelete, setCarToDelete] = useState<typeof cars[0] | null>(null);
+  const [carToDelete, setCarToDelete] = useState<Car | null>(null);
   const [editDialogOpen, setEditDialogOpen] = useState(false);
-  const [selectedCar, setSelectedCar] = useState<typeof cars[0] | null>(null);
+  const [selectedCar, setSelectedCar] = useState<Car | null>(null);
+  const [refreshTrigger, setRefreshTrigger] = useState(0);
+
+  // Fetch cars data
+  useEffect(() => {
+    setLoading(true);
+    // Only show cars that belong to the current logged-in customer
+    // We'll need to get the customer ID from the session/auth context
+    fetch('http://localhost:8000/api/cars/')
+      .then(response => response.json())
+      .then(data => {
+        // Filter cars to only show those assigned to the current customer
+        // The backend might do this filtering for us based on auth token
+        const customerCars = data.filter((car: any) => {
+          // In a real implementation, you'd get the customer ID from auth context
+          // For now, just show all cars or adjust this filter as needed
+          return true; // or: return car.customerId === currentCustomerId;
+        });
+        
+        setCars(customerCars);
+        setLoading(false);
+      })
+      .catch(error => {
+        console.error('Error fetching cars:', error);
+        setLoading(false);
+      });
+  }, [refreshTrigger]);
 
   // Filter handlers
-  const handleSearch = (event: React.ChangeEvent<HTMLInputElement>) => {
+  const handleSearchChange = (event: React.ChangeEvent<HTMLInputElement>) => {
     setSearchTerm(event.target.value);
     setPage(0);
   };
 
-  const handleStatusChange = (event: React.ChangeEvent<HTMLInputElement>) => {
+  const handleStatusFilterChange = (event: React.ChangeEvent<HTMLInputElement>) => {
     setStatusFilter(event.target.value);
     setPage(0);
   };
 
+  // Dialog handlers
   const handleOpenDialog = () => {
     setOpenDialog(true);
   };
@@ -74,163 +82,238 @@ const CarCustomersPage = () => {
     setOpenDialog(false);
   };
 
-  const handleEditCar = (car: typeof cars[0]) => {
+  // Edit handlers
+  const handleEdit = (car: Car) => {
     setSelectedCar(car);
     setEditDialogOpen(true);
   };
 
-  const handleDeleteCar = (car: typeof cars[0]) => {
+  const handleCloseEdit = () => {
+    setEditDialogOpen(false);
+    setSelectedCar(null);
+  };
+
+  const handleSaveEdit = (updatedCar: Car) => {
+    // Call API to update car
+    fetch(`http://localhost:8000/api/update_car/${updatedCar.id}/`, {
+      method: 'POST',
+      headers: {
+        'Content-Type': 'application/json',
+      },
+      body: JSON.stringify({
+        Model_of_car: updatedCar.model,
+        TypeOfCar: updatedCar.type,
+        Plate_number: updatedCar.plateNumber,
+        Release_Year_car: updatedCar.releaseYear,
+        State_of_car: updatedCar.state,
+        device_id: updatedCar.deviceId
+      }),
+    })
+      .then(response => {
+        if (!response.ok) {
+          throw new Error('Failed to update car');
+        }
+        setRefreshTrigger(prev => prev + 1);
+        setEditDialogOpen(false);
+        setSelectedCar(null);
+      })
+      .catch(error => {
+        console.error('Error updating car:', error);
+      });
+  };
+
+  // Delete handlers
+  const handleDelete = (car: Car) => {
     setCarToDelete(car);
     setDeleteConfirmOpen(true);
   };
 
   const handleConfirmDelete = () => {
     if (carToDelete) {
-      // Add your delete logic here
-      console.log('Deleting car:', carToDelete);
-      // Update your cars array after deletion
+      fetch(`http://localhost:8000/api/delete_car/${carToDelete.id}/`, {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+        }
+      })
+        .then(response => {
+          if (!response.ok) {
+            return response.json().then(data => {
+              throw new Error(data.error || 'Failed to delete car');
+            });
+          }
+          return response.json();
+        })
+        .then(data => {
+          console.log('Success:', data);
+          // Show success notification if you want
+          setRefreshTrigger(prev => prev + 1); // Refresh the car list
+        })
+        .catch(error => {
+          console.error('Error deleting car:', error);
+          // Show error notification if you want
+        })
+        .finally(() => {
+          setDeleteConfirmOpen(false);
+          setCarToDelete(null);
+        });
     }
+  };
+
+  const handleCancelDelete = () => {
     setDeleteConfirmOpen(false);
     setCarToDelete(null);
   };
 
-  const handleSaveEdit = (updatedCar: typeof cars[0]) => {
-    console.log('Saving updated car:', updatedCar);
-    // Add your update logic here
-    setEditDialogOpen(false);
-    setSelectedCar(null);
+  const handleAddCar = (carData: Omit<Car, 'id'>) => {
+    // Add API call to create a new car
+    fetch('http://localhost:8000/api/create_car/', {
+      method: 'POST',
+      headers: {
+        'Content-Type': 'application/json',
+      },
+      body: JSON.stringify({
+        Model_of_car: carData.model,
+        TypeOfCar: carData.type,
+        Plate_number: carData.plateNumber,
+        Release_Year_car: carData.releaseYear,
+        State_of_car: carData.state,
+        device_id: carData.deviceId || ''
+        // customer_id will be set by the backend based on token
+      }),
+    })
+      .then(response => {
+        if (!response.ok) {
+          throw new Error('Failed to create car');
+        }
+        return response.json();
+      })
+      .then(() => {
+        setRefreshTrigger(prev => prev + 1);
+        setOpenDialog(false);
+      })
+      .catch(error => {
+        console.error('Error creating car:', error);
+      });
   };
 
-  const handleAddCar = (carData: typeof cars[0]) => {
-    // Add the new car to your cars array
-    const newCar = {
-      ...carData,
-      id: `CAR-${cars.length + 1}`,
-      lastUpdate: new Date().toLocaleDateString()
-    };
-    
-    // Update your cars state here
-    console.log('New car added:', newCar);
-    // You would typically make an API call here
-    
-    // Show success message if needed
-  };
-
-  // Filter logic
+  // Filter logic for the table
   const filteredCars = cars.filter(car => {
     const matchesSearch = 
-      car.name.toLowerCase().includes(searchTerm.toLowerCase()) ||
-      car.owner.toLowerCase().includes(searchTerm.toLowerCase()) ||
-      car.licensePlate.toLowerCase().includes(searchTerm.toLowerCase());
-
-    const matchesStatus = statusFilter === 'all' || car.status === statusFilter;
-
+      car.model.toLowerCase().includes(searchTerm.toLowerCase()) ||
+      car.plateNumber.toLowerCase().includes(searchTerm.toLowerCase()) ||
+      car.type.toLowerCase().includes(searchTerm.toLowerCase());
+      
+    const matchesStatus = statusFilter === 'all' || car.state === statusFilter;
+    
     return matchesSearch && matchesStatus;
   });
 
+  // Pagination
+  const paginatedCars = filteredCars.slice(
+    page * rowsPerPage,
+    page * rowsPerPage + rowsPerPage
+  );
+
   return (
-    <Box sx={{ p: 3 }}>
-      <Typography variant="h4" sx={{ mb: 3 }}>
-        Car Customers
-      </Typography>
+    <Box
+      component="main"
+      sx={{
+        flexGrow: 1,
+        py: 8
+      }}
+    >
+      <Container maxWidth="xl">
+        <Stack spacing={3}>
+          <Stack
+            direction="row"
+            justifyContent="space-between"
+            spacing={4}
+          >
+            <Typography variant="h4">
+              My Cars
+            </Typography>
+            <Button
+              startIcon={<AddIcon />}
+              variant="contained"
+              onClick={handleOpenDialog}
+            >
+              Add
+            </Button>
+          </Stack>
 
-      {/* Filters */}
-      <Card sx={{ p: 2, mb: 3 }}>
-        <Stack
-          direction={{ xs: 'column', sm: 'row' }}
-          spacing={2}
-          alignItems={{ xs: 'stretch', sm: 'center' }}
-        >
-          <TextField
-            size="small"
-            placeholder="Search cars..."
-            value={searchTerm}
-            onChange={handleSearch}
-            InputProps={{
-              startAdornment: (
-                <InputAdornment position="start">
-                  <SearchIcon />
-                </InputAdornment>
-              ),
-            }}
-            sx={{ minWidth: 300 }}
+          <Stack
+            direction={{ xs: 'column', sm: 'row' }}
+            spacing={2}
+          >
+            <TextField
+              fullWidth
+              label="Search"
+              value={searchTerm}
+              onChange={handleSearchChange}
+              InputProps={{
+                startAdornment: (
+                  <InputAdornment position="start">
+                    <SearchIcon />
+                  </InputAdornment>
+                ),
+              }}
+            />
+            <TextField
+              select
+              label="Status"
+              value={statusFilter}
+              onChange={handleStatusFilterChange}
+              sx={{ minWidth: 120 }}
+            >
+              <MenuItem value="all">All</MenuItem>
+              <MenuItem value="online">Online</MenuItem>
+              <MenuItem value="offline">Offline</MenuItem>
+            </TextField>
+          </Stack>
+
+          <CarCustomersTable
+            count={filteredCars.length}
+            items={paginatedCars}
+            onPageChange={setPage}
+            onRowsPerPageChange={setRowsPerPage}
+            page={page}
+            rowsPerPage={rowsPerPage}
+            onEdit={handleEdit}
+            onDelete={handleDelete}
+            loading={loading}
           />
-          <TextField
-            select
-            size="small"
-            value={statusFilter}
-            onChange={handleStatusChange}
-            sx={{ minWidth: 150 }}
-          >
-            <MenuItem value="all">All Status</MenuItem>
-            <MenuItem value="active">Active</MenuItem>
-            <MenuItem value="inactive">Inactive</MenuItem>
-          </TextField>
-          <Button 
-            variant="contained" 
-            startIcon={<AddIcon />}
-            onClick={handleOpenDialog}
-            sx={{ ml: 'auto' }}
-          >
-            Add Car
-          </Button>
         </Stack>
-      </Card>
-
-      {/* Table */}
-      <Card>
-        <CarCustomersTable
-          count={filteredCars.length}
-          items={filteredCars.slice(page * rowsPerPage, (page + 1) * rowsPerPage)}
-          onPageChange={(newPage) => setPage(newPage)}
-          onRowsPerPageChange={(newRowsPerPage) => {
-            setRowsPerPage(newRowsPerPage);
-            setPage(0);
-          }}
-          page={page}
-          rowsPerPage={rowsPerPage}
-          onEdit={handleEditCar}
-          onDelete={handleDeleteCar}
-        />
-      </Card>
-
-      {/* Edit Car Dialog */}
-      <EditCarDialog
-        open={editDialogOpen}
-        onClose={() => {
-          setEditDialogOpen(false);
-          setSelectedCar(null);
-        }}
-        onSubmit={handleSaveEdit}
-        car={selectedCar}
-      />
+      </Container>
 
       {/* Add Car Dialog */}
       <AddCarCustomerDialog
         open={openDialog}
-        onClose={() => setOpenDialog(false)}
+        onClose={handleCloseDialog}
         onSubmit={handleAddCar}
       />
 
+      {/* Edit Car Dialog */}
+      {selectedCar && (
+        <EditCarDialog
+          open={editDialogOpen}
+          onClose={handleCloseEdit}
+          onSubmit={handleSaveEdit}
+          car={selectedCar}
+        />
+      )}
+
       {/* Delete Confirmation Dialog */}
-      <Dialog
-        open={deleteConfirmOpen}
-        onClose={() => setDeleteConfirmOpen(false)}
-      >
+      <Dialog open={deleteConfirmOpen} onClose={handleCancelDelete}>
         <DialogTitle>Confirm Delete</DialogTitle>
         <DialogContent>
           <DialogContentText>
-            Are you sure you want to delete the car "{carToDelete?.name}" owned by {carToDelete?.owner}?
-            This action cannot be undone.
+            Are you sure you want to delete the car {carToDelete?.model} with plate number {carToDelete?.plateNumber}?
           </DialogContentText>
         </DialogContent>
         <DialogActions>
-          <Button onClick={() => setDeleteConfirmOpen(false)}>
-            Cancel
-          </Button>
-          <Button onClick={handleConfirmDelete} color="error" autoFocus>
-            Delete
-          </Button>
+          <Button onClick={handleCancelDelete}>Cancel</Button>
+          <Button onClick={handleConfirmDelete} color="error">Delete</Button>
         </DialogActions>
       </Dialog>
     </Box>

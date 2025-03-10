@@ -13,7 +13,6 @@ import {
   Tooltip,
   Card,
   TablePagination,
-  Chip,
   CircularProgress,
   Box
 } from '@mui/material';
@@ -27,7 +26,6 @@ interface Driver {
   phone_number: string;
   company_id: string;
   car_id: string;
-  status?: 'active' | 'inactive';
   email?: string;
 }
 
@@ -40,7 +38,6 @@ interface DriversTableProps {
   onRowsPerPageChange: (newRowsPerPage: number) => void;
   onEdit: (driver: Driver) => void;
   onDelete: (driver: Driver) => void;
-  onStatusChange: (driver: Driver, newStatus: 'active' | 'inactive') => void;
 }
 
 export function DriversTable({
@@ -51,8 +48,7 @@ export function DriversTable({
   onPageChange,
   onRowsPerPageChange,
   onEdit,
-  onDelete,
-  onStatusChange
+  onDelete
 }: DriversTableProps) {
   const [loading, setLoading] = React.useState(true);
   const [drivers, setDrivers] = React.useState<Driver[]>([]);
@@ -90,7 +86,6 @@ export function DriversTable({
               <TableCell>Phone Number</TableCell>
               <TableCell>Company ID</TableCell>
               <TableCell>Car ID</TableCell>
-              <TableCell>Status</TableCell>
               <TableCell align="right">Actions</TableCell>
             </TableRow>
           </TableHead>
@@ -102,22 +97,6 @@ export function DriversTable({
                 <TableCell>{driver.phone_number}</TableCell>
                 <TableCell>{driver.company_id}</TableCell>
                 <TableCell>{driver.car_id}</TableCell>
-                <TableCell>
-                  <Tooltip title="Click to change status">
-                    <Chip
-                      label={driver.status || 'active'}
-                      color={driver.status === 'inactive' ? 'error' : 'success'}
-                      size="small"
-                      onClick={() => onStatusChange(driver, driver.status === 'active' ? 'inactive' : 'active')}
-                      sx={{ 
-                        cursor: 'pointer',
-                        '&:hover': {
-                          opacity: 0.8
-                        }
-                      }}
-                    />
-                  </Tooltip>
-                </TableCell>
                 <TableCell align="right">
                   <Tooltip title="Edit">
                     <IconButton size="small" onClick={() => onEdit(driver)}>
