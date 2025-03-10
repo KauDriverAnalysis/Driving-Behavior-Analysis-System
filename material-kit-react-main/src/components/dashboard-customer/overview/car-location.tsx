@@ -11,14 +11,19 @@ import AccessTimeIcon from '@mui/icons-material/AccessTime';
 import CheckCircleIcon from '@mui/icons-material/CheckCircle';
 import dynamic from 'next/dynamic';
 
+// Add type for status
+type CarStatus = 'active' | 'inactive';
+
+interface CarLocationData {
+  latitude: number;
+  longitude: number;
+  lastUpdated: string;
+  address: string;
+  status: CarStatus;
+}
+
 interface CarLocationProps {
-  data: {
-    latitude: number;
-    longitude: number;
-    lastUpdated: string;
-    address: string;
-    status: string;
-  };
+  data: CarLocationData;
 }
 
 export function CarLocation({ data }: CarLocationProps) {
@@ -48,11 +53,11 @@ export function CarLocation({ data }: CarLocationProps) {
               </Box>
               
               <Box sx={{ mt: 2 }}>
-                <Chip 
-                  icon={<CheckCircleIcon />} 
-                  label={data.status} 
-                  color="success" 
-                  variant="outlined" 
+                <Chip
+                  label={data.status}
+                  color={data.status === 'active' ? 'success' : 'error'}
+                  size="small"
+                  sx={{ ml: 1 }}
                 />
               </Box>
             </Box>

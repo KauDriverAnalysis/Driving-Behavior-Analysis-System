@@ -19,6 +19,7 @@ import { DrivingMetrics } from '@/components/dashboard-customer/overview/driving
 import { PerformanceTrend } from '@/components/dashboard-customer/overview/performance-trend';
 import { TripHistory } from '@/components/dashboard-customer/overview/trip-history';
 import { CarLocation } from '@/components/dashboard-customer/overview/car-location';
+import { TextField, MenuItem, CircularProgress } from '@mui/material';
 
 // Enhanced fake data for different time frames
 const fakeStatsData = {
@@ -115,8 +116,15 @@ const fakeCarLocationData = {
   longitude: -122.4194,
   lastUpdated: '5 minutes ago',
   address: '123 Main Street, San Francisco, CA',
-  status: 'Parked'
+  status: 'active'
 };
+
+interface Car {
+  id: string;
+  Model: string;
+  Type: string;
+  plate_number: string;
+}
 
 export default function CustomerOverview(): React.JSX.Element {
   const [timeFrame, setTimeFrame] = React.useState<'1d' | '7d' | '30d'>('1d');
@@ -124,6 +132,9 @@ export default function CustomerOverview(): React.JSX.Element {
   const [drivingMetrics, setDrivingMetrics] = React.useState(fakeDrivingMetricsData['1d']);
   const [performanceTrend, setPerformanceTrend] = React.useState(fakePerformanceTrendData['1d']);
   const [tripHistory, setTripHistory] = React.useState(fakeTripHistoryData['1d']);
+  const [cars, setCars] = React.useState<Car[]>([]);
+  const [selectedCar, setSelectedCar] = React.useState('all');
+  const [loading, setLoading] = React.useState(true);
 
   // Update all data when timeFrame changes
   React.useEffect(() => {
@@ -143,10 +154,67 @@ export default function CustomerOverview(): React.JSX.Element {
     //   .catch(error => console.error('Error fetching data:', error));
   }, [timeFrame]);
 
+  // Fetch cars data
+  React.useEffect(() => {
+    setLoading(true);
+    fetch('http://localhost:8000/api/cars/')
+      .then((response) => response.json())
+      .then((data) => {
+        const mappedCars = Array.isArray(data) ? data.map((item) => ({
+          id: item.id || '',
+          Model: item.Model || item.model || '',
+          Type: item.Type || item.type || '',
+          plate_number: item.plate_number || ''
+        })) : [];
+        
+        setCars(mappedCars);
+        if (mappedCars.length > 0) {
+          setSelectedCar(mappedCars[0].id);
+        }
+        setLoading(false);
+      })
+      .catch((error) => {
+        console.error('Error fetching cars:', error);
+        setLoading(false);
+      });
+  }, []);
+
+  const handleCarChange = (event: React.ChangeEvent<HTMLInputElement>) => {
+    setSelectedCar(event.target.value);
+  };
+
   return (
     <Box sx={{ pb: 5 }}>
-      <Box sx={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', mb: 3 }}>
-        <Typography variant="h4" component="h1">My Driving Dashboard</Typography>
+      <Box sx={{ 
+        display: 'flex', 
+        justifyContent: 'space-between', 
+        alignItems: 'center', 
+        mb: 3,
+        flexWrap: 'wrap',
+        gap: 2
+      }}>
+        <Stack direction="row" spacing={2} alignItems="center">
+          <Typography variant="h4" component="h1">My Driving Dashboard</Typography>
+          {loading ? (
+            <CircularProgress size={24} />
+          ) : (
+            <TextField
+              select
+              size="small"
+              value={selectedCar}
+              onChange={handleCarChange}
+              label="Select Car"
+              sx={{ minWidth: 200 }}
+            >
+              <MenuItem value="all">All Cars</MenuItem>
+              {cars.map((car) => (
+                <MenuItem key={car.id} value={car.id}>
+                  {car.Model} - {car.plate_number}
+                </MenuItem>
+              ))}
+            </TextField>
+          )}
+        </Stack>
         <TimeFilter onFilterChange={setTimeFrame} selectedFilter={timeFrame} />
       </Box>
 

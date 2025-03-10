@@ -65,23 +65,28 @@ const AlertsTab: React.FC = () => {
       }}>
         <Typography variant="h6" fontWeight="medium" sx={{ mb: 2 }}>Alert Settings</Typography>
         <AlertSettingItem 
-          title="Speeding Alerts" 
-          description="Notify when speed exceeds limit by 10+ mph" 
+          title="Harsh Braking" 
+          description="Notify when harsh braking events are detected" 
           defaultChecked={true} 
         />
         <AlertSettingItem 
-          title="Hard Braking" 
-          description="Notify on sudden deceleration events" 
+          title="Hard Acceleration" 
+          description="Notify when aggressive acceleration is detected" 
+          defaultChecked={true} 
+        />
+        <AlertSettingItem 
+          title="Swerving" 
+          description="Notify when sudden lane changes or swerving occurs" 
+          defaultChecked={true} 
+        />
+        <AlertSettingItem 
+          title="Over Speed" 
+          description="Notify when vehicle exceeds speed limits" 
           defaultChecked={true} 
         />
         <AlertSettingItem 
           title="Geofence Boundary" 
           description="Notify when vehicle leaves designated area" 
-          defaultChecked={true} 
-        />
-        <AlertSettingItem 
-          title="Curfew Monitoring" 
-          description="Notify of driving between 11PM and 5AM" 
           defaultChecked={true} 
         />
       </Paper>

@@ -19,5 +19,11 @@ export const navItems: NavItemConfig[] = [
     title: 'Cars', 
     href: paths.dashboardCustomer.carCustomers, 
     icon: 'car' 
+  },
+  { 
+    key: 'account', 
+    title: 'Account', 
+    href: paths.dashboardCustomer.account, 
+    icon: 'user' 
   }
 ];
