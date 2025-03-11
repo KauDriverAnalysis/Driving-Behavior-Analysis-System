@@ -12,7 +12,8 @@ import {
   MenuItem,
   Select,
   Typography,
-  Box
+  Alert,
+  CircularProgress
 } from '@mui/material';
 import { useTheme } from '@mui/material/styles';
 import EditIcon from '@mui/icons-material/Edit';
@@ -24,7 +25,7 @@ interface Employee {
   phone_number: string;
   address: string;
   Email: string;
-  password: string;  // Added password field
+  Password: string; // Match the field name with the backend
 }
 
 interface EditEmployeeDialogProps {
@@ -42,10 +43,18 @@ export default function EditEmployeeDialog({
 }: EditEmployeeDialogProps) {
   const theme = useTheme();
   const [formData, setFormData] = React.useState<Employee | null>(null);
+  const [loading, setLoading] = React.useState(false);
+  const [error, setError] = React.useState<string | null>(null);
 
   React.useEffect(() => {
     if (employee) {
-      setFormData(employee);
+      // Create a copy of the employee and ensure proper field names
+      setFormData({
+        ...employee,
+        // Ensure password is properly named to match interface
+        Password: employee.Password || employee.password || ''
+      });
+      setError(null);
     }
   }, [employee]);
 
@@ -60,10 +69,40 @@ export default function EditEmployeeDialog({
     }));
   };
 
-  const handleSubmit = (event: React.FormEvent) => {
+  const handleSubmit = async (event: React.FormEvent) => {
     event.preventDefault();
-    onSubmit(formData);
-    onClose();
+    setLoading(true);
+    setError(null);
+    
+    try {
+      // Call API directly from dialog
+      const response = await fetch(`http://localhost:8000/api/update_employee/${formData.id}/`, {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+        },
+        body: JSON.stringify({
+          Name: formData.name,
+          gender: formData.gender.toLowerCase(), // Ensure lowercase gender is sent to backend
+          phone_number: formData.phone_number,
+          address: formData.address,
+          Email: formData.Email,
+          Password: formData.Password || '' // Include password field
+        }),
+      });
+      
+      if (!response.ok) {
+        const errorData = await response.json();
+        throw new Error(errorData.error || errorData.errors || 'Failed to update employee');
+      }
+      
+      onSubmit(formData);
+    } catch (err) {
+      console.error('Error updating employee:', err);
+      setError(err instanceof Error ? err.message : 'An unknown error occurred');
+    } finally {
+      setLoading(false);
+    }
   };
 
   return (
@@ -96,6 +135,12 @@ export default function EditEmployeeDialog({
       </DialogTitle>
       <form onSubmit={handleSubmit}>
         <DialogContent sx={{ pt: 3 }}>
+          {error && (
+            <Alert severity="error" sx={{ mb: 2 }}>
+              {error}
+            </Alert>
+          )}
+          
           <Grid container spacing={2}>
             <Grid item xs={12}>
               <FormControl fullWidth>
@@ -118,8 +163,8 @@ export default function EditEmployeeDialog({
                   onChange={handleChange('gender')}
                   required
                 >
-                  <MenuItem value="Male">Male</MenuItem>
-                  <MenuItem value="Female">Female</MenuItem>
+                  <MenuItem value="male">Male</MenuItem>
+                  <MenuItem value="female">Female</MenuItem>
                 </Select>
               </FormControl>
             </Grid>
@@ -166,10 +211,10 @@ export default function EditEmployeeDialog({
                 <InputLabel>Password</InputLabel>
                 <OutlinedInput
                   label="Password"
-                  value={formData.password}
-                  onChange={handleChange('password')}
-                  required
+                  value={formData.Password || ''}
+                  onChange={handleChange('Password')}
                   type="password"
+                  placeholder="Leave blank to keep current password"
                 />
               </FormControl>
             </Grid>
@@ -182,15 +227,17 @@ export default function EditEmployeeDialog({
               color: 'text.secondary',
               fontWeight: 500
             }}
+            disabled={loading}
           >
             Cancel
           </Button>
           <Button 
             type="submit" 
             variant="contained"
-            startIcon={<EditIcon />}
+            startIcon={loading ? <CircularProgress size={20} /> : <EditIcon />}
+            disabled={loading}
           >
-            Save Changes
+            {loading ? 'Saving...' : 'Save Changes'}
           </Button>
         </DialogActions>
       </form>

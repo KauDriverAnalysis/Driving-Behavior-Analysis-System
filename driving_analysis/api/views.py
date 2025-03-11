@@ -212,6 +212,18 @@ def update_car(request, car_id):
             data = json.loads(request.body)
             print(f"Received update data for car {car_id}: {data}")  # Debug print
             
+            # Handle partial updates - only update fields that are provided
+            if 'State_of_car' in data and len(data) == 1:
+                # This is just a status update
+                car.State_of_car = data['State_of_car']
+                car.save()
+                return JsonResponse({
+                    'success': True,
+                    'id': car.id,
+                    'message': 'Car status updated successfully'
+                }, status=200)
+            
+            # For full updates, continue with the normal form validation
             # Handle foreign key fields if present
             if data.get('company_id'):
                 try:
@@ -450,42 +462,93 @@ def employee_list(request):
         for employee in employees
     ]
     return JsonResponse(employee_data, safe=False)
-@ensure_csrf_cookie
-@csrf_exempt 
-@require_http_methods(["POST"])
 @csrf_exempt
 def create_employee(request):
-    try:
-        data = json.loads(request.body)
-        form = EmployeeForm(data)
-        if form.is_valid():
-            employee = form.save()
-            return JsonResponse({
-                'message': 'Employee created successfully',
-                'employee_id': employee.id
-            }, status=201)
-        else:
-            return JsonResponse({'errors': form.errors}, status=400)
-    except Exception as e:
-        return JsonResponse({'error': str(e)}, status=500)
+    if request.method == 'POST':
+        try:
+            # Parse JSON data from request body
+            data = json.loads(request.body)
+            print(f"Received employee data: {data}")  # Debug print
+            
+            # Process gender field if needed
+            if 'gender' in data:
+                # Make sure gender is lowercase
+                data['gender'] = data['gender'].lower()
+                
+            # Create form with JSON data
+            form = EmployeeForm(data)
+            if form.is_valid():
+                employee = form.save()
+                return JsonResponse({
+                    'success': True, 
+                    'id': employee.id,
+                    'message': 'Employee created successfully'
+                }, status=201)
+            else:
+                print(f"Form validation errors: {form.errors}")
+                return JsonResponse({'errors': form.errors}, status=400)
+        except Exception as e:
+            print(f"Error creating employee: {str(e)}")
+            return JsonResponse({'errors': {'server': str(e)}}, status=500)
+    
+    return JsonResponse({'error': 'Method not allowed'}, status=405)
 
+@csrf_exempt
 def update_employee(request, employee_id):
     employee = get_object_or_404(Employee, pk=employee_id)
     if request.method == 'POST':
-        form = EmployeeForm(request.POST, instance=employee)
-        if form.is_valid():
-            form.save()
-            return JsonResponse({'message': 'Employee updated successfully'}, status=200)
-    else:
-        form = EmployeeForm(instance=employee)
-    return JsonResponse({'errors': form.errors}, status=400)
+        try:
+            # Parse JSON data from request body
+            data = json.loads(request.body)
+            print(f"Received update data for employee {employee_id}: {data}")  # Debug print
+            
+            # Handle empty password case - don't update password if not provided
+            if 'Password' in data and not data['Password']:
+                # If password is empty, remove it from the data to avoid updating with empty password
+                data.pop('Password')
+            
+            # If gender is provided, ensure lowercase
+            if 'gender' in data:
+                data['gender'] = data['gender'].lower()
+            
+            # Update the instance with the form
+            form = EmployeeForm(data, instance=employee)
+            if form.is_valid():
+                updated_employee = form.save()
+                return JsonResponse({
+                    'success': True,
+                    'id': updated_employee.id,
+                    'message': 'Employee updated successfully'
+                }, status=200)
+            else:
+                print(f"Form validation errors: {form.errors}")
+                return JsonResponse({'errors': form.errors}, status=400)
+        except Exception as e:
+            print(f"Error updating employee: {str(e)}")
+            return JsonResponse({'errors': {'server': str(e)}}, status=500)
+    
+    return JsonResponse({'error': 'Method not allowed'}, status=405)
 
+@csrf_exempt
 def delete_employee(request, employee_id):
-    employee = get_object_or_404(Employee, pk=employee_id)
-    if request.method == 'POST':
-        employee.delete()
-        return JsonResponse({'message': 'Employee deleted successfully'}, status=200)
-    return JsonResponse({'error': 'Invalid request method'}, status=405)
+    try:
+        employee = get_object_or_404(Employee, pk=employee_id)
+        if request.method in ['POST', 'DELETE']:
+            employee.delete()
+            return JsonResponse({
+                'success': True,
+                'message': 'Employee deleted successfully'
+            }, status=200)
+        return JsonResponse({
+            'success': False,
+            'error': 'This endpoint only accepts POST or DELETE requests'
+        }, status=405)
+    except Exception as e:
+        print(f"Error deleting employee {employee_id}: {str(e)}")
+        return JsonResponse({
+            'success': False,
+            'error': str(e)}
+        , status=500)
 @csrf_exempt
 def get_car_driving_data(request, car_id):
     try:

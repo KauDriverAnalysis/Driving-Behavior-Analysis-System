@@ -1,6 +1,6 @@
 'use client';
 
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 import {
   Box,
   Typography,
@@ -13,7 +13,8 @@ import {
   DialogActions,
   DialogContent,
   DialogContentText,
-  DialogTitle
+  DialogTitle,
+  CircularProgress
 } from '@mui/material';
 import SearchIcon from '@mui/icons-material/Search';
 import AddIcon from '@mui/icons-material/Add';
@@ -21,38 +22,18 @@ import { EmployeesTable } from '@/components/dashboard-admin/employee/employees-
 import AddEmployeeDialog from './add-employee-dialog';
 import EditEmployeeDialog from './edit-employee-dialog';
 
-const MOCK_EMPLOYEES = [
-  {
-    id: '1',
-    name: 'John Doe',
-    gender: 'Male',
-    phone_number: '+1 234-567-8901',
-    address: '123 Main St, City',
-    Email: 'john.doe@example.com',
-    department: 'IT',
-    joinDate: '2023-01-15'
-  },
-  {
-    id: '2',
-    name: 'Jane Smith',
-    gender: 'Female',
-    phone_number: '+1 234-567-8902',
-    address: '456 Oak Ave, Town',
-    Email: 'jane.smith@example.com',
-    department: 'HR',
-    joinDate: '2023-02-20'
-  },
-  {
-    id: '3',
-    name: 'Mike Johnson',
-    gender: 'Male',
-    phone_number: '+1 234-567-8903',
-    address: '789 Pine Rd, Village',
-    Email: 'mike.j@example.com',
-    department: 'Sales',
-    joinDate: '2023-03-10'
-  }
-];
+// Define Employee interface
+interface Employee {
+  id: string;
+  name: string;
+  gender: string;
+  phone_number: string;
+  address: string;
+  Email: string;
+  Password?: string;
+  department?: string;
+  joinDate?: string;
+}
 
 export default function EmployeesPage(): React.JSX.Element {
   const [searchTerm, setSearchTerm] = useState('');
@@ -60,44 +41,86 @@ export default function EmployeesPage(): React.JSX.Element {
   const [rowsPerPage, setRowsPerPage] = useState(5);
   const [openDialog, setOpenDialog] = useState(false);
   const [deleteConfirmOpen, setDeleteConfirmOpen] = useState(false);
-  const [employeeToDelete, setEmployeeToDelete] = useState<typeof MOCK_EMPLOYEES[0] | null>(null);
+  const [employeeToDelete, setEmployeeToDelete] = useState<Employee | null>(null);
   const [editDialogOpen, setEditDialogOpen] = useState(false);
-  const [selectedEmployee, setSelectedEmployee] = useState<typeof MOCK_EMPLOYEES[0] | null>(null);
+  const [selectedEmployee, setSelectedEmployee] = useState<Employee | null>(null);
+  const [employees, setEmployees] = useState<Employee[]>([]);
+  const [loading, setLoading] = useState(true);
+  const [refreshTrigger, setRefreshTrigger] = useState(0);
+
+  // Fetch employees data
+  useEffect(() => {
+    setLoading(true);
+    fetch('http://localhost:8000/api/employees/')
+      .then(response => response.json())
+      .then(data => {
+        setEmployees(data);
+        setLoading(false);
+      })
+      .catch(error => {
+        console.error('Error fetching employees:', error);
+        setLoading(false);
+      });
+  }, [refreshTrigger]);
 
   const handleSearch = (event: React.ChangeEvent<HTMLInputElement>) => {
     setSearchTerm(event.target.value);
     setPage(0);
   };
 
-  const handleDeleteEmployee = (employee: typeof MOCK_EMPLOYEES[0]) => {
+  const handleDeleteEmployee = (employee: Employee) => {
     setEmployeeToDelete(employee);
     setDeleteConfirmOpen(true);
   };
 
   const handleConfirmDelete = () => {
     if (employeeToDelete) {
-      console.log('Deleting employee:', employeeToDelete.name);
+      // Call API to delete employee
+      fetch(`http://localhost:8000/api/delete_employee/${employeeToDelete.id}/`, {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+        }
+      })
+        .then(response => {
+          if (!response.ok) {
+            return response.json().then(data => {
+              throw new Error(data.error || 'Failed to delete employee');
+            });
+          }
+          return response.json();
+        })
+        .then(data => {
+          console.log('Success:', data);
+          setRefreshTrigger(prev => prev + 1); // Refresh the list after deletion
+        })
+        .catch(error => {
+          console.error('Error deleting employee:', error);
+          // You could add a snackbar notification here for the error
+        })
+        .finally(() => {
+          setDeleteConfirmOpen(false);
+          setEmployeeToDelete(null);
+        });
     }
-    setDeleteConfirmOpen(false);
-    setEmployeeToDelete(null);
   };
 
-  const handleEditEmployee = (employee: typeof MOCK_EMPLOYEES[0]) => {
+  const handleEditEmployee = (employee: Employee) => {
     setSelectedEmployee(employee);
     setEditDialogOpen(true);
   };
 
-  const handleSaveEdit = (updatedEmployee: typeof MOCK_EMPLOYEES[0]) => {
-    console.log('Saving updated employee:', updatedEmployee);
-    // Add your update logic here
-    setEditDialogOpen(false);
-    setSelectedEmployee(null);
-  };
-
-  const filteredEmployees = MOCK_EMPLOYEES.filter(employee => 
+  // Filter employees based on search term
+  const filteredEmployees = employees.filter(employee => 
     employee.name.toLowerCase().includes(searchTerm.toLowerCase()) ||
     employee.Email.toLowerCase().includes(searchTerm.toLowerCase()) ||
-    employee.department.toLowerCase().includes(searchTerm.toLowerCase())
+    (employee.department?.toLowerCase() || '').includes(searchTerm.toLowerCase())
+  );
+
+  // Paginate employees
+  const paginatedEmployees = filteredEmployees.slice(
+    page * rowsPerPage,
+    page * rowsPerPage + rowsPerPage
   );
 
   return (
@@ -140,27 +163,33 @@ export default function EmployeesPage(): React.JSX.Element {
 
       {/* Table */}
       <Card>
-        <EmployeesTable
-          items={filteredEmployees.slice(page * rowsPerPage, (page + 1) * rowsPerPage)}
-          count={filteredEmployees.length}
-          page={page}
-          rowsPerPage={rowsPerPage}
-          onPageChange={(newPage) => setPage(newPage)}
-          onRowsPerPageChange={(newRowsPerPage) => {
-            setRowsPerPage(newRowsPerPage);
-            setPage(0);
-          }}
-          onDelete={handleDeleteEmployee}
-          onEdit={handleEditEmployee}
-        />
+        {loading ? (
+          <Box sx={{ display: 'flex', justifyContent: 'center', p: 3 }}>
+            <CircularProgress />
+          </Box>
+        ) : (
+          <EmployeesTable
+            items={paginatedEmployees}
+            count={filteredEmployees.length}
+            page={page}
+            rowsPerPage={rowsPerPage}
+            onPageChange={setPage}
+            onRowsPerPageChange={(newRowsPerPage) => {
+              setRowsPerPage(newRowsPerPage);
+              setPage(0);
+            }}
+            onDelete={handleDeleteEmployee}
+            onEdit={handleEditEmployee}
+          />
+        )}
       </Card>
 
       {/* Add Employee Dialog */}
       <AddEmployeeDialog
         open={openDialog}
         onClose={() => setOpenDialog(false)}
-        onSubmit={(data) => {
-          console.log('New employee:', data);
+        onSuccess={() => {
+          setRefreshTrigger(prev => prev + 1); // Refresh the list after adding
           setOpenDialog(false);
         }}
       />
@@ -172,7 +201,45 @@ export default function EmployeesPage(): React.JSX.Element {
           setEditDialogOpen(false);
           setSelectedEmployee(null);
         }}
-        onSubmit={handleSaveEdit}
+        onSubmit={(updatedEmployee) => {
+          // Call API to update employee
+          // Format the data to match the Django backend expectations
+          const formattedEmployee = {
+            Name: updatedEmployee.name,  // Capital N
+            gender: updatedEmployee.gender.toLowerCase(), // lowercase gender
+            phone_number: updatedEmployee.phone_number,
+            address: updatedEmployee.address,
+            Email: updatedEmployee.Email, // Capital E
+            // Don't include password if it's empty
+            ...(updatedEmployee.Password && { Password: updatedEmployee.Password })
+          };
+
+          fetch(`http://localhost:8000/api/update_employee/${updatedEmployee.id}/`, {
+            method: 'POST',
+            headers: {
+              'Content-Type': 'application/json',
+            },
+            body: JSON.stringify(formattedEmployee),
+          })
+            .then(response => {
+              if (!response.ok) {
+                return response.json().then(data => {
+                  throw new Error(data.error || 'Failed to update employee');
+                });
+              }
+              return response.json();
+            })
+            .then(() => {
+              setRefreshTrigger(prev => prev + 1); // Refresh the list
+            })
+            .catch(error => {
+              console.error('Error updating employee:', error);
+            })
+            .finally(() => {
+              setEditDialogOpen(false);
+              setSelectedEmployee(null);
+            });
+        }}
         employee={selectedEmployee}
       />
 

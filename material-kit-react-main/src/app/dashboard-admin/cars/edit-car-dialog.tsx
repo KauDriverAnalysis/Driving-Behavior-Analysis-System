@@ -9,20 +9,26 @@ import {
   InputLabel,
   OutlinedInput,
   Grid,
-  Typography
+  Typography,
+  Select,
+  MenuItem,
+  FormHelperText,
+  Alert,
+  CircularProgress
 } from '@mui/material';
 import { useTheme } from '@mui/material/styles';
 import EditIcon from '@mui/icons-material/Edit';
 
 interface Car {
   id: string;
-  name: string;
-  brand: string;
-  model: string;
-  year: string;
-  plate_number: string;
-  owner: string;
-  status: 'active' | 'inactive';
+  model: string;      // Model_of_car in backend
+  type: string;       // TypeOfCar in backend
+  plateNumber: string; // Plate_number in backend
+  releaseYear: number; // Release_Year_car in backend
+  state: 'online' | 'offline'; // State_of_car in backend
+  deviceId: string;   // device_id in backend
+  customerId?: number | null; // customer_id FK
+  companyId?: number | null; // company_id FK
 }
 
 interface EditCarDialogProps {
@@ -40,11 +46,13 @@ export default function EditCarDialog({
 }: EditCarDialogProps) {
   const theme = useTheme();
   const [formData, setFormData] = React.useState<Car | null>(null);
+  const [loading, setLoading] = React.useState(false);
+  const [error, setError] = React.useState<string | null>(null);
 
   React.useEffect(() => {
     if (car) {
-      // Keep all car data including status, but don't show it in the form
-      setFormData(car);
+      setFormData({...car});
+      setError(null);
     }
   }, [car]);
 
@@ -53,19 +61,29 @@ export default function EditCarDialog({
   const handleChange = (field: keyof Car) => (
     event: React.ChangeEvent<HTMLInputElement | { value: unknown }>
   ) => {
+    const value = event.target.value;
     setFormData(prev => ({
       ...prev!,
-      [field]: event.target.value
+      [field]: field === 'releaseYear' ? Number(value) : value
     }));
   };
 
-  const handleSubmit = (event: React.FormEvent) => {
+  const handleSubmit = async (event: React.FormEvent) => {
     event.preventDefault();
-    if (formData) {
-      // Preserve the existing status when submitting
-      onSubmit({ ...formData, status: car?.status || 'inactive' });
+    if (!formData) return;
+    
+    setLoading(true);
+    setError(null);
+    
+    try {
+      // Remove direct API call, just pass the data to parent component
+      onSubmit(formData);
+    } catch (err) {
+      console.error('Error updating car:', err);
+      setError(err instanceof Error ? err.message : 'An unknown error occurred');
+    } finally {
+      setLoading(false);
     }
-    onClose();
   };
 
   return (
@@ -84,28 +102,14 @@ export default function EditCarDialog({
       </DialogTitle>
       <form onSubmit={handleSubmit}>
         <DialogContent dividers>
+          {error && (
+            <Alert severity="error" sx={{ mb: 2 }}>
+              {error}
+            </Alert>
+          )}
+          
           <Grid container spacing={2}>
             <Grid item xs={12}>
-              <FormControl fullWidth required>
-                <InputLabel>Name</InputLabel>
-                <OutlinedInput
-                  label="Name"
-                  value={formData.name}
-                  onChange={handleChange('name')}
-                />
-              </FormControl>
-            </Grid>
-            <Grid item xs={12} sm={6}>
-              <FormControl fullWidth required>
-                <InputLabel>Brand</InputLabel>
-                <OutlinedInput
-                  label="Brand"
-                  value={formData.brand}
-                  onChange={handleChange('brand')}
-                />
-              </FormControl>
-            </Grid>
-            <Grid item xs={12} sm={6}>
               <FormControl fullWidth required>
                 <InputLabel>Model</InputLabel>
                 <OutlinedInput
@@ -115,46 +119,80 @@ export default function EditCarDialog({
                 />
               </FormControl>
             </Grid>
-            <Grid item xs={12} sm={6}>
+            
+            <Grid item xs={12}>
               <FormControl fullWidth required>
-                <InputLabel>Year</InputLabel>
+                <InputLabel>Type</InputLabel>
                 <OutlinedInput
-                  label="Year"
-                  value={formData.year}
-                  onChange={handleChange('year')}
+                  label="Type"
+                  value={formData.type}
+                  onChange={handleChange('type')}
                 />
               </FormControl>
             </Grid>
+            
             <Grid item xs={12} sm={6}>
               <FormControl fullWidth required>
                 <InputLabel>Plate Number</InputLabel>
                 <OutlinedInput
                   label="Plate Number"
-                  value={formData.plate_number}
-                  onChange={handleChange('plate_number')}
+                  value={formData.plateNumber}
+                  onChange={handleChange('plateNumber')}
                 />
               </FormControl>
             </Grid>
-            <Grid item xs={12}>
+            
+            <Grid item xs={12} sm={6}>
               <FormControl fullWidth required>
-                <InputLabel>Owner</InputLabel>
+                <InputLabel>Release Year</InputLabel>
                 <OutlinedInput
-                  label="Owner"
-                  value={formData.owner}
-                  onChange={handleChange('owner')}
+                  label="Release Year"
+                  type="number"
+                  value={formData.releaseYear}
+                  onChange={handleChange('releaseYear')}
                 />
               </FormControl>
             </Grid>
+            
+            <Grid item xs={12} sm={6}>
+              <FormControl fullWidth>
+                <InputLabel>State</InputLabel>
+                <Select
+                  value={formData.state}
+                  label="State"
+                  onChange={handleChange('state')}
+                >
+                  <MenuItem value="online">Online</MenuItem>
+                  <MenuItem value="offline">Offline</MenuItem>
+                </Select>
+              </FormControl>
+            </Grid>
+            
+            <Grid item xs={12} sm={6}>
+              <FormControl fullWidth required>
+                <InputLabel>Device ID</InputLabel>
+                <OutlinedInput
+                  label="Device ID"
+                  value={formData.deviceId}
+                  onChange={handleChange('deviceId')}
+                />
+              </FormControl>
+            </Grid>
+            
+            {/* Company ID field removed as requested */}
           </Grid>
         </DialogContent>
         <DialogActions sx={{ p: 2 }}>
-          <Button onClick={onClose}>Cancel</Button>
+          <Button onClick={onClose} disabled={loading}>
+            Cancel
+          </Button>
           <Button
             type="submit"
             variant="contained"
-            startIcon={<EditIcon />}
+            startIcon={loading ? <CircularProgress size={20} /> : <EditIcon />}
+            disabled={loading}
           >
-            Save Changes
+            {loading ? 'Saving...' : 'Save Changes'}
           </Button>
         </DialogActions>
       </form>

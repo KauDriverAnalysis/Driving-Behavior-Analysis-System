@@ -13,6 +13,9 @@ import Checkbox from '@mui/material/Checkbox';
 import { useTheme } from '@mui/material/styles';
 import Snackbar from '@mui/material/Snackbar';
 import Alert from '@mui/material/Alert';
+import Select from '@mui/material/Select';
+import MenuItem from '@mui/material/MenuItem';
+import FormHelperText from '@mui/material/FormHelperText';
 
 interface AddEmployeeDialogProps {
   open: boolean;
@@ -28,6 +31,10 @@ interface FormData {
   Password: string;
 }
 
+interface ValidationErrors {
+  phone_number?: string;
+}
+
 // Update the component to include form validation
 export default function AddEmployeeDialog({ 
   open, 
@@ -35,10 +42,7 @@ export default function AddEmployeeDialog({
   onSuccess 
 }: AddEmployeeDialogProps): React.JSX.Element {
   const theme = useTheme();
-  const [gender, setGender] = React.useState({
-    male: false,
-    female: false,
-  });
+  const [gender, setGender] = React.useState('');
   const [formData, setFormData] = React.useState<FormData>({
     name: '',
     phone_number: '',
@@ -52,132 +56,206 @@ export default function AddEmployeeDialog({
     severity: 'success' as 'success' | 'error'
   });
 
+  // Add validation errors state
+  const [validationErrors, setValidationErrors] = React.useState<ValidationErrors>({});
+
+  // Update your touched state to include gender
+  const [touched, setTouched] = React.useState({
+    name: false,
+    phone_number: false,
+    address: false,
+    Email: false,
+    Password: false,
+    gender: false
+  });
+
+  // Phone number validation function
+  const validatePhoneNumber = (phoneNumber: string): boolean => {
+    // Simple regex for phone number validation
+    const phoneRegex = /^\+?[0-9\s\-\(\)]{8,20}$/;
+    return phoneRegex.test(phoneNumber);
+  };
+
+  // Update the handleInputChange function
   const handleInputChange = (field: keyof FormData) => (
     event: React.ChangeEvent<HTMLInputElement>
   ) => {
+    const value = event.target.value;
     setFormData(prev => ({
       ...prev,
-      [field]: event.target.value
+      [field]: value
     }));
+    
+    // Mark field as touched
+    setTouched(prev => ({
+      ...prev,
+      [field]: true
+    }));
+
+    // Validate phone number if that's the field being changed
+    if (field === 'phone_number' && value.trim() !== '') {
+      if (!validatePhoneNumber(value)) {
+        setValidationErrors(prev => ({
+          ...prev,
+          phone_number: 'Please enter a valid phone number'
+        }));
+      } else {
+        setValidationErrors(prev => ({
+          ...prev,
+          phone_number: undefined
+        }));
+      }
+    }
+  };
+
+  // Add a function to handle blur events
+  const handleBlur = (field: keyof FormData) => () => {
+    setTouched(prev => ({
+      ...prev,
+      [field]: true
+    }));
+
+    // Validate phone number on blur
+    if (field === 'phone_number' && formData.phone_number.trim() !== '') {
+      if (!validatePhoneNumber(formData.phone_number)) {
+        setValidationErrors(prev => ({
+          ...prev,
+          phone_number: 'Please enter a valid phone number'
+        }));
+      } else {
+        setValidationErrors(prev => ({
+          ...prev,
+          phone_number: undefined
+        }));
+      }
+    }
   };
 
   const isFormValid = () => {
+    // Check if all required fields are filled AND there are no validation errors
     return (
       formData.name.trim() !== '' &&
       formData.phone_number.trim() !== '' &&
+      validatePhoneNumber(formData.phone_number) && // Check if phone number is valid
       formData.address.trim() !== '' &&
       formData.Email.trim() !== '' &&
       formData.Password.trim() !== '' &&
-      (gender.male || gender.female) // At least one gender must be selected
+      gender !== ''
     );
   };
 
-  const handleGenderChange = (event: React.ChangeEvent<HTMLInputElement>) => {
-    setGender({
-      ...gender,
-      [event.target.name]: event.target.checked,
-    });
+  const handleGenderChange = (event: React.ChangeEvent<{ value: unknown }>) => {
+    setGender(event.target.value as string);
   };
 
   const closeAlert = () => {
     setAlertState({ ...alertState, open: false });
   };
 
+  // Update the handleSubmit function
   const handleSubmit = async (event: React.FormEvent) => {
     event.preventDefault();
+    console.log("Form submitted"); // Debug log
     
-    // Get form data
-    const formData = new FormData(event.target as HTMLFormElement);
-    const formDataObject: any = {};
+    // Mark all fields as touched on submit attempt
+    const allTouched = Object.keys(formData).reduce((acc, field) => {
+      acc[field as keyof FormData] = true;
+      return acc;
+    }, {} as Record<keyof FormData, boolean>);
     
-    // Convert FormData to a plain object
-    formData.forEach((value, key) => {
-      formDataObject[key] = value;
-    });
+    setTouched(allTouched);
     
-    // Add gender data
-    formDataObject.gender = gender.male ? 'male' : (gender.female ? 'female' : '');
-    
-    // Format address if needed
-    if (formDataObject.address) {
-      // Ensure consistent format with commas
-      formDataObject.address = formDataObject.address.trim();
-      
-      // If address doesn't contain commas, assume it's just a city for simplicity
-      if (!formDataObject.address.includes(',')) {
-        formDataObject.address = `${formDataObject.address},,,`; // city,state,country,street
-      }
+    // Validate phone number again before submission
+    if (!validatePhoneNumber(formData.phone_number)) {
+      setValidationErrors(prev => ({
+        ...prev,
+        phone_number: 'Please enter a valid phone number'
+      }));
+      return;
     }
     
+    if (!isFormValid()) {
+      console.log("Form validation failed:", { formData, gender }); // Debug log
+      return; // Don't submit if form is invalid
+    }
     
-    console.log('Form data being sent:', formDataObject);
-    console.log('CSRF token:', getCsrfToken());
+    // Create payload directly from React state
+    const payload = {
+      Name: formData.name,
+      gender: gender,
+      phone_number: formData.phone_number,
+      address: formData.address,
+      Email: formData.Email,
+      Password: formData.Password
+    };
+    
+    console.log('Payload being sent:', payload); // Debug log
     
     try {
       const response = await fetch('http://localhost:8000/api/create_employee/', {
         method: 'POST',
         headers: {
           'Content-Type': 'application/json',
-          'X-CSRFToken': getCsrfToken(),
         },
-        body: JSON.stringify(formDataObject),
-        credentials: 'include', // Important for cookies/CSRF
+        body: JSON.stringify(payload),
       });
       
+      console.log("Response status:", response.status); // Debug log
+      
+      const data = await response.json();
+      console.log('Response data:', data); // Debug log
+      
       if (!response.ok) {
-        const errorData = await response.json();
-        console.error('Error:', errorData);
+        console.error('Error:', data);
         setAlertState({
           open: true,
-          message: `Error: ${JSON.stringify(errorData.errors || errorData.error || 'Unknown error')}`,
+          message: `Error: ${JSON.stringify(data.errors || data.error || 'Unknown error')}`,
           severity: 'error'
         });
         return;
       }
       
-      const result = await response.json();
-      console.log('Success:', result);
+      // Success path
       setAlertState({
         open: true,
         message: 'Employee created successfully!',
         severity: 'success'
       });
       
-      setGender({ male: false, female: false });
-      (event.target as HTMLFormElement).reset();
+      // Reset form
+      setFormData({
+        name: '',
+        phone_number: '',
+        address: '',
+        Email: '',
+        Password: ''
+      });
+      setGender('');
+      setTouched({
+        name: false,
+        phone_number: false,
+        address: false,
+        Email: false,
+        Password: false,
+        gender: false
+      });
+      setValidationErrors({});
       
       if (onSuccess) {
         onSuccess();
       } else {
-        onClose();
+        setTimeout(() => {
+          onClose();
+        }, 1500);
       }
-      
-      setTimeout(() => {
-        onClose();
-      }, 1500);
-      
     } catch (error) {
-      console.error('Error:', error);
+      console.error('Network error:', error);
       setAlertState({
         open: true,
         message: `Network error: ${error instanceof Error ? error.message : 'Unknown error'}`,
         severity: 'error'
       });
     }
-  };
-  
-  const getCsrfToken = () => {
-    const name = 'csrftoken=';
-    const decodedCookie = decodeURIComponent(document.cookie);
-    const cookieArray = decodedCookie.split(';');
-    
-    for (let i = 0; i < cookieArray.length; i++) {
-      let cookie = cookieArray[i].trim();
-      if (cookie.indexOf(name) === 0) {
-        return cookie.substring(name.length, cookie.length);
-      }
-    }
-    return '';
   };
 
   return (
@@ -207,52 +285,46 @@ export default function AddEmployeeDialog({
                     name="Name"
                     value={formData.name}
                     onChange={handleInputChange('name')}
-                    error={formData.name.trim() === ''}
+                    onBlur={handleBlur('name')}
+                    error={touched.name && formData.name.trim() === ''}
                   />
                 </FormControl>
               </Grid>
               <Grid item xs={12}>
-                <FormControl component="fieldset" fullWidth required error={!gender.male && !gender.female}>
-                  <Grid container spacing={1}>
-                    <Grid item>
-                      <FormControlLabel
-                        control={
-                          <Checkbox
-                            checked={gender.male}
-                            onChange={handleGenderChange}
-                            name="male"
-                            color="primary"
-                          />
-                        }
-                        label="Male"
-                      />
-                    </Grid>
-                    <Grid item>
-                      <FormControlLabel
-                        control={
-                          <Checkbox
-                            checked={gender.female}
-                            onChange={handleGenderChange}
-                            name="female"
-                            color="primary"
-                          />
-                        }
-                        label="Female"
-                      />
-                    </Grid>
-                  </Grid>
+                <FormControl fullWidth required error={touched.gender && !gender}>
+                  <InputLabel>Gender</InputLabel>
+                  <Select
+                    value={gender}
+                    onChange={handleGenderChange}
+                    label="Gender"
+                    name="gender"
+                  >
+                    <MenuItem value="male">Male</MenuItem>
+                    <MenuItem value="female">Female</MenuItem>
+                  </Select>
                 </FormControl>
               </Grid>
               <Grid item xs={12}>
-                <FormControl fullWidth required>
+                <FormControl 
+                  fullWidth 
+                  required 
+                  error={
+                    (touched.phone_number && formData.phone_number.trim() === '') ||
+                    Boolean(validationErrors.phone_number)
+                  }
+                >
                   <InputLabel>Phone number</InputLabel>
                   <OutlinedInput 
                     label="Phone number" 
                     name="phone_number"
                     value={formData.phone_number}
                     onChange={handleInputChange('phone_number')}
-                    error={formData.phone_number.trim() === ''}
+                    onBlur={handleBlur('phone_number')}
+                    placeholder="e.g., 05XX-XXX-XXXX"
                   />
+                  {validationErrors.phone_number && (
+                    <FormHelperText error>{validationErrors.phone_number}</FormHelperText>
+                  )}
                 </FormControl>
               </Grid>
               <Grid item xs={12}>
@@ -263,7 +335,8 @@ export default function AddEmployeeDialog({
                     name="address"
                     value={formData.address}
                     onChange={handleInputChange('address')}
-                    error={formData.address.trim() === ''}
+                    onBlur={handleBlur('address')}
+                    error={touched.address && formData.address.trim() === ''}
                     placeholder="City, State, Country, Street"
                   />
                 </FormControl>
@@ -277,7 +350,8 @@ export default function AddEmployeeDialog({
                     type="email"
                     value={formData.Email}
                     onChange={handleInputChange('Email')}
-                    error={formData.Email.trim() === ''}
+                    onBlur={handleBlur('Email')}
+                    error={touched.Email && formData.Email.trim() === ''}
                   />
                 </FormControl>
               </Grid>
@@ -290,7 +364,8 @@ export default function AddEmployeeDialog({
                     type="password"
                     value={formData.Password}
                     onChange={handleInputChange('Password')}
-                    error={formData.Password.trim() === ''}
+                    onBlur={handleBlur('Password')}
+                    error={touched.Password && formData.Password.trim() === ''}
                   />
                 </FormControl>
               </Grid>

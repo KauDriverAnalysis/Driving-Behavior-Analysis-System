@@ -21,7 +21,7 @@ interface Employee {
   gender: string;
   phone_number: string;
   address: string;
-  email: string;
+  Email: string;
   password: string;
 }
 
@@ -94,7 +94,7 @@ export function EmployeesTable({
               <TableCell>{employee.gender}</TableCell>
               <TableCell>{employee.phone_number}</TableCell>
               <TableCell>{employee.address}</TableCell>
-              <TableCell>{employee.email}</TableCell>
+              <TableCell>{employee.Email}</TableCell>
               <TableCell>••••••••</TableCell>
               <TableCell align="right">
                 <Tooltip title="Edit">

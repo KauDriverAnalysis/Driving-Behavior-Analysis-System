@@ -34,6 +34,8 @@ urlpatterns = [
     path('api/get-latest-data/', views.get_latest_data, name='get-latest-data'),
     path('api/employees/', views.employee_list, name='employee_list'),
     path('api/create_employee/', views.create_employee, name='create_employee'),
+    path('api/update_employee/<int:employee_id>/', views.update_employee, name='update_employee'),
+    path('api/delete_employee/<int:employee_id>/', views.delete_employee, name='delete_employee'),
     path('api/cars/', views.car_list, name='car_list'),
     path('api/drivers/', views.driver_list, name='driver_list'),     
     path('api/car-driving-data/<int:car_id>/', views.get_car_driving_data, name='get_car_driving_data'),
@@ -44,6 +46,4 @@ urlpatterns = [
     path('api/delete_car/<int:car_id>/', views.delete_car, name='delete_car'),
     path('api/update_driver/<int:driver_id>/', views.update_driver, name='update_driver'),
     path('api/delete_driver/<int:driver_id>/', views.delete_driver, name='delete_driver'),
-    
-    
 ]
