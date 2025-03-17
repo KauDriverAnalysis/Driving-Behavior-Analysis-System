@@ -13,16 +13,11 @@ import Link from '@mui/material/Link';
 import OutlinedInput from '@mui/material/OutlinedInput';
 import Stack from '@mui/material/Stack';
 import Typography from '@mui/material/Typography';
-import Paper from '@mui/material/Paper';
 import Box from '@mui/material/Box';
-import Tabs from '@mui/material/Tabs';
-import Tab from '@mui/material/Tab';
 import { Eye as EyeIcon } from '@phosphor-icons/react/dist/ssr/Eye';
 import { EyeSlash as EyeSlashIcon } from '@phosphor-icons/react/dist/ssr/EyeSlash';
 import { Controller, useForm } from 'react-hook-form';
 import { z as zod } from 'zod';
-import { Buildings as CompanyIcon } from '@phosphor-icons/react/dist/ssr/Buildings';
-import { User as CustomerIcon } from '@phosphor-icons/react/dist/ssr/User';
 
 import { paths } from '@/paths';
 import { authClient } from '@/lib/auth/client';
@@ -37,13 +32,12 @@ type Values = zod.infer<typeof schema>;
 
 const defaultValues = { email: '', password: '' } satisfies Values;
 
-export function SignInForm(): React.JSX.Element {
+export function CustomerSignInForm(): React.JSX.Element {
   const router = useRouter();
   const { checkSession, setUserType } = useUser();
 
   const [showPassword, setShowPassword] = React.useState<boolean>(false);
   const [isPending, setIsPending] = React.useState<boolean>(false);
-  const [accountType, setAccountType] = React.useState<'customer' | 'company'>('customer');
 
   const {
     control,
@@ -58,7 +52,7 @@ export function SignInForm(): React.JSX.Element {
 
       const { userType, error } = await authClient.signInWithPassword({
         ...values,
-        accountType
+        accountType: 'customer'  // Hardcoded for customer form
       });
 
       if (error) {
@@ -68,45 +62,23 @@ export function SignInForm(): React.JSX.Element {
       }
 
       await checkSession?.();
-      console.log('Current user type:', userType);
       
       // Store the user type
       setUserType(userType);
 
-      if (userType === 'admin') {
-        router.push(paths.dashboardAdmin.overview);
-      } else if (userType === 'customer') {
+      if (userType === 'customer') {
         router.push(paths.dashboardCustomer.overview);
-      } else if (userType === 'company') {
-        router.push(paths.dashboardCompany.overview);
-      } else if (userType === 'employee') {
-        router.push(paths.dashboardAdmin.overview);
+      } else {
+        setError('root', { type: 'server', message: 'Invalid account type. Please use the correct form.' });
+        setIsPending(false);
       }
     },
-    [checkSession, router, setError, setUserType, accountType]
+    [checkSession, router, setError, setUserType]
   );
 
   return (
-    <Box sx={{ width: '100%', maxWidth: '450px' }}>
-      <Tabs
-        value={accountType}
-        onChange={(_, value) => setAccountType(value)}
-        variant="fullWidth"
-        sx={{ mb: 3 }}
-      >
-        <Tab 
-          value="customer" 
-          label="Customer" 
-          icon={<CustomerIcon size={20} />} 
-          iconPosition="start"
-        />
-        <Tab 
-          value="company" 
-          label="Company" 
-          icon={<CompanyIcon size={20} />} 
-          iconPosition="start"
-        />
-      </Tabs>
+    <Box sx={{ width: '100%' }}>
+      <Typography variant="h5" sx={{ mb: 3, textAlign: 'center' }}>Customer Sign In</Typography>
       
       <form onSubmit={handleSubmit(onSubmit)}>
         <Stack spacing={3}>
@@ -120,7 +92,7 @@ export function SignInForm(): React.JSX.Element {
                   {...field} 
                   label="Email address" 
                   type="email" 
-                  placeholder={accountType === 'customer' ? "customer@example.com" : "company@example.com"}
+                  placeholder="customer@example.com"
                 />
                 {errors.email ? <FormHelperText>{errors.email.message}</FormHelperText> : null}
               </FormControl>
@@ -185,13 +157,14 @@ export function SignInForm(): React.JSX.Element {
         </Stack>
       </form>
 
-      <Box sx={{ mt: 4 }}>
-        <Alert severity="info" sx={{ mb: 2 }}>
-          <Typography variant="subtitle2" sx={{ mb: 0.5 }}>Demo Accounts:</Typography>
-          <Box component="ul" sx={{ m: 0, pl: 2 }}>
-            <li><b>Customer:</b> customer@example.com / CustomerSecret</li>
-            <li><b>Company:</b> company@example.com / CompanySecret</li>
-            <li><b>Admin:</b> admin@example.com / AdminSecret</li>
+      <Box sx={{ mt: 3, textAlign: 'center' }}>
+        <Alert severity="info" sx={{ display: 'inline-flex', textAlign: 'left' }}>
+          <Box>
+            <Typography variant="subtitle2" sx={{ mb: 0.5 }}>Demo Account:</Typography>
+            <Box component="div" sx={{ m: 0 }}>
+              <b>Email:</b> customer@example.com<br />
+              <b>Password:</b> CustomerSecret
+            </Box>
           </Box>
         </Alert>
       </Box>
