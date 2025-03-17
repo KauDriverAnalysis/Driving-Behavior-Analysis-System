@@ -9,11 +9,11 @@ class CustomerForm(forms.ModelForm):
         model = Customer
         fields = ['Name', 'gender', 'phone_number', 'address', 'Email', 'Password']
     
-    def clean_phone_number(self):  # Changed from clean_contact_number to match field name
-        phone_number = self.cleaned_data.get('phone_number')
-        if not re.match(r'^(?:\+966|05)\d{8}$', phone_number):
+    def clean_contact_number(self):
+        contact_number = self.cleaned_data.get('phone_number')
+        if not re.match(r'^(?:\+966|05)\d{8}$', contact_number):
             raise ValidationError('Invalid phone number format for Saudi Arabia')
-        return phone_number
+        return contact_number
     
     def save(self, commit=True):
         customer = super(CustomerForm, self).save(commit=False)
@@ -27,7 +27,7 @@ class CompanyForm(forms.ModelForm):
         model = Company
         fields = ['Company_name', 'Contact_number', 'Email', 'location', 'Password']
     
-    def clean_Contact_number(self):  # Changed from clean_contact_number to match field name (case matters!)
+    def clean_contact_number(self):
         contact_number = self.cleaned_data.get('Contact_number')
         if not re.match(r'^(?:\+966|05)\d{8}$', contact_number):
             raise ValidationError('Invalid phone number format for Saudi Arabia')
