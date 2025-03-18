@@ -57,9 +57,11 @@ class AuthClient {
       if (accountType === 'company') {
         endpoint += 'company_login/';
       } else if (accountType === 'customer') {
-        endpoint += 'customer_login/'; // You'll need to implement this endpoint
-      } else if (accountType === 'admin' || accountType === 'employee') {
-        endpoint += 'employee_login/'; // You'll need to implement this endpoint
+        endpoint += 'customer_login/'; 
+      } else if (accountType === 'admin') {
+        endpoint += 'admin_login/';
+      } else if (accountType === 'employee') {
+        endpoint += 'employee_login/';
       }
 
       const response = await fetch(endpoint, {
@@ -76,15 +78,15 @@ class AuthClient {
       const data = await response.json();
       
       if (!response.ok) {
-        return { userType: null, error: data.error || 'Authentication failed' };
+        return { error: data.error || 'Authentication failed' };
       }
       
       // Store authentication token
       if (data.token) {
-        localStorage.setItem('custom-auth-token', data.token);
+        localStorage.setItem('auth-token', data.token);
       }
       
-      // Store user information
+      // Determine user role from response
       const userRole = data.role || accountType;
       localStorage.setItem('user-type', userRole);
       localStorage.setItem('user-id', data.id?.toString() || '');
@@ -101,15 +103,7 @@ class AuthClient {
       return { userType: userRole, error: null };
     } catch (error) {
       console.error('Authentication error:', error);
-      
-      // Fall back to mock authentication for development (optional)
-      // You can remove this if you want to use only your Django backend
-      const mockUserType = this.mockAuthentication(email, password);
-      if (mockUserType) {
-        return { userType: mockUserType, error: null };
-      }
-      
-      return { userType: null, error: 'Connection error' };
+      return { error: 'Connection error. Please try again later.' };
     }
   }
 
@@ -152,15 +146,36 @@ class AuthClient {
   }
 
   async getUser(): Promise<{ data?: User | null; error?: string }> {
-    const token = localStorage.getItem('custom-auth-token');
+    // Change this line to check for auth-token instead of custom-auth-token
+    const token = localStorage.getItem('auth-token');
     if (!token) {
       return { data: null };
     }
-    return { data: user };
+    
+    // Get user information from localStorage
+    const userType = localStorage.getItem('user-type');
+    const userId = localStorage.getItem('user-id');
+    
+    // Create a user object with data from localStorage
+    const userData = {
+      id: userId || 'USR-000',
+      userType: userType || 'guest',
+      // Include other user fields as needed
+      ...user // Keep the default avatar, etc.
+    };
+    
+    return { data: userData };
   }
 
   async signOut(): Promise<{ error?: string }> {
-    localStorage.removeItem('custom-auth-token');
+    // Make sure to clear all auth related items
+    localStorage.removeItem('auth-token');
+    localStorage.removeItem('user-type');
+    localStorage.removeItem('user-id');
+    localStorage.removeItem('company-id');
+    localStorage.removeItem('company-name');
+    localStorage.removeItem('customer-id');
+    localStorage.removeItem('customer-name');
     return {};
   }
 }

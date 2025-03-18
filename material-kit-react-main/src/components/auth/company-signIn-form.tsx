@@ -51,57 +51,21 @@ export function CompanySignInForm(): React.JSX.Element {
       setIsPending(true);
 
       try {
-        console.log('Attempting company login with:', values.email);
-        
-        const response = await fetch('http://localhost:8000/api/company_login/', {
-          method: 'POST',
-          headers: {
-            'Content-Type': 'application/json',
-          },
-          body: JSON.stringify({
-            Email: values.email,
-            Password: values.password
-          }),
+        const { userType, error } = await authClient.signInWithPassword({
+          ...values,
+          accountType: 'company'
         });
         
-        const data = await response.json();
-        console.log('Login response:', response.status, data);
-        
-        if (!response.ok) {
-          throw new Error(data.error || 'Invalid credentials');
+        if (error) {
+          throw new Error(error);
         }
-        
-        // Store authentication token if provided
-        if (data.token) {
-          localStorage.setItem('auth-token', data.token);
-        }
-        
-        // Check if this is an admin/employee account or company account
-        const userRole = data.role || 'company';
-        localStorage.setItem('user-type', userRole);
-        localStorage.setItem('company-id', data.id.toString());
-        localStorage.setItem('company-name', data.Company_name || '');
         
         await checkSession?.();
-        setUserType(userRole);
+        setUserType(userType);
         
-        // Debugging information
-        console.log("Paths object:", paths);
-        console.log("Admin overview path:", paths.dashboardAdmin?.overview);
-        console.log("Company overview path:", paths.dashboardCompany?.overview);
-        
-        // Direct user to appropriate dashboard based on role with fallbacks
-        if (userRole === 'admin' || userRole === 'employee') {
-          // Try the path, or use hardcoded fallback
-          const adminPath = paths.dashboardAdmin?.overview || '/dashboard-admin';
-          console.log("Navigating to admin path:", adminPath);
-          router.push(adminPath);
-        } else {
-          // Try the path, or use hardcoded fallback
-          const companyPath = paths.dashboardCompany?.overview || '/dashboard-admin';
-          console.log("Navigating to company path:", companyPath);
-          router.push(companyPath);
-        }
+        // Fix: All company, admin, and employee users should use dashboardAdmin paths
+        // There is no dashboardCompany path in the paths.ts file
+        router.push(paths.dashboardAdmin.overview);
       } catch (error) {
         console.error('Login error:', error);
         
@@ -111,8 +75,6 @@ export function CompanySignInForm(): React.JSX.Element {
           message: error instanceof Error ? error.message : 'Authentication failed' 
         });
         setIsPending(false);
-        
-        // REMOVE THE FALLBACK MOCK AUTHENTICATION CODE
       }
     },
     [checkSession, router, setError, setUserType]

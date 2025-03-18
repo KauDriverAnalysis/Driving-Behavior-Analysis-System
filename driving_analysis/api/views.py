@@ -65,12 +65,41 @@ def customer_list(request):
     return render(request, 'customer_list.html', {'customers': customers})
 
 # customer views
+@csrf_exempt
 def create_customer(request):
     if request.method == 'POST':
-        form = CustomerForm(request.POST)
-        if form.is_valid():
-            form.save()
-            return redirect('customer_list')
+        try:
+            # Check if this is a JSON request from the React app
+            if request.content_type == 'application/json':
+                # Parse JSON data from request body
+                data = json.loads(request.body)
+                print(f"Received customer data: {data}")  # Debug print
+                
+                # Ensure gender is lowercase
+                if 'gender' in data:
+                    data['gender'] = data['gender'].lower()
+                
+                # Create form with JSON data
+                form = CustomerForm(data)
+                if form.is_valid():
+                    customer = form.save()
+                    return JsonResponse({
+                        'success': True, 
+                        'id': customer.id,
+                        'message': 'Customer created successfully'
+                    }, status=201)
+                else:
+                    print(f"Form validation errors: {form.errors}")
+                    return JsonResponse({'errors': form.errors}, status=400)
+            else:
+                # Handle traditional form submission
+                form = CustomerForm(request.POST)
+                if form.is_valid():
+                    form.save()
+                    return redirect('customer_list')
+        except Exception as e:
+            print(f"Error creating customer: {str(e)}")
+            return JsonResponse({'errors': {'server': str(e)}}, status=500)
     else:
         form = CustomerForm()
     return render(request, 'create_customer.html', {'form': form})
@@ -648,6 +677,43 @@ def company_login(request):
             return JsonResponse({'error': 'Invalid credentials'}, status=401)
             
         except Exception as e:
+            return JsonResponse({'error': str(e)}, status=500)
+    
+    return JsonResponse({'error': 'Method not allowed'}, status=405)
+
+@csrf_exempt
+def customer_login(request):
+    if request.method == 'POST':
+        try:
+            data = json.loads(request.body)
+            email = data.get('Email')
+            password = data.get('Password')
+            
+            print(f"Customer login attempt for email: {email}")  # Debug print
+            
+            try:
+                customer = Customer.objects.get(Email=email)
+                print(f"Customer found: {customer.Name}")  # Debug print
+                
+                # Check password using Django's check_password function
+                # We also do direct comparison as fallback during development
+                if check_password(password, customer.Password) or password == customer.Password:
+                    # Create a simple authentication token
+                    token = f"{customer.id}_{int(time.time())}"
+                    
+                    return JsonResponse({
+                        'success': True,
+                        'token': token,
+                        'id': customer.id,
+                        'Name': customer.Name,
+                        'role': 'customer'
+                    }, status=200)
+                else:
+                    return JsonResponse({'error': 'Invalid credentials'}, status=401)
+            except Customer.DoesNotExist:
+                return JsonResponse({'error': 'Invalid email or password'}, status=401)
+        except Exception as e:
+            print(f"Exception in customer_login: {str(e)}")
             return JsonResponse({'error': str(e)}, status=500)
     
     return JsonResponse({'error': 'Method not allowed'}, status=405)

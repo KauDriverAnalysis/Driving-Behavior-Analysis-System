@@ -50,26 +50,38 @@ export function CustomerSignInForm(): React.JSX.Element {
     async (values: Values): Promise<void> => {
       setIsPending(true);
 
-      const { userType, error } = await authClient.signInWithPassword({
-        ...values,
-        accountType: 'customer'  // Hardcoded for customer form
-      });
+      try {
+        console.log('Attempting customer login with:', values.email);
+        
+        const { userType, error } = await authClient.signInWithPassword({
+          ...values,
+          accountType: 'customer'
+        });
 
-      if (error) {
-        setError('root', { type: 'server', message: error });
-        setIsPending(false);
-        return;
-      }
+        if (error) {
+          setError('root', { type: 'server', message: error });
+          setIsPending(false);
+          return;
+        }
 
-      await checkSession?.();
-      
-      // Store the user type
-      setUserType(userType);
+        await checkSession?.();
+        setUserType(userType);
 
-      if (userType === 'customer') {
-        router.push(paths.dashboardCustomer.overview);
-      } else {
-        setError('root', { type: 'server', message: 'Invalid account type. Please use the correct form.' });
+        if (userType === 'customer') {
+          router.push(paths.dashboardCustomer.overview);
+        } else {
+          setError('root', { 
+            type: 'server', 
+            message: 'Invalid account type. Please use the correct form.' 
+          });
+          setIsPending(false);
+        }
+      } catch (error) {
+        console.error('Login error:', error);
+        setError('root', { 
+          type: 'server', 
+          message: error instanceof Error ? error.message : 'Authentication failed' 
+        });
         setIsPending(false);
       }
     },

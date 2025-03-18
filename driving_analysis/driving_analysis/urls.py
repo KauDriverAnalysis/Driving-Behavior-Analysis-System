@@ -48,4 +48,8 @@ urlpatterns = [
     path('api/delete_driver/<int:driver_id>/', views.delete_driver, name='delete_driver'),
     path('api/create_company/', views.create_company, name='create_company'),  
     path('api/company_login/', views.company_login, name='company_login'),
+    path('api/create_customer/', views.create_customer, name='api_create_customer'),
+    path('api/customer_login/', views.customer_login, name='customer_login'),
+
+    
 ]
