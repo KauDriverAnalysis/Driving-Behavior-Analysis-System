@@ -3,6 +3,36 @@ from .models import Customer, Company, Car, Driver, DrivingData, Employee
 from django.contrib.auth.hashers import make_password
 import re
 from django.core.exceptions import ValidationError
+from django.db.models import Q
+from functools import reduce
+import operator
+
+def check_email_uniqueness(email, exclude_model=None, exclude_id=None):
+    """
+    Check if email is unique across all user models.
+    
+    Args:
+        email: The email to check
+        exclude_model: Optional model class to exclude from check (for updates)
+        exclude_id: Optional ID to exclude from check (for updates)
+    
+    Returns:
+        True if email is unique across all models, False otherwise
+    """
+    models_to_check = [Customer, Company, Employee]
+    
+    # Check each model for the email
+    for model in models_to_check:
+        query = Q(Email__iexact=email)  # Case-insensitive comparison
+        
+        # Exclude the current instance if updating
+        if exclude_model == model and exclude_id:
+            query &= ~Q(id=exclude_id)
+            
+        if model.objects.filter(query).exists():
+            return False
+            
+    return True
 
 class CustomerForm(forms.ModelForm):
     class Meta:

@@ -164,15 +164,7 @@ export function CompanySignInForm(): React.JSX.Element {
       </form>
 
       <Box sx={{ mt: 3, textAlign: 'center' }}>
-        <Alert severity="info" sx={{ display: 'inline-flex', textAlign: 'left' }}>
-          <Box>
-            <Typography variant="subtitle2" sx={{ mb: 0.5 }}>Demo Account:</Typography>
-            <Box component="div" sx={{ m: 0 }}>
-              <b>Email:</b> company@example.com<br />
-              <b>Password:</b> CompanySecret
-            </Box>
-          </Box>
-        </Alert>
+        
       </Box>
     </Box>
   );

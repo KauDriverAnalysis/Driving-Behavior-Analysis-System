@@ -808,38 +808,97 @@ def update_password(request):
             email = data.get('email')
             token = data.get('token')
             new_password = data.get('new_password')
+            user_type_from_request = data.get('userType', '(not provided)')
             
             if not all([email, token, new_password]):
                 return JsonResponse({'error': 'Missing required fields'}, status=400)
             
-            print(f"Processing password update for email: {email}")
+            print(f"=== PASSWORD RESET DEBUG ===")
+            print(f"Email: {email}")
+            print(f"New password (plaintext): {new_password}")
+            print(f"Token: {token[:10]}...")
+            print(f"Requested user type: {user_type_from_request}")
             
             # Find user by email and token
             user = None
             user_type = None
             
-            # Try to find the user
-            try:
-                user = Customer.objects.get(Email=email, reset_token=token)
-                user_type = 'customer'
-            except Customer.DoesNotExist:
-                try:
-                    user = Company.objects.get(Email=email, reset_token=token)
-                    user_type = 'company'
-                except Company.DoesNotExist:
+            # Try to find the user - prioritize the user type if provided
+            if user_type_from_request:
+                if user_type_from_request == 'customer':
+                    try:
+                        user = Customer.objects.get(Email=email, reset_token=token)
+                        user_type = 'customer'
+                        print(f"Found customer account (ID: {user.id}) with matching token")
+                    except Customer.DoesNotExist:
+                        print(f"No customer found with email {email} and token")
+                elif user_type_from_request == 'company':
+                    try:
+                        user = Company.objects.get(Email=email, reset_token=token)
+                        user_type = 'company'
+                        print(f"Found company account (ID: {user.id}) with matching token")
+                    except Company.DoesNotExist:
+                        print(f"No company found with email {email} and token")
+                elif user_type_from_request == 'employee':
                     try:
                         user = Employee.objects.get(Email=email, reset_token=token)
                         user_type = 'employee'
+                        print(f"Found employee account (ID: {user.id}) with matching token")
                     except Employee.DoesNotExist:
-                        return JsonResponse({'error': 'Invalid or expired reset token'}, status=400)
+                        print(f"No employee found with email {email} and token")
+            
+            # If no specific user type or not found with that type, try all
+            if not user:
+                print("Falling back to checking all account types...")
+                try:
+                    user = Customer.objects.get(Email=email, reset_token=token)
+                    user_type = 'customer'
+                    print(f"Found customer account (ID: {user.id}) with matching token")
+                except Customer.DoesNotExist:
+                    try:
+                        user = Company.objects.get(Email=email, reset_token=token)
+                        user_type = 'company'
+                        print(f"Found company account (ID: {user.id}) with matching token")
+                    except Company.DoesNotExist:
+                        try:
+                            user = Employee.objects.get(Email=email, reset_token=token)
+                            user_type = 'employee'
+                            print(f"Found employee account (ID: {user.id}) with matching token")
+                        except Employee.DoesNotExist:
+                            return JsonResponse({'error': 'Invalid or expired reset token'}, status=400)
             
             # Check if token is expired
             if hasattr(user, 'reset_token_expires') and user.reset_token_expires and user.reset_token_expires < timezone.now():
                 return JsonResponse({'error': 'Reset token has expired'}, status=400)
             
+            # Get current password
+            current_password_hash = user.Password
+            print(f"Current password hash: {current_password_hash[:20]}...")
+            
+            # Look for existing plain text password
+            try:
+                # This is extremely insecure and for debugging only
+                found_users = []
+                for test_pass in ["password", "123456", "admin", "Abdullah", "password123", "secret", "qwerty"]:
+                    if check_password(test_pass, current_password_hash):
+                        print(f"FOUND OLD PASSWORD: '{test_pass}'")
+                        found_users.append(test_pass)
+                
+                if not found_users:
+                    print("Could not determine old password in plaintext")
+            except Exception as e:
+                print(f"Error during password check: {str(e)}")
+            
+            # Check if new password is the same as old password
+            if check_password(new_password, current_password_hash) or new_password == getattr(user, 'Password', None):
+                return JsonResponse({
+                    'error': 'New password cannot be the same as your current password. Please choose a different password.'
+                }, status=400)
+                
             # Create new hashed password
             hashed_password = make_password(new_password)
-            print(f"New password hash to be set: {hashed_password[:20]}...")
+            print(f"New password hash: {hashed_password[:20]}...")
+            print(f"New plaintext password: {new_password}")
             
             # Update password using just one approach - filter().update()
             if user_type == 'customer':
@@ -848,18 +907,21 @@ def update_password(request):
                     reset_token=None,
                     reset_token_expires=None
                 )
+                print(f"Updated password for customer ID {user.id}")
             elif user_type == 'company':
                 Company.objects.filter(id=user.id).update(
                     Password=hashed_password,
                     reset_token=None,
                     reset_token_expires=None
                 )
+                print(f"Updated password for company ID {user.id}")
             elif user_type == 'employee':
                 Employee.objects.filter(id=user.id).update(
                     Password=hashed_password,
                     reset_token=None,
                     reset_token_expires=None
                 )
+                print(f"Updated password for employee ID {user.id}")
             
             # Verify the change
             updated_user = None
@@ -870,13 +932,17 @@ def update_password(request):
             elif user_type == 'employee':
                 updated_user = Employee.objects.get(id=user.id)
                 
-            print(f"After password update - New password hash: {updated_user.Password[:20]}...")
+            print(f"After update - New password hash: {updated_user.Password[:20]}...")
+            print(f"Testing if new password works: {check_password(new_password, updated_user.Password)}")
+            print(f"=== END DEBUG ===")
             
-            print(f"Password updated successfully for {email}")
+            print(f"Password updated successfully for {email} ({user_type} account)")
             
             return JsonResponse({
                 'success': True,
-                'message': 'Password updated successfully'
+                'message': 'Password updated successfully',
+                'user_type': user_type,
+                'account_id': user.id
             })
             
         except Exception as e:
