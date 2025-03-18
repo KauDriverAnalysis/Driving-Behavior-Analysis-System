@@ -29,6 +29,7 @@ export interface SignInWithOAuthParams {
 export interface SignInWithPasswordParams {
   email: string;
   password: string;
+  accountType?: string;
 }
 
 export interface ResetPasswordParams {
@@ -47,8 +48,73 @@ class AuthClient {
   }
 
   async signInWithPassword(params: SignInWithPasswordParams): Promise<{ userType?: string; error?: string }> {
-    const { email, password } = params;
+    const { email, password, accountType = 'customer' } = params;
 
+    try {
+      // Determine which API endpoint to use based on accountType
+      let endpoint = 'http://localhost:8000/api/';
+      
+      if (accountType === 'company') {
+        endpoint += 'company_login/';
+      } else if (accountType === 'customer') {
+        endpoint += 'customer_login/'; // You'll need to implement this endpoint
+      } else if (accountType === 'admin' || accountType === 'employee') {
+        endpoint += 'employee_login/'; // You'll need to implement this endpoint
+      }
+
+      const response = await fetch(endpoint, {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+        },
+        body: JSON.stringify({
+          Email: email,
+          Password: password
+        }),
+      });
+
+      const data = await response.json();
+      
+      if (!response.ok) {
+        return { userType: null, error: data.error || 'Authentication failed' };
+      }
+      
+      // Store authentication token
+      if (data.token) {
+        localStorage.setItem('custom-auth-token', data.token);
+      }
+      
+      // Store user information
+      const userRole = data.role || accountType;
+      localStorage.setItem('user-type', userRole);
+      localStorage.setItem('user-id', data.id?.toString() || '');
+      
+      // Store additional info based on account type
+      if (accountType === 'company') {
+        localStorage.setItem('company-id', data.id?.toString() || '');
+        localStorage.setItem('company-name', data.Company_name || '');
+      } else if (accountType === 'customer') {
+        localStorage.setItem('customer-id', data.id?.toString() || '');
+        localStorage.setItem('customer-name', data.Name || '');
+      }
+      
+      return { userType: userRole, error: null };
+    } catch (error) {
+      console.error('Authentication error:', error);
+      
+      // Fall back to mock authentication for development (optional)
+      // You can remove this if you want to use only your Django backend
+      const mockUserType = this.mockAuthentication(email, password);
+      if (mockUserType) {
+        return { userType: mockUserType, error: null };
+      }
+      
+      return { userType: null, error: 'Connection error' };
+    }
+  }
+
+  // Helper method for mock authentication (for development, can be removed later)
+  private mockAuthentication(email: string, password: string): string | null {
     const adminEmail = 'admin@example.com';
     const adminPassword = 'AdminSecret';
     const customerEmail = 'customer@example.com';
@@ -59,43 +125,22 @@ class AuthClient {
     if (email === adminEmail && password === adminPassword) {
       const token = generateToken();
       localStorage.setItem('custom-auth-token', token);
-      const userData = {
-        id: 'admin-id',
-        name: 'Admin User',
-        email: adminEmail,
-        role: 'admin', // Ensure this is set correctly
-        // other user data
-      };
-      return { userType: 'admin', error: null };
+      return 'admin';
     }
 
     if (email === customerEmail && password === customerPassword) {
       const token = generateToken();
       localStorage.setItem('custom-auth-token', token);
-      const userData = {
-        id: 'customer-id',
-        name: 'Customer User',
-        email: customerEmail,
-        role: 'customer', // Ensure this is set correctly
-        // other user data
-      };
-      return { userType: 'customer', error: null };
+      return 'customer';
     }
 
     if (email === employeeEmail && password === employeePassword) {
       const token = generateToken();
       localStorage.setItem('custom-auth-token', token);
-      const userData = {
-        id: 'employee-id',
-        name: 'Employee User',
-        email: employeeEmail,
-        role: 'employee', // Ensure this is set correctly
-        // other user data
-      };
-      return { userType: 'employee', error: null };
+      return 'employee';
     }
 
-    return { userType: null, error: 'Invalid email or password' };
+    return null;
   }
 
   async resetPassword(_: ResetPasswordParams): Promise<{ error?: string }> {

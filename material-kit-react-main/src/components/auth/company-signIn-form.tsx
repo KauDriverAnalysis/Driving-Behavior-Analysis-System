@@ -50,29 +50,69 @@ export function CompanySignInForm(): React.JSX.Element {
     async (values: Values): Promise<void> => {
       setIsPending(true);
 
-      const { userType, error } = await authClient.signInWithPassword({
-        ...values,
-        accountType: 'company'  // Always use 'company' for the accountType
-      });
-
-      if (error) {
-        setError('root', { type: 'server', message: error });
+      try {
+        console.log('Attempting company login with:', values.email);
+        
+        const response = await fetch('http://localhost:8000/api/company_login/', {
+          method: 'POST',
+          headers: {
+            'Content-Type': 'application/json',
+          },
+          body: JSON.stringify({
+            Email: values.email,
+            Password: values.password
+          }),
+        });
+        
+        const data = await response.json();
+        console.log('Login response:', response.status, data);
+        
+        if (!response.ok) {
+          throw new Error(data.error || 'Invalid credentials');
+        }
+        
+        // Store authentication token if provided
+        if (data.token) {
+          localStorage.setItem('auth-token', data.token);
+        }
+        
+        // Check if this is an admin/employee account or company account
+        const userRole = data.role || 'company';
+        localStorage.setItem('user-type', userRole);
+        localStorage.setItem('company-id', data.id.toString());
+        localStorage.setItem('company-name', data.Company_name || '');
+        
+        await checkSession?.();
+        setUserType(userRole);
+        
+        // Debugging information
+        console.log("Paths object:", paths);
+        console.log("Admin overview path:", paths.dashboardAdmin?.overview);
+        console.log("Company overview path:", paths.dashboardCompany?.overview);
+        
+        // Direct user to appropriate dashboard based on role with fallbacks
+        if (userRole === 'admin' || userRole === 'employee') {
+          // Try the path, or use hardcoded fallback
+          const adminPath = paths.dashboardAdmin?.overview || '/dashboard-admin';
+          console.log("Navigating to admin path:", adminPath);
+          router.push(adminPath);
+        } else {
+          // Try the path, or use hardcoded fallback
+          const companyPath = paths.dashboardCompany?.overview || '/dashboard-admin';
+          console.log("Navigating to company path:", companyPath);
+          router.push(companyPath);
+        }
+      } catch (error) {
+        console.error('Login error:', error);
+        
+        // Display error to user
+        setError('root', { 
+          type: 'server', 
+          message: error instanceof Error ? error.message : 'Authentication failed' 
+        });
         setIsPending(false);
-        return;
-      }
-
-      await checkSession?.();
-      
-      // Store the user type
-      setUserType(userType);
-
-      if (userType === 'company') {
-        router.push(paths.dashboardCompany.overview);
-      } else if (userType === 'admin' || userType === 'employee') {
-        router.push(paths.dashboardAdmin.overview);
-      } else {
-        setError('root', { type: 'server', message: 'Invalid account type. Please use the correct form.' });
-        setIsPending(false);
+        
+        // REMOVE THE FALLBACK MOCK AUTHENTICATION CODE
       }
     },
     [checkSession, router, setError, setUserType]

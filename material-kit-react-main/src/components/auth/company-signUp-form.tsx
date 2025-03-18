@@ -81,11 +81,22 @@ export function CompanySignUpForm(): React.JSX.Element {
           }),
         });
 
+        const data = await response.json();
+        
         if (!response.ok) {
-          const errorData = await response.json();
-          throw new Error(errorData.errors || 'Failed to register');
+          // Handle validation errors more specifically
+          if (data.errors) {
+            // Display specific field errors if available
+            const errorMessage = Object.entries(data.errors)
+              .map(([field, errors]) => `${field}: ${errors}`)
+              .join('\n');
+            throw new Error(errorMessage || 'Validation failed');
+          }
+          throw new Error(data.error || 'Failed to register');
         }
 
+        // Add success message before redirect
+        console.log('Registration successful:', data.message);
         router.push(paths.auth.signIn);
       } catch (error) {
         companyForm.setError('root', { 

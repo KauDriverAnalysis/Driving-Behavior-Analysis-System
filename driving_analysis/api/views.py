@@ -11,6 +11,8 @@ from django.views.decorators.csrf import ensure_csrf_cookie
 from django.views.decorators.http import require_http_methods
 from django.views.decorators.csrf import csrf_exempt
 import json
+import time  # Add this import for time.time()
+from django.contrib.auth.hashers import check_password  # Add this for password checking
 
 def driver_map(request):
     latest_location = cache.get('latest_location')
@@ -92,15 +94,31 @@ def delete_customer(request, customer_id):
     return render(request, 'delete_customer.html', {'customer': customer})
 
 # Company views
+@csrf_exempt
 def create_company(request):
     if request.method == 'POST':
-        form = CompanyForm(request.POST)
-        if form.is_valid():
-            form.save()
-            return JsonResponse({'message': 'Company created successfully'}, status=201)
-    else:
-        form = CompanyForm()
-    return JsonResponse({'errors': form.errors}, status=400)
+        try:
+            # Parse JSON data from request body
+            data = json.loads(request.body)
+            print(f"Received company data: {data}")  # Debug print
+            
+            # Create form with JSON data
+            form = CompanyForm(data)
+            if form.is_valid():
+                company = form.save()
+                return JsonResponse({
+                    'success': True, 
+                    'id': company.id,
+                    'message': 'Company created successfully'
+                }, status=201)
+            else:
+                print(f"Form validation errors: {form.errors}")
+                return JsonResponse({'errors': form.errors}, status=400)
+        except Exception as e:
+            print(f"Error creating company: {str(e)}")
+            return JsonResponse({'errors': {'server': str(e)}}, status=500)
+    
+    return JsonResponse({'error': 'Method not allowed'}, status=405)
 
 def update_company(request, company_id):
     company = get_object_or_404(Company, pk=company_id)
@@ -582,3 +600,54 @@ def get_car_driving_data(request, car_id):
             })
     except Exception as e:
         return JsonResponse({'error': str(e)}, status=500)        # In api/views.py
+
+@csrf_exempt
+def company_login(request):
+    if request.method == 'POST':
+        try:
+            data = json.loads(request.body)
+            email = data.get('Email')
+            password = data.get('Password')
+            
+            # First check if this is an admin/employee
+            try:
+                employee = Employee.objects.get(Email=email)
+                # Check password
+                if check_password(password, employee.Password) or password == employee.Password:  # Check both hashed and plain for development
+                    # Determine if this is an admin
+                    is_admin = employee.Admin  # Assuming you have this field
+                    role = "admin" if is_admin else "employee"
+                    
+                    token = f"{employee.id}_{int(time.time())}"
+                    
+                    return JsonResponse({
+                        'success': True,
+                        'token': token,
+                        'id': employee.id,
+                        'name': employee.Name,
+                        'role': role
+                    }, status=200)
+            except Employee.DoesNotExist:
+                # Not an employee, check if it's a company
+                try:
+                    company = Company.objects.get(Email=email)
+                    # Check password
+                    if check_password(password, company.Password) or password == company.Password:  # Check both for development
+                        token = f"{company.id}_{int(time.time())}"
+                        
+                        return JsonResponse({
+                            'success': True,
+                            'token': token,
+                            'id': company.id,
+                            'Company_name': company.Company_name,
+                            'role': 'company'
+                        }, status=200)
+                except Company.DoesNotExist:
+                    return JsonResponse({'error': 'Invalid credentials'}, status=401)
+            
+            return JsonResponse({'error': 'Invalid credentials'}, status=401)
+            
+        except Exception as e:
+            return JsonResponse({'error': str(e)}, status=500)
+    
+    return JsonResponse({'error': 'Method not allowed'}, status=405)

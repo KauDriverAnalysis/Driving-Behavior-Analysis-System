@@ -46,4 +46,6 @@ urlpatterns = [
     path('api/delete_car/<int:car_id>/', views.delete_car, name='delete_car'),
     path('api/update_driver/<int:driver_id>/', views.update_driver, name='update_driver'),
     path('api/delete_driver/<int:driver_id>/', views.delete_driver, name='delete_driver'),
+    path('api/create_company/', views.create_company, name='create_company'),  
+    path('api/company_login/', views.company_login, name='company_login'),
 ]
