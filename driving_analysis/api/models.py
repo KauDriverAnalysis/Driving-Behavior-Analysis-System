@@ -10,6 +10,8 @@ class Customer(models.Model):
     address = models.CharField(max_length=255, blank=True, null=True)
     Email = models.EmailField(unique=True)
     Password = models.CharField(max_length=255)
+    reset_token = models.CharField(max_length=100, null=True, blank=True)
+    reset_token_expires = models.DateTimeField(null=True, blank=True)
 
 class Company(models.Model):
     Company_name = models.CharField(max_length=255)
@@ -17,6 +19,8 @@ class Company(models.Model):
     Email = models.EmailField(unique=True)
     location = models.CharField(max_length=255)
     Password = models.CharField(max_length=255)
+    reset_token = models.CharField(max_length=100, null=True, blank=True)
+    reset_token_expires = models.DateTimeField(null=True, blank=True)
 
 class Car(models.Model):
     Model_of_car = models.CharField(max_length=255, default='Unknown Model')
@@ -56,6 +60,8 @@ class Employee(models.Model):
     Email = models.EmailField(unique=True)
     Password = models.CharField(max_length=255)
     Admin = models.BooleanField(default=False)  # `New Admin field``
+    reset_token = models.CharField(max_length=100, null=True, blank=True)
+    reset_token_expires = models.DateTimeField(null=True, blank=True)
 
     def save(self, *args, **kwargs):
         if not Employee.objects.exists():  # If no employee exists, set the first user as Admin

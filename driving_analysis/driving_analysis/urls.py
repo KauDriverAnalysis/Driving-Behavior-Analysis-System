@@ -50,6 +50,8 @@ urlpatterns = [
     path('api/company_login/', views.company_login, name='company_login'),
     path('api/create_customer/', views.create_customer, name='api_create_customer'),
     path('api/customer_login/', views.customer_login, name='customer_login'),
+    path('api/reset_password/', views.reset_password, name='reset_password'),
+    path('api/update_password/', views.update_password, name='update_password'),
 
     
 ]

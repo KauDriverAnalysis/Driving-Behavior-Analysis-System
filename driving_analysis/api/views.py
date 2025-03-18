@@ -13,6 +13,12 @@ from django.views.decorators.csrf import csrf_exempt
 import json
 import time  # Add this import for time.time()
 from django.contrib.auth.hashers import check_password  # Add this for password checking
+from django.contrib.auth.hashers import make_password
+from django.utils import timezone
+import uuid
+from datetime import timedelta
+from django.core.mail import send_mail
+from django.conf import settings
 
 def driver_map(request):
     latest_location = cache.get('latest_location')
@@ -717,3 +723,165 @@ def customer_login(request):
             return JsonResponse({'error': str(e)}, status=500)
     
     return JsonResponse({'error': 'Method not allowed'}, status=405)
+@csrf_exempt
+def reset_password(request):
+    if request.method == 'POST':
+        try:
+            data = json.loads(request.body)
+            email = data.get('email')
+            
+            if not email:
+                return JsonResponse({'error': 'Email is required'}, status=400)
+                
+            print(f"Processing password reset for email: {email}")
+            
+            # Find user by email (checking all user types)
+            user = None
+            user_type = None
+            
+            try:
+                user = Customer.objects.get(Email=email)
+                user_type = 'customer'
+            except Customer.DoesNotExist:
+                try:
+                    user = Company.objects.get(Email=email)
+                    user_type = 'company'
+                except Company.DoesNotExist:
+                    try:
+                        user = Employee.objects.get(Email=email)
+                        user_type = 'employee'
+                    except Employee.DoesNotExist:
+                        return JsonResponse({'error': 'No account found with that email'}, status=404)
+            
+            # Generate reset token and store it
+            reset_token = str(uuid.uuid4())
+            reset_token_expires = timezone.now() + timedelta(hours=24)
+            
+            # Update user with reset token
+            if user_type == 'customer':
+                user.reset_token = reset_token
+                user.reset_token_expires = reset_token_expires
+            elif user_type == 'company':
+                user.reset_token = reset_token
+                user.reset_token_expires = reset_token_expires
+            elif user_type == 'employee':
+                user.reset_token = reset_token
+                user.reset_token_expires = reset_token_expires
+                
+            user.save()
+            
+            # Create reset URL for frontend
+            reset_url = f"http://localhost:3000/auth/reset-password/confirm?token={reset_token}&email={email}"
+            
+            try:
+                # Send email with reset link
+                send_mail(
+                    'Password Reset Request',
+                    f'Please click the following link to reset your password: {reset_url}',
+                    settings.DEFAULT_FROM_EMAIL,
+                    [email],
+                    fail_silently=False,
+                )
+                print(f"Reset email sent to {email} with token {reset_token}")
+            except Exception as email_error:
+                print(f"Warning: Could not send email: {str(email_error)}")
+                # For development, we'll still return success and print the URL to console
+                print(f"Reset URL: {reset_url}")
+            
+            return JsonResponse({
+                'success': True,
+                'message': f'Password reset email sent for your {user_type} account with ID {user.id}',
+                'user_type': user_type,
+                'account_id': user.id  # Add this for clarity
+            })
+            
+        except Exception as e:
+            print(f"Error in reset_password: {str(e)}")
+            return JsonResponse({'error': str(e)}, status=500)
+    
+    return JsonResponse({'error': 'Method not allowed'}, status=405)
+@csrf_exempt
+def update_password(request):
+    if request.method == 'POST':
+        try:
+            data = json.loads(request.body)
+            email = data.get('email')
+            token = data.get('token')
+            new_password = data.get('new_password')
+            
+            if not all([email, token, new_password]):
+                return JsonResponse({'error': 'Missing required fields'}, status=400)
+            
+            print(f"Processing password update for email: {email}")
+            
+            # Find user by email and token
+            user = None
+            user_type = None
+            
+            # Try to find the user
+            try:
+                user = Customer.objects.get(Email=email, reset_token=token)
+                user_type = 'customer'
+            except Customer.DoesNotExist:
+                try:
+                    user = Company.objects.get(Email=email, reset_token=token)
+                    user_type = 'company'
+                except Company.DoesNotExist:
+                    try:
+                        user = Employee.objects.get(Email=email, reset_token=token)
+                        user_type = 'employee'
+                    except Employee.DoesNotExist:
+                        return JsonResponse({'error': 'Invalid or expired reset token'}, status=400)
+            
+            # Check if token is expired
+            if hasattr(user, 'reset_token_expires') and user.reset_token_expires and user.reset_token_expires < timezone.now():
+                return JsonResponse({'error': 'Reset token has expired'}, status=400)
+            
+            # Create new hashed password
+            hashed_password = make_password(new_password)
+            print(f"New password hash to be set: {hashed_password[:20]}...")
+            
+            # Update password using just one approach - filter().update()
+            if user_type == 'customer':
+                Customer.objects.filter(id=user.id).update(
+                    Password=hashed_password,
+                    reset_token=None,
+                    reset_token_expires=None
+                )
+            elif user_type == 'company':
+                Company.objects.filter(id=user.id).update(
+                    Password=hashed_password,
+                    reset_token=None,
+                    reset_token_expires=None
+                )
+            elif user_type == 'employee':
+                Employee.objects.filter(id=user.id).update(
+                    Password=hashed_password,
+                    reset_token=None,
+                    reset_token_expires=None
+                )
+            
+            # Verify the change
+            updated_user = None
+            if user_type == 'customer':
+                updated_user = Customer.objects.get(id=user.id)
+            elif user_type == 'company':
+                updated_user = Company.objects.get(id=user.id)
+            elif user_type == 'employee':
+                updated_user = Employee.objects.get(id=user.id)
+                
+            print(f"After password update - New password hash: {updated_user.Password[:20]}...")
+            
+            print(f"Password updated successfully for {email}")
+            
+            return JsonResponse({
+                'success': True,
+                'message': 'Password updated successfully'
+            })
+            
+        except Exception as e:
+            print(f"Error in update_password: {str(e)}")
+            return JsonResponse({'error': str(e)}, status=500)
+    
+    return JsonResponse({'error': 'Method not allowed'}, status=405)
+

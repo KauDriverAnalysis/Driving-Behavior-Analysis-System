@@ -1,5 +1,5 @@
 from django import forms
-from .models import Customer, Company, Car, Driver, DrivingData,Employee
+from .models import Customer, Company, Car, Driver, DrivingData, Employee
 from django.contrib.auth.hashers import make_password
 import re
 from django.core.exceptions import ValidationError
@@ -7,9 +7,14 @@ from django.core.exceptions import ValidationError
 class CustomerForm(forms.ModelForm):
     class Meta:
         model = Customer
-        fields = ['Name', 'gender', 'phone_number', 'address', 'Email', 'Password']
+        fields = ['Name', 'gender', 'phone_number', 'address', 'Email', 'Password', 'reset_token', 'reset_token_expires']
+        # Make token fields hidden by default since they're managed by the system
+        widgets = {
+            'reset_token': forms.HiddenInput(),
+            'reset_token_expires': forms.HiddenInput(),
+        }
     
-    def clean_phone_number(self):  # Changed from clean_contact_number to match field name
+    def clean_phone_number(self):
         phone_number = self.cleaned_data.get('phone_number')
         if not re.match(r'^(?:\+966|05)\d{8}$', phone_number):
             raise ValidationError('Invalid phone number format for Saudi Arabia')
@@ -25,9 +30,14 @@ class CustomerForm(forms.ModelForm):
 class CompanyForm(forms.ModelForm):
     class Meta:
         model = Company
-        fields = ['Company_name', 'Contact_number', 'Email', 'location', 'Password']
+        fields = ['Company_name', 'Contact_number', 'Email', 'location', 'Password', 'reset_token', 'reset_token_expires']
+        # Make token fields hidden by default
+        widgets = {
+            'reset_token': forms.HiddenInput(),
+            'reset_token_expires': forms.HiddenInput(),
+        }
     
-    def clean_Contact_number(self):  # Changed from clean_contact_number to match field name (case matters!)
+    def clean_Contact_number(self):
         contact_number = self.cleaned_data.get('Contact_number')
         if not re.match(r'^(?:\+966|05)\d{8}$', contact_number):
             raise ValidationError('Invalid phone number format for Saudi Arabia')
@@ -75,7 +85,12 @@ class DrivingDataForm(forms.ModelForm):
 class EmployeeForm(forms.ModelForm):
     class Meta:
         model = Employee
-        fields = ['Name', 'gender', 'phone_number', 'address', 'Email', 'Password', 'Admin']
+        fields = ['Name', 'gender', 'phone_number', 'address', 'Email', 'Password', 'Admin', 'reset_token', 'reset_token_expires']
+        # Make token fields hidden by default
+        widgets = {
+            'reset_token': forms.HiddenInput(),
+            'reset_token_expires': forms.HiddenInput(),
+        }
 
     def clean_phone_number(self):
         phone_number = self.cleaned_data.get('phone_number')

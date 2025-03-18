@@ -137,12 +137,68 @@ class AuthClient {
     return null;
   }
 
-  async resetPassword(_: ResetPasswordParams): Promise<{ error?: string }> {
-    return { error: 'Password reset not implemented' };
+  async resetPassword(params: ResetPasswordParams): Promise<{ error?: string; success?: boolean }> {
+    const { email } = params;
+    
+    try {
+      const response = await fetch('http://localhost:8000/api/reset_password/', {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+        },
+        // Change from 'email' to 'email' to match what the backend expects
+        body: JSON.stringify({ email }),
+      });
+  
+      const data = await response.json();
+      
+      if (!response.ok) {
+        return { error: data.error || 'Password reset request failed' };
+      }
+      
+      return { 
+        success: true
+      };
+    } catch (error) {
+      console.error('Password reset error:', error);
+      return { error: 'Connection error. Please try again later.' };
+    }
   }
 
-  async updatePassword(_: ResetPasswordParams): Promise<{ error?: string }> {
-    return { error: 'Update reset not implemented' };
+  
+  async updatePassword(params: UpdatePasswordParams): Promise<{ error?: string; success?: boolean }> {
+    const { email, token, newPassword } = params;
+    
+    try {
+      console.log(`Attempting to reset password for ${email} with token ${token.substring(0, 6)}...`);
+      
+      const response = await fetch('http://localhost:8000/api/update_password/', {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+        },
+        body: JSON.stringify({ 
+          email,
+          token,
+          new_password: newPassword
+        }),
+      });
+  
+      const data = await response.json();
+      
+      console.log('Password reset response:', response.status, data);
+      
+      if (!response.ok) {
+        return { error: data.error || 'Password update failed' };
+      }
+      
+      return { 
+        success: true
+      };
+    } catch (error) {
+      console.error('Password update error:', error);
+      return { error: 'Connection error. Please try again later.' };
+    }
   }
 
   async getUser(): Promise<{ data?: User | null; error?: string }> {
