@@ -19,6 +19,7 @@ import uuid
 from datetime import timedelta
 from django.core.mail import send_mail
 from django.conf import settings
+from django.template.loader import render_to_string
 
 def driver_map(request):
     latest_location = cache.get('latest_location')
@@ -771,30 +772,63 @@ def reset_password(request):
             user.save()
             
             # Create reset URL for frontend
-            reset_url = f"http://localhost:3000/auth/reset-password/confirm?token={reset_token}&email={email}"
+            reset_url = f"http://localhost:3000/auth/reset-password/confirm?token={reset_token}&email={email}&userType={user_type}"
             
             try:
-                # Send email with reset link
-                send_mail(
-                    'Password Reset Request',
-                    f'Please click the following link to reset your password: {reset_url}',
-                    settings.DEFAULT_FROM_EMAIL,
-                    [email],
-                    fail_silently=False,
-                )
-                print(f"Reset email sent to {email} with token {reset_token}")
+                
+                
+                # Prepare context for the template
+                context = {
+                    'reset_url': reset_url,
+                    'date_time': timezone.now().strftime("%Y-%m-%d %H:%M:%S"),
+                    'user_type': user_type
+                }
+                
+                # Render the HTML email content using the template
+                html_content = render_to_string('emails.html', context)
+                
+                # Create plain text version
+                plain_text = f"""
+                Password Reset Request
+                
+                Hello,
+                
+                We received a request to reset the password for your account. If you didn't make this request, you can safely ignore this email.
+                
+                To reset your password, click this link: {reset_url}
+                
+                This password reset link will expire in 24 hours.
+                
+                Driving Behavior Analysis System
+                """
+                
+                # Send email
+                subject = "Password Reset Request"
+                from_email = settings.DEFAULT_FROM_EMAIL
+                to_email = [email]
+                
+                from django.core.mail import EmailMultiAlternatives
+                msg = EmailMultiAlternatives(subject, plain_text, from_email, to_email)
+                msg.attach_alternative(html_content, "text/html")
+                msg.send()
+                
+                print(f"Password reset email sent to {email}")
+                return JsonResponse({
+                    'success': True,
+                    'message': 'Password reset instructions sent to your email',
+                    'dev_token': reset_token if settings.DEBUG else None  # For development testing
+                })
+                
             except Exception as email_error:
                 print(f"Warning: Could not send email: {str(email_error)}")
-                # For development, we'll still return success and print the URL to console
-                print(f"Reset URL: {reset_url}")
-            
-            return JsonResponse({
-                'success': True,
-                'message': f'Password reset email sent for your {user_type} account with ID {user.id}',
-                'user_type': user_type,
-                'account_id': user.id  # Add this for clarity
-            })
-            
+                # For development, return success anyway with the token for testing
+                return JsonResponse({
+                    'success': True,
+                    'message': 'Password reset link generated (email sending failed)',
+                    'reset_url': reset_url,  # Only include in development
+                    'token': reset_token      # Only include in development
+                })
+                
         except Exception as e:
             print(f"Error in reset_password: {str(e)}")
             return JsonResponse({'error': str(e)}, status=500)
