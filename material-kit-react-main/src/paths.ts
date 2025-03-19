@@ -15,9 +15,9 @@ export const paths = {
   dashboardAdmin: {
     overview: '/dashboard-admin',
     tracking: '/dashboard-admin/tracking',
-    employees: '/dashboard-admin/employees',
-    drivers: '/dashboard-admin/drivers',
+    geofencing: '/dashboard-admin/geofencing',
     cars: '/dashboard-admin/cars',
+    employees: '/dashboard-admin/employees',
   },
   errors: { 
     notFound: '/errors/not-found' 

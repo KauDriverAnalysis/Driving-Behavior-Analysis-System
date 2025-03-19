@@ -1,27 +1,45 @@
 import type { NavItemConfig } from '@/types/nav';
 import { paths } from '@/paths';
 
+const baseNavItems: NavItemConfig[] = [
+  {
+    title: 'Overview',
+    href: paths.dashboardAdmin.index,
+    icon: 'chart-pie',
+  },
+  {
+    title: 'Tracking',
+    href: paths.dashboardAdmin.tracking,
+    icon: 'map',
+  },
+  {
+    title: 'Geofencing',
+    href: paths.dashboardAdmin.geofencing,
+    icon: 'map-pin',
+  },
+  {
+    title: 'Cars',
+    href: paths.dashboardAdmin.cars,
+    icon: 'car',
+  },
+  
+];
+
 export const getNavItems = (userType?: string): NavItemConfig[] => {
-  // Base items that are shown to all user types
-  const navItems: NavItemConfig[] = [
-    { key: 'overview', title: 'Overview', href: paths.dashboardAdmin.overview, icon: 'chart-pie' },
-    { key: 'tracking', title: 'Tracking', href: paths.dashboardAdmin.tracking, icon: 'map' },
-    { key: 'drivers', title: 'Drivers', href: paths.dashboardAdmin.drivers, icon: 'user' },  // Changed to 'user'
-    { key: 'cars', title: 'Cars', href: paths.dashboardAdmin.cars, icon: 'car' },
-  ];
-
-  console.log('config type:', userType); 
-
-  // Add the employees menu item only if the user is an admin
+  const navItems = [...baseNavItems];
+  
   if (userType === 'admin') {
-    // Insert employees after tracking
-    return [
-      navItems[0], // Overview
-      navItems[1], // Tracking
-      { key: 'employees', title: 'Employees', href: paths.dashboardAdmin.employees, icon: 'users' },
-      ...navItems.slice(2) // The rest of the items
-    ];
+    // Insert employees after tracking but before geofencing
+    const trackingIndex = navItems.findIndex(item => item.href === paths.dashboardAdmin.tracking);
+    navItems.splice(trackingIndex + 1, 0, {
+      key: 'employees',
+      title: 'Employees',
+      href: paths.dashboardAdmin.employees,
+      icon: 'users',
+    });
   }
 
   return navItems;
 };
+
+export const navItems = getNavItems();
