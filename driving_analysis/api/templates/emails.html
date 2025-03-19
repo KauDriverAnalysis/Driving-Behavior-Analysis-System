@@ -8,22 +8,31 @@
         body {
             font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
             line-height: 1.6;
-            color: #2D3748; /* Darker text for better readability */
+            color: #ffffff;
             margin: 0;
             padding: 0;
-            background-color: #f9f9f9;
+            background-color: #f5f7fa;
+        }
+        .expiry-note {
+            margin-top: 30px;
+            padding: 15px;
+            border-left: 4px solid #4a4a4a;
+            background-color: #2a2a2a;
+            font-size: 14px;
+            color: #ffffff;
+            border-radius: 4px;
         }
         .email-container {
             max-width: 600px;
-            margin: 0 auto;
-            background-color: #ffffff;
-            border-radius: 8px;
+            margin: 20px auto;
+            background-color: #1d1e1a;
+            border-radius: 12px;
             overflow: hidden;
-            box-shadow: 0 1px 4px rgba(0, 0, 0, 0.1);
+            box-shadow: 0 3px 12px rgba(0, 0, 0, 0.1);
         }
         .header {
-            background-color: #3182CE; /* More modern blue */
-            padding: 30px 40px;
+            background: linear-gradient(135deg, #000000 0%, #333333 100%);
+            padding: 35px 40px;
             text-align: center;
         }
         .header img {
@@ -35,48 +44,51 @@
             margin: 15px 0 0;
             font-size: 24px;
             font-weight: 600;
+            letter-spacing: 0.5px;
+            text-shadow: 0 1px 2px rgba(0, 0, 0, 0.1);
         }
         .content {
             padding: 40px;
-            color: #2D3748; /* Consistent darker text */
+            color: #ffffff;
         }
         .content p {
             margin-bottom: 20px;
             font-size: 16px;
+            color: #ffffff;
         }
         .reset-button {
             display: inline-block;
-            background-color: #3182CE; /* Matching blue */
+            background: linear-gradient(to right, #4a4a4a, #000000);
             color: #ffffff;
             text-decoration: none;
-            padding: 14px 30px;
-            border-radius: 4px;
+            padding: 14px 32px;
+            border-radius: 6px;
             font-weight: 600;
             font-size: 16px;
             margin: 20px 0;
-            transition: background-color 0.2s;
+            transition: all 0.3s ease;
+            box-shadow: 0 4px 10px rgba(74, 74, 74, 0.3);
         }
         .reset-button:hover {
-            background-color: #0055aa;
-        }
-        .expiry-note {
-            margin-top: 30px;
-            font-size: 14px;
-            color: #666;
+            background: linear-gradient(to right, #3a3a3a, #303030);
+            box-shadow: 0 5px 15px rgba(74, 74, 74, 0.4);
+            transform: translateY(-1px);
         }
         .footer {
-            padding: 20px 40px;
-            background-color: #f3f3f3;
+            padding: 25px 40px;
+            background-color: #f1f5f9;
             text-align: center;
             font-size: 14px;
-            color: #777;
+            color: #000000;
+            border-top: 1px solid #e2e8f0;
         }
         .security-note {
-            border-top: 1px solid #e0e0e0;
-            margin-top: 20px;
-            padding-top: 20px;
+            margin-top: 25px;
+            padding: 15px 0;
+            border-top: 1px solid #e2e8f0;
             font-size: 13px;
-            color: #888;
+            color: #ffffff;
+            line-height: 1.7;
         }
         @media only screen and (max-width: 480px) {
             .content, .header, .footer {
@@ -102,9 +114,11 @@
             </div>
             
             <p>If the button doesn't work, you can also copy and paste the following link into your browser:</p>
-            <p style="word-break: break-all; font-size: 14px; color: #555;">{{ reset_url }}</p>
+            <p style="word-break: break-all; font-size: 14px; color: #ffffff;">{{ reset_url }}</p>
             
-            <p class="expiry-note">This password reset link will expire in 24 hours.</p>
+            <div class="expiry-note">
+                <p style="margin: 0">This password reset link will expire in 24 hours.</p>
+            </div>
             
             <div class="security-note">
                 <p>For security reasons, this request was received on {{ date_time }}.</p>
