@@ -33,7 +33,7 @@ def cleanse_data(buffer):
         ]
 
         # 2. Handle missing values in sensor data
-        sensor_cols = ['ax', 'ay', 'az', 'gx', 'gy', 'gz', 'yaw', 'pitch', 'roll']
+        sensor_cols = ['ax', 'ay', 'az', 'yaw']
         for col in sensor_cols:
             if col in data.columns:
                 data[col] = data[col].ffill().bfill()
@@ -111,7 +111,7 @@ def cleanse_data(buffer):
 if __name__ == "__main__":
     # Example usage with a sample buffer
     sample_buffer = [
-        {'counter': 1, 'timestamp': '12:00:00', 'latitude': 21.4858, 'longitude': 39.1925, 'speed': 50, 'ax': 0.1, 'ay': 0.2, 'az': 0.3, 'gx': 0.01, 'gy': 0.02, 'gz': 0.03, 'yaw': 0.1, 'pitch': 0.2, 'roll': 0.3},
+        {'device_name': 'DBAS-001', 'counter': 1, 'timestamp': '12:00:00', 'latitude': 21.4858, 'longitude': 39.1925, 'speed': 50, 'ax': 0.1, 'ay': 0.2, 'az': 0.3, 'yaw': 0.1},
         # Add more sample data points...
     ]
     cleaned_data = cleanse_data(sample_buffer)

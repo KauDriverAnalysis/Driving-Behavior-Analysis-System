@@ -21,28 +21,24 @@ class Command(BaseCommand):
             data_list = data.split(',')
 
             data_dict = {
-                'counter': int(data_list[0]),
-                'timestamp': data_list[1],
-                'latitude': float(data_list[2]),
-                'longitude': float(data_list[3]),
-                'speed': float(data_list[4]),
-                'ax': float(data_list[5]),
-                'ay': float(data_list[6]),
-                'az': float(data_list[7]),
-                'gx': float(data_list[8]),
-                'gy': float(data_list[9]),
-                'gz': float(data_list[10]),
-                'yaw': float(data_list[11]),
-                'pitch': float(data_list[12]),
-                'roll': float(data_list[13])
+                'device_name': data_list[0],
+                'counter': int(data_list[1]),
+                'timestamp': data_list[2],
+                'latitude': float(data_list[3]),
+                'longitude': float(data_list[4]),
+                'speed': float(data_list[5]),
+                'ax': float(data_list[6]),
+                'ay': float(data_list[7]),
+                'az': float(data_list[8]),
+                'yaw': float(data_list[9])
             }
 
             # Store the latest location and speed in the cache
             latest_location = {
-                  'latitude': data_dict['latitude'],
-                  'longitude': data_dict['longitude'],
-                   'speed': data_dict['speed']  # Include speed in the cached location
-                            }
+                'latitude': data_dict['latitude'],
+                'longitude': data_dict['longitude'],
+                'speed': data_dict['speed']
+            }
 
             # Cache the latest location and speed
             cache.set('latest_location', latest_location, timeout=None)

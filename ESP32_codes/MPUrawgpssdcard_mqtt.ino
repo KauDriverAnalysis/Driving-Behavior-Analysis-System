@@ -9,6 +9,9 @@
 #include <WiFiClientSecure.h>
 #include <PubSubClient.h>  // MQTT library
 
+// Device identification
+const String DEVICE_NAME = "DBAS-001"; // Unique identifier for this device
+
 // WiFi and MQTT Server credentials
 const char* ssid = "hj";
 const char* password = "noobnoob";
@@ -195,6 +198,7 @@ void callback(char* topic, byte* payload, unsigned int length) {
 }
 
 
+
 void setup() {
   Serial.begin(115200);
   
@@ -204,10 +208,19 @@ void setup() {
   espClient.setCACert(root_ca);
   reconnect();
   
+  GPS.begin(9600, SERIAL_8N1, RX_PIN, TX_PIN);
+  delay(100); 
+  GPS.print("$PCAS03,1,0,0,0,0,1,0,002\r\n"); // Enable only the GGA and VTG sentences
+  GPS.print("$PCAS01,519\r\n"); // Set GPS to 115200 bps
+  GPS.print("$PCAS02,1001E\r\n"); // Set GPS update rate to 10Hz
+  delay(100);
+  GPS.end();
+  delay(100); 
   GPS.begin(115200, SERIAL_8N1, RX_PIN, TX_PIN);
-  GPS.print("$PCAS03,1,0,0,0,0,1,0,0*02\r\n");
-  GPS.print("$PCAS01,5*19\r\n");
-  GPS.print("$PCAS02,100*1E\r\n");
+  delay(100); 
+  GPS.print("$PCAS03,1,0,0,0,0,1,0,002\r\n"); // Enable only the GGA and VTG sentences
+  GPS.print("$PCAS01,519\r\n"); // Set GPS to 115200 bps
+  GPS.print("$PCAS02,1001E\r\n"); // Set GPS update rate to 10Hz
 
   Wire.begin();
   Wire.setClock(400000);
@@ -218,14 +231,27 @@ void setup() {
     while(1);
   }
 
+  // Replace the current dmpInitialize section in setup() with this enhanced version
   devStatus = mpu.dmpInitialize();
   if (devStatus == 0) {
+    // Enhanced calibration for better accuracy
     mpu.CalibrateAccel(30);
     mpu.CalibrateGyro(30);
+    
+    // Set DMP configuration options for optimal filtering
     mpu.setDMPEnabled(true);
+    
+    // Set DMP output rate - lower rate = more filtering
+    // 9 = ~100Hz output, 19 = ~50Hz output (more filtering)
+    mpu.setRate(9);
+    
+    // Configure DMP filtering strength for motion sensors
+    // Lower values = stronger filtering
+    mpu.setDLPFMode(6);  // Set to maximum filtering (MPU6050_DLPF_BW_5)
+    
     dmpReady = true;
     packetSize = mpu.dmpGetFIFOPacketSize();
-    Serial.println("MPU6050 DMP initialized!");
+    Serial.println("MPU6050 DMP initialized with enhanced filtering!");
   } else {
     Serial.println("DMP initialization failed!");
   }
@@ -237,7 +263,8 @@ void setup() {
   
   dataFile = SD.open("/datalog.csv", FILE_WRITE);
   if (dataFile) {
-    dataFile.println("Counter,Time,Latitude,Longitude,Speed(km/h),Ax,Ay,Az,Gx,Gy,Gz,Yaw,Pitch,Roll");
+    // Streamlined header with only the needed fields
+    dataFile.println("Device,Counter,Time,Latitude,Longitude,Speed(km/h),Ax,Ay,Az,Yaw");
     dataFile.close();
     Serial.println("SD card ready!");
   } else {
@@ -267,16 +294,17 @@ void loop() {
     mpu.dmpGetQuaternion(&quat, fifoBuffer);
     mpu.dmpGetGravity(&gravity, &quat);
     mpu.dmpGetYawPitchRoll(ypr, &quat, &gravity);
+ 
+
   }
 
   dataWriteCounter++;
-  String dataLine = String(dataWriteCounter) + "," 
-                    + timeG + "," + latitude + "," + longitude + "," + String(speedKmh) + ","
-                    + String(ax) + "," + String(ay) + "," + String(az) + ","
-                    + String(gx) + "," + String(gy) + "," + String(gz) + ","
-                    + String(ypr[0] * 180/M_PI) + "," 
-                    + String(ypr[1] * 180/M_PI) + ","
-                    + String(ypr[2] * 180/M_PI) + "\n";  // Add newline here
+  
+  // Streamlined data line with device name at the beginning and only needed fields
+  String dataLine = DEVICE_NAME + "," + String(dataWriteCounter) + "," 
+                  + timeG + "," + latitude + "," + longitude + "," + String(speedKmh) + ","
+                  + String(ax) + "," + String(ay) + "," + String(az) + ","
+                  + String(ypr[0] * 180/M_PI) + "\n";  // Only keep yaw from orientation
   dataBuffer += dataLine;
 
   if (millis() - lastWriteTime >= WRITE_INTERVAL) {
