@@ -15,6 +15,7 @@ import dynamic from 'next/dynamic';
 import MapIcon from '@mui/icons-material/Map';
 import FenceIcon from '@mui/icons-material/Fence';
 import { GeofencesList } from '@/components/dashboard-admin/geofencing/geofences-list';
+import { GeofenceCreate } from '@/components/dashboard-admin/geofencing/geofence-create';
 
 // Import map component dynamically to prevent SSR issues
 const GeofencingMapComponent = dynamic(
@@ -65,6 +66,15 @@ export default function GeofencingPage() {
       createdAt: new Date().toISOString()
     }
   ]);
+  
+  const [tempGeometry, setTempGeometry] = useState<{
+    type: 'circle' | 'polygon';
+    data: any;
+  } | null>(null);
+
+  const handleGeometryChange = (type: 'circle' | 'polygon', data: any) => {
+    setTempGeometry({ type, data });
+  };
 
   const handleSelectGeofence = (id: string | null) => {
     setSelectedGeofence(id);
@@ -112,30 +122,37 @@ export default function GeofencingPage() {
 
         <Grid container spacing={3}>
           <Grid item xs={12} lg={4}>
-            <Card sx={{ 
-              borderRadius: 2, 
-              height: '100%',
-              boxShadow: '0 4px 12px rgba(0,0,0,0.05)'
-            }}>
-              <CardHeader 
-                title={
-                  <Box sx={{ display: 'flex', alignItems: 'center' }}>
-                    <FenceIcon sx={{ mr: 1, color: 'primary.main' }} />
-                    <Typography variant="h6">Geofences</Typography>
-                  </Box>
-                }
-                sx={{ backgroundColor: 'background.paper', pb: 1 }}
+            {isCreating ? (
+              <GeofenceCreate
+                onSave={handleSaveGeofence}
+                onCancel={() => setIsCreating(false)}
               />
-              <Divider />
-              <GeofencesList 
-                geofences={geofences}
-                selectedGeofenceId={selectedGeofence}
-                onSelect={handleSelectGeofence}
-                onCreate={handleCreateGeofence}
-                onDelete={handleDeleteGeofence}
-                onToggleActive={handleToggleActive}
-              />
-            </Card>
+            ) : (
+              <Card sx={{ 
+                borderRadius: 2, 
+                height: '100%',
+                boxShadow: '0 4px 12px rgba(0,0,0,0.05)'
+              }}>
+                <CardHeader 
+                  title={
+                    <Box sx={{ display: 'flex', alignItems: 'center' }}>
+                      <FenceIcon sx={{ mr: 1, color: 'primary.main' }} />
+                      <Typography variant="h6">Geofences</Typography>
+                    </Box>
+                  }
+                  sx={{ backgroundColor: 'background.paper', pb: 1 }}
+                />
+                <Divider />
+                <GeofencesList 
+                  geofences={geofences}
+                  selectedGeofenceId={selectedGeofence}
+                  onSelect={handleSelectGeofence}
+                  onCreate={handleCreateGeofence}
+                  onDelete={handleDeleteGeofence}
+                  onToggleActive={handleToggleActive}
+                />
+              </Card>
+            )}
           </Grid>
 
           <Grid item xs={12} lg={8}>
@@ -156,21 +173,13 @@ export default function GeofencingPage() {
               />
               <Divider />
               <Box sx={{ height: '600px', width: '100%', position: 'relative' }}>
-                {isCreating ? (
-                  <GeofencingMapComponent 
-                    geofences={geofences}
-                    selectedGeofenceId={selectedGeofence}
-                    onSelectGeofence={handleSelectGeofence}
-                    editMode={true}
-                    onGeometryChange={handleGeometryChange}
-                  />
-                ) : (
-                  <GeofencingMapComponent 
-                    geofences={geofences}
-                    selectedGeofenceId={selectedGeofence}
-                    onSelectGeofence={handleSelectGeofence}
-                  />
-                )}
+                <GeofencingMapComponent 
+                  geofences={geofences}
+                  selectedGeofenceId={selectedGeofence}
+                  onSelectGeofence={handleSelectGeofence}
+                  editMode={isCreating}
+                  onGeometryChange={handleGeometryChange}
+                />
               </Box>
             </Card>
           </Grid>
