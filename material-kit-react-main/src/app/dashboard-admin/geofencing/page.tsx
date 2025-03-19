@@ -1,13 +1,26 @@
 'use client';
 
 import { useState } from 'react';
-import Container from '@mui/material/Container';
-import Box from '@mui/material/Box';
-import Stack from '@mui/material/Stack';
-import Typography from '@mui/material/Typography';
-import { GeofencingMap } from '@/components/dashboard-admin/geofencing/geofencing-map';
+import { 
+  Box, 
+  Stack, 
+  Grid, 
+  Typography, 
+  Paper,
+  Card,
+  CardHeader,
+  Divider 
+} from '@mui/material';
+import dynamic from 'next/dynamic';
+import MapIcon from '@mui/icons-material/Map';
+import FenceIcon from '@mui/icons-material/Fence';
 import { GeofencesList } from '@/components/dashboard-admin/geofencing/geofences-list';
-import { GeofenceCreate } from '@/components/dashboard-admin/geofencing/geofence-create';
+
+// Import map component dynamically to prevent SSR issues
+const GeofencingMapComponent = dynamic(
+  () => import('@/components/dashboard-admin/geofencing/geofencing-map').then(mod => mod.GeofencingMap),
+  { ssr: false }
+);
 
 export interface Geofence {
   id: string;
@@ -90,49 +103,79 @@ export default function GeofencingPage() {
   };
 
   return (
-    <>
-      <Helmet>
-        <title>Geofencing | Driving Behavior Analysis</title>
-      </Helmet>
+    <Box sx={{ p: 3, backgroundColor: '#f5f7fa', minHeight: '100vh' }}>
+      <Stack spacing={3}>
+        <Paper sx={{ p: 2, borderRadius: 2, display: 'flex', alignItems: 'center', boxShadow: '0 4px 12px rgba(0,0,0,0.05)' }}>
+          <FenceIcon sx={{ mr: 2, color: 'primary.main', fontSize: 28 }} />
+          <Typography variant="h4" fontWeight="600" color="primary.main">Geofencing Management</Typography>
+        </Paper>
 
-      <Box
-        component="main"
-        sx={{
-          flexGrow: 1,
-          py: 3
-        }}
-      >
-        <Container maxWidth="xl">
-          <Stack spacing={3}>
-            <Typography variant="h4">Geofencing Management</Typography>
-            
-            <Box sx={{ display: 'flex', height: 'calc(100vh - 200px)' }}>
-              <Box sx={{ width: '30%', pr: 2 }}>
-                <GeofencesList 
-                  geofences={geofences}
-                  selectedGeofenceId={selectedGeofence}
-                  onSelect={handleSelectGeofence}
-                  onCreate={handleCreateGeofence}
-                  onDelete={handleDeleteGeofence}
-                  onToggleActive={handleToggleActive}
-                />
-              </Box>
-              
-              <Box sx={{ width: '70%' }}>
+        <Grid container spacing={3}>
+          <Grid item xs={12} lg={4}>
+            <Card sx={{ 
+              borderRadius: 2, 
+              height: '100%',
+              boxShadow: '0 4px 12px rgba(0,0,0,0.05)'
+            }}>
+              <CardHeader 
+                title={
+                  <Box sx={{ display: 'flex', alignItems: 'center' }}>
+                    <FenceIcon sx={{ mr: 1, color: 'primary.main' }} />
+                    <Typography variant="h6">Geofences</Typography>
+                  </Box>
+                }
+                sx={{ backgroundColor: 'background.paper', pb: 1 }}
+              />
+              <Divider />
+              <GeofencesList 
+                geofences={geofences}
+                selectedGeofenceId={selectedGeofence}
+                onSelect={handleSelectGeofence}
+                onCreate={handleCreateGeofence}
+                onDelete={handleDeleteGeofence}
+                onToggleActive={handleToggleActive}
+              />
+            </Card>
+          </Grid>
+
+          <Grid item xs={12} lg={8}>
+            <Card sx={{ 
+              borderRadius: 2, 
+              overflow: 'hidden',
+              height: '100%',
+              boxShadow: '0 4px 12px rgba(0,0,0,0.05)'
+            }}>
+              <CardHeader 
+                title={
+                  <Box sx={{ display: 'flex', alignItems: 'center' }}>
+                    <MapIcon sx={{ mr: 1, color: 'primary.main' }} />
+                    <Typography variant="h6">Geofencing Map</Typography>
+                  </Box>
+                }
+                sx={{ backgroundColor: 'background.paper', pb: 1 }}
+              />
+              <Divider />
+              <Box sx={{ height: '600px', width: '100%', position: 'relative' }}>
                 {isCreating ? (
-                  <GeofenceCreate onSave={handleSaveGeofence} onCancel={() => setIsCreating(false)} />
+                  <GeofencingMapComponent 
+                    geofences={geofences}
+                    selectedGeofenceId={selectedGeofence}
+                    onSelectGeofence={handleSelectGeofence}
+                    editMode={true}
+                    onGeometryChange={handleGeometryChange}
+                  />
                 ) : (
-                  <GeofencingMap 
+                  <GeofencingMapComponent 
                     geofences={geofences}
                     selectedGeofenceId={selectedGeofence}
                     onSelectGeofence={handleSelectGeofence}
                   />
                 )}
               </Box>
-            </Box>
-          </Stack>
-        </Container>
-      </Box>
-    </>
+            </Card>
+          </Grid>
+        </Grid>
+      </Stack>
+    </Box>
   );
 }

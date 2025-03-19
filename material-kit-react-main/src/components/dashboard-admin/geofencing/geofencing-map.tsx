@@ -7,14 +7,14 @@ import 'leaflet-draw/dist/leaflet.draw.css';
 import { Box, Paper, Typography, CircularProgress, Alert } from '@mui/material';
 import { Geofence } from '@/app/dashboard-admin/geofencing/page';
 
-// Make sure leaflet-draw is available in browser environment
+// Initialize Leaflet Draw
 let LeafletDraw: any;
 if (typeof window !== 'undefined') {
   require('leaflet-draw');
   LeafletDraw = require('leaflet-draw');
 }
 
-// Custom marker icon
+// Custom marker icon setup
 const DefaultIcon = L.icon({
   iconUrl: '/assets/marker-icon.png',
   shadowUrl: '/assets/marker-shadow.png',
