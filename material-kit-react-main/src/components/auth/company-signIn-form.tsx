@@ -50,28 +50,30 @@ export function CompanySignInForm(): React.JSX.Element {
     async (values: Values): Promise<void> => {
       setIsPending(true);
 
-      const { userType, error } = await authClient.signInWithPassword({
-        ...values,
-        accountType: 'company'  // Always use 'company' for the accountType
-      });
-
-      if (error) {
-        setError('root', { type: 'server', message: error });
-        setIsPending(false);
-        return;
-      }
-
-      await checkSession?.();
-      
-      // Store the user type
-      setUserType(userType);
-
-      if (userType === 'company') {
-        router.push(paths.dashboardCompany.overview);
-      } else if (userType === 'admin' || userType === 'employee') {
+      try {
+        const { userType, error } = await authClient.signInWithPassword({
+          ...values,
+          accountType: 'company'
+        });
+        
+        if (error) {
+          throw new Error(error);
+        }
+        
+        await checkSession?.();
+        setUserType(userType);
+        
+        // Fix: All company, admin, and employee users should use dashboardAdmin paths
+        // There is no dashboardCompany path in the paths.ts file
         router.push(paths.dashboardAdmin.overview);
-      } else {
-        setError('root', { type: 'server', message: 'Invalid account type. Please use the correct form.' });
+      } catch (error) {
+        console.error('Login error:', error);
+        
+        // Display error to user
+        setError('root', { 
+          type: 'server', 
+          message: error instanceof Error ? error.message : 'Authentication failed' 
+        });
         setIsPending(false);
       }
     },
@@ -162,15 +164,7 @@ export function CompanySignInForm(): React.JSX.Element {
       </form>
 
       <Box sx={{ mt: 3, textAlign: 'center' }}>
-        <Alert severity="info" sx={{ display: 'inline-flex', textAlign: 'left' }}>
-          <Box>
-            <Typography variant="subtitle2" sx={{ mb: 0.5 }}>Demo Account:</Typography>
-            <Box component="div" sx={{ m: 0 }}>
-              <b>Email:</b> company@example.com<br />
-              <b>Password:</b> CompanySecret
-            </Box>
-          </Box>
-        </Alert>
+        
       </Box>
     </Box>
   );

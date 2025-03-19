@@ -71,6 +71,8 @@ export function CustomerSignUpForm(): React.JSX.Element {
       setIsPending(true);
 
       try {
+        console.log("Submitting customer data:", values);
+        
         const response = await fetch('http://localhost:8000/api/create_customer/', {
           method: 'POST',
           headers: {
@@ -86,11 +88,45 @@ export function CustomerSignUpForm(): React.JSX.Element {
           }),
         });
 
+        const data = await response.json();
+        
         if (!response.ok) {
-          const errorData = await response.json();
-          throw new Error(errorData.errors || 'Failed to register');
+          console.error("Registration error:", data);
+          
+          // Handle specific field errors if provided by the backend
+          if (data.errors) {
+            // Process server-side validation errors
+            Object.entries(data.errors).forEach(([field, message]) => {
+              // Map Django field names to React form field names
+              const fieldMap: Record<string, keyof CustomerValues> = {
+                'Name': 'name',
+                'gender': 'gender',
+                'phone_number': 'phone_number',
+                'address': 'address',
+                'Email': 'email',
+                'Password': 'password',
+              };
+              
+              const formField = fieldMap[field] || field.toLowerCase() as keyof CustomerValues;
+              
+              customerForm.setError(formField, {
+                type: 'server',
+                message: Array.isArray(message) ? message[0] : String(message)
+              });
+            });
+            
+            throw new Error("Validation failed. Please check the form for errors.");
+          }
+          
+          throw new Error(data.errors || 'Failed to register');
         }
 
+        console.log("Registration successful:", data);
+        
+        // Add a success message before redirect
+        alert("Account created successfully! Please sign in.");
+        
+        // Redirect to sign in page
         router.push(paths.auth.signIn);
       } catch (error) {
         customerForm.setError('root', { 

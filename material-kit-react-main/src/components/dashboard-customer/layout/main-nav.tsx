@@ -15,6 +15,7 @@ import { MobileNav } from './mobile-nav';
 export function MainNav(): React.JSX.Element {
   const router = useRouter();
   const [openNav, setOpenNav] = React.useState<boolean>(false);
+  
   const handleSignOut = async () => {
     try {
       console.log('Starting sign out...');
@@ -22,13 +23,14 @@ export function MainNav(): React.JSX.Element {
       sessionStorage.clear();
       console.log('Storage cleared');
       
-      console.log('Attempting navigation...');
-      await router.push('/auth/sign-in');
+      // Use window.location.href instead of router.push for a full page refresh
+      window.location.href = '/auth/sign-in';
     } catch (error) {
       console.error('Sign out failed:', error);
       window.location.href = '/auth/sign-in';
     }
   };
+  
   return (
     <React.Fragment>
       <Box

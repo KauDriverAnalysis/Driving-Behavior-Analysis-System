@@ -11,6 +11,15 @@ from django.views.decorators.csrf import ensure_csrf_cookie
 from django.views.decorators.http import require_http_methods
 from django.views.decorators.csrf import csrf_exempt
 import json
+import time  # Add this import for time.time()
+from django.contrib.auth.hashers import check_password  # Add this for password checking
+from django.contrib.auth.hashers import make_password
+from django.utils import timezone
+import uuid
+from datetime import timedelta
+from django.core.mail import send_mail
+from django.conf import settings
+from django.template.loader import render_to_string
 
 def driver_map(request):
     latest_location = cache.get('latest_location')
@@ -63,12 +72,41 @@ def customer_list(request):
     return render(request, 'customer_list.html', {'customers': customers})
 
 # customer views
+@csrf_exempt
 def create_customer(request):
     if request.method == 'POST':
-        form = CustomerForm(request.POST)
-        if form.is_valid():
-            form.save()
-            return redirect('customer_list')
+        try:
+            # Check if this is a JSON request from the React app
+            if request.content_type == 'application/json':
+                # Parse JSON data from request body
+                data = json.loads(request.body)
+                print(f"Received customer data: {data}")  # Debug print
+                
+                # Ensure gender is lowercase
+                if 'gender' in data:
+                    data['gender'] = data['gender'].lower()
+                
+                # Create form with JSON data
+                form = CustomerForm(data)
+                if form.is_valid():
+                    customer = form.save()
+                    return JsonResponse({
+                        'success': True, 
+                        'id': customer.id,
+                        'message': 'Customer created successfully'
+                    }, status=201)
+                else:
+                    print(f"Form validation errors: {form.errors}")
+                    return JsonResponse({'errors': form.errors}, status=400)
+            else:
+                # Handle traditional form submission
+                form = CustomerForm(request.POST)
+                if form.is_valid():
+                    form.save()
+                    return redirect('customer_list')
+        except Exception as e:
+            print(f"Error creating customer: {str(e)}")
+            return JsonResponse({'errors': {'server': str(e)}}, status=500)
     else:
         form = CustomerForm()
     return render(request, 'create_customer.html', {'form': form})
@@ -92,15 +130,31 @@ def delete_customer(request, customer_id):
     return render(request, 'delete_customer.html', {'customer': customer})
 
 # Company views
+@csrf_exempt
 def create_company(request):
     if request.method == 'POST':
-        form = CompanyForm(request.POST)
-        if form.is_valid():
-            form.save()
-            return JsonResponse({'message': 'Company created successfully'}, status=201)
-    else:
-        form = CompanyForm()
-    return JsonResponse({'errors': form.errors}, status=400)
+        try:
+            # Parse JSON data from request body
+            data = json.loads(request.body)
+            print(f"Received company data: {data}")  # Debug print
+            
+            # Create form with JSON data
+            form = CompanyForm(data)
+            if form.is_valid():
+                company = form.save()
+                return JsonResponse({
+                    'success': True, 
+                    'id': company.id,
+                    'message': 'Company created successfully'
+                }, status=201)
+            else:
+                print(f"Form validation errors: {form.errors}")
+                return JsonResponse({'errors': form.errors}, status=400)
+        except Exception as e:
+            print(f"Error creating company: {str(e)}")
+            return JsonResponse({'errors': {'server': str(e)}}, status=500)
+    
+    return JsonResponse({'error': 'Method not allowed'}, status=405)
 
 def update_company(request, company_id):
     company = get_object_or_404(Company, pk=company_id)
@@ -582,3 +636,352 @@ def get_car_driving_data(request, car_id):
             })
     except Exception as e:
         return JsonResponse({'error': str(e)}, status=500)        # In api/views.py
+
+@csrf_exempt
+def company_login(request):
+    if request.method == 'POST':
+        try:
+            data = json.loads(request.body)
+            email = data.get('Email')
+            password = data.get('Password')
+            
+            # First check if this is an admin/employee
+            try:
+                employee = Employee.objects.get(Email=email)
+                # Check password
+                if check_password(password, employee.Password) or password == employee.Password:  # Check both hashed and plain for development
+                    # Determine if this is an admin
+                    is_admin = employee.Admin  # Assuming you have this field
+                    role = "admin" if is_admin else "employee"
+                    
+                    token = f"{employee.id}_{int(time.time())}"
+                    
+                    return JsonResponse({
+                        'success': True,
+                        'token': token,
+                        'id': employee.id,
+                        'name': employee.Name,
+                        'role': role
+                    }, status=200)
+            except Employee.DoesNotExist:
+                # Not an employee, check if it's a company
+                try:
+                    company = Company.objects.get(Email=email)
+                    # Check password
+                    if check_password(password, company.Password) or password == company.Password:  # Check both for development
+                        token = f"{company.id}_{int(time.time())}"
+                        
+                        return JsonResponse({
+                            'success': True,
+                            'token': token,
+                            'id': company.id,
+                            'Company_name': company.Company_name,
+                            'role': 'company'
+                        }, status=200)
+                except Company.DoesNotExist:
+                    return JsonResponse({'error': 'Invalid credentials'}, status=401)
+            
+            return JsonResponse({'error': 'Invalid credentials'}, status=401)
+            
+        except Exception as e:
+            return JsonResponse({'error': str(e)}, status=500)
+    
+    return JsonResponse({'error': 'Method not allowed'}, status=405)
+
+@csrf_exempt
+def customer_login(request):
+    if request.method == 'POST':
+        try:
+            data = json.loads(request.body)
+            email = data.get('Email')
+            password = data.get('Password')
+            
+            print(f"Customer login attempt for email: {email}")  # Debug print
+            
+            try:
+                customer = Customer.objects.get(Email=email)
+                print(f"Customer found: {customer.Name}")  # Debug print
+                
+                # Check password using Django's check_password function
+                # We also do direct comparison as fallback during development
+                if check_password(password, customer.Password) or password == customer.Password:
+                    # Create a simple authentication token
+                    token = f"{customer.id}_{int(time.time())}"
+                    
+                    return JsonResponse({
+                        'success': True,
+                        'token': token,
+                        'id': customer.id,
+                        'Name': customer.Name,
+                        'role': 'customer'
+                    }, status=200)
+                else:
+                    return JsonResponse({'error': 'Invalid credentials'}, status=401)
+            except Customer.DoesNotExist:
+                return JsonResponse({'error': 'Invalid email or password'}, status=401)
+        except Exception as e:
+            print(f"Exception in customer_login: {str(e)}")
+            return JsonResponse({'error': str(e)}, status=500)
+    
+    return JsonResponse({'error': 'Method not allowed'}, status=405)
+@csrf_exempt
+def reset_password(request):
+    if request.method == 'POST':
+        try:
+            data = json.loads(request.body)
+            email = data.get('email')
+            
+            if not email:
+                return JsonResponse({'error': 'Email is required'}, status=400)
+                
+            print(f"Processing password reset for email: {email}")
+            
+            # Find user by email (checking all user types)
+            user = None
+            user_type = None
+            
+            try:
+                user = Customer.objects.get(Email=email)
+                user_type = 'customer'
+            except Customer.DoesNotExist:
+                try:
+                    user = Company.objects.get(Email=email)
+                    user_type = 'company'
+                except Company.DoesNotExist:
+                    try:
+                        user = Employee.objects.get(Email=email)
+                        user_type = 'employee'
+                    except Employee.DoesNotExist:
+                        return JsonResponse({'error': 'No account found with that email'}, status=404)
+            
+            # Generate reset token and store it
+            reset_token = str(uuid.uuid4())
+            reset_token_expires = timezone.now() + timedelta(hours=24)
+            
+            # Update user with reset token
+            if user_type == 'customer':
+                user.reset_token = reset_token
+                user.reset_token_expires = reset_token_expires
+            elif user_type == 'company':
+                user.reset_token = reset_token
+                user.reset_token_expires = reset_token_expires
+            elif user_type == 'employee':
+                user.reset_token = reset_token
+                user.reset_token_expires = reset_token_expires
+                
+            user.save()
+            
+            # Create reset URL for frontend
+            reset_url = f"http://localhost:3000/auth/reset-password/confirm?token={reset_token}&email={email}&userType={user_type}"
+            
+            try:
+                
+                
+                # Prepare context for the template
+                context = {
+                    'reset_url': reset_url,
+                    'date_time': timezone.now().strftime("%Y-%m-%d %H:%M:%S"),
+                    'user_type': user_type
+                }
+                
+                # Render the HTML email content using the template
+                html_content = render_to_string('emails.html', context)
+                
+                # Create plain text version
+                plain_text = f"""
+                Password Reset Request
+                
+                Hello,
+                
+                We received a request to reset the password for your account. If you didn't make this request, you can safely ignore this email.
+                
+                To reset your password, click this link: {reset_url}
+                
+                This password reset link will expire in 24 hours.
+                
+                Driving Behavior Analysis System
+                """
+                
+                # Send email
+                subject = "Password Reset Request"
+                from_email = settings.DEFAULT_FROM_EMAIL
+                to_email = [email]
+                
+                from django.core.mail import EmailMultiAlternatives
+                msg = EmailMultiAlternatives(subject, plain_text, from_email, to_email)
+                msg.attach_alternative(html_content, "text/html")
+                msg.send()
+                
+                print(f"Password reset email sent to {email}")
+                return JsonResponse({
+                    'success': True,
+                    'message': 'Password reset instructions sent to your email',
+                    'dev_token': reset_token if settings.DEBUG else None  # For development testing
+                })
+                
+            except Exception as email_error:
+                print(f"Warning: Could not send email: {str(email_error)}")
+                # For development, return success anyway with the token for testing
+                return JsonResponse({
+                    'success': True,
+                    'message': 'Password reset link generated (email sending failed)',
+                    'reset_url': reset_url,  # Only include in development
+                    'token': reset_token      # Only include in development
+                })
+                
+        except Exception as e:
+            print(f"Error in reset_password: {str(e)}")
+            return JsonResponse({'error': str(e)}, status=500)
+    
+    return JsonResponse({'error': 'Method not allowed'}, status=405)
+@csrf_exempt
+def update_password(request):
+    if request.method == 'POST':
+        try:
+            data = json.loads(request.body)
+            email = data.get('email')
+            token = data.get('token')
+            new_password = data.get('new_password')
+            user_type_from_request = data.get('userType', '(not provided)')
+            
+            if not all([email, token, new_password]):
+                return JsonResponse({'error': 'Missing required fields'}, status=400)
+            
+            print(f"=== PASSWORD RESET DEBUG ===")
+            print(f"Email: {email}")
+            print(f"New password (plaintext): {new_password}")
+            print(f"Token: {token[:10]}...")
+            print(f"Requested user type: {user_type_from_request}")
+            
+            # Find user by email and token
+            user = None
+            user_type = None
+            
+            # Try to find the user - prioritize the user type if provided
+            if user_type_from_request:
+                if user_type_from_request == 'customer':
+                    try:
+                        user = Customer.objects.get(Email=email, reset_token=token)
+                        user_type = 'customer'
+                        print(f"Found customer account (ID: {user.id}) with matching token")
+                    except Customer.DoesNotExist:
+                        print(f"No customer found with email {email} and token")
+                elif user_type_from_request == 'company':
+                    try:
+                        user = Company.objects.get(Email=email, reset_token=token)
+                        user_type = 'company'
+                        print(f"Found company account (ID: {user.id}) with matching token")
+                    except Company.DoesNotExist:
+                        print(f"No company found with email {email} and token")
+                elif user_type_from_request == 'employee':
+                    try:
+                        user = Employee.objects.get(Email=email, reset_token=token)
+                        user_type = 'employee'
+                        print(f"Found employee account (ID: {user.id}) with matching token")
+                    except Employee.DoesNotExist:
+                        print(f"No employee found with email {email} and token")
+            
+            # If no specific user type or not found with that type, try all
+            if not user:
+                print("Falling back to checking all account types...")
+                try:
+                    user = Customer.objects.get(Email=email, reset_token=token)
+                    user_type = 'customer'
+                    print(f"Found customer account (ID: {user.id}) with matching token")
+                except Customer.DoesNotExist:
+                    try:
+                        user = Company.objects.get(Email=email, reset_token=token)
+                        user_type = 'company'
+                        print(f"Found company account (ID: {user.id}) with matching token")
+                    except Company.DoesNotExist:
+                        try:
+                            user = Employee.objects.get(Email=email, reset_token=token)
+                            user_type = 'employee'
+                            print(f"Found employee account (ID: {user.id}) with matching token")
+                        except Employee.DoesNotExist:
+                            return JsonResponse({'error': 'Invalid or expired reset token'}, status=400)
+            
+            # Check if token is expired
+            if hasattr(user, 'reset_token_expires') and user.reset_token_expires and user.reset_token_expires < timezone.now():
+                return JsonResponse({'error': 'Reset token has expired'}, status=400)
+            
+            # Get current password
+            current_password_hash = user.Password
+            print(f"Current password hash: {current_password_hash[:20]}...")
+            
+            # Look for existing plain text password
+            try:
+                # This is extremely insecure and for debugging only
+                found_users = []
+                for test_pass in ["password", "123456", "admin", "Abdullah", "password123", "secret", "qwerty"]:
+                    if check_password(test_pass, current_password_hash):
+                        print(f"FOUND OLD PASSWORD: '{test_pass}'")
+                        found_users.append(test_pass)
+                
+                if not found_users:
+                    print("Could not determine old password in plaintext")
+            except Exception as e:
+                print(f"Error during password check: {str(e)}")
+            
+            # Check if new password is the same as old password
+            if check_password(new_password, current_password_hash) or new_password == getattr(user, 'Password', None):
+                return JsonResponse({
+                    'error': 'New password cannot be the same as your current password. Please choose a different password.'
+                }, status=400)
+                
+            # Create new hashed password
+            hashed_password = make_password(new_password)
+            print(f"New password hash: {hashed_password[:20]}...")
+            print(f"New plaintext password: {new_password}")
+            
+            # Update password using just one approach - filter().update()
+            if user_type == 'customer':
+                Customer.objects.filter(id=user.id).update(
+                    Password=hashed_password,
+                    reset_token=None,
+                    reset_token_expires=None
+                )
+                print(f"Updated password for customer ID {user.id}")
+            elif user_type == 'company':
+                Company.objects.filter(id=user.id).update(
+                    Password=hashed_password,
+                    reset_token=None,
+                    reset_token_expires=None
+                )
+                print(f"Updated password for company ID {user.id}")
+            elif user_type == 'employee':
+                Employee.objects.filter(id=user.id).update(
+                    Password=hashed_password,
+                    reset_token=None,
+                    reset_token_expires=None
+                )
+                print(f"Updated password for employee ID {user.id}")
+            
+            # Verify the change
+            updated_user = None
+            if user_type == 'customer':
+                updated_user = Customer.objects.get(id=user.id)
+            elif user_type == 'company':
+                updated_user = Company.objects.get(id=user.id)
+            elif user_type == 'employee':
+                updated_user = Employee.objects.get(id=user.id)
+                
+            print(f"After update - New password hash: {updated_user.Password[:20]}...")
+            print(f"Testing if new password works: {check_password(new_password, updated_user.Password)}")
+            print(f"=== END DEBUG ===")
+            
+            print(f"Password updated successfully for {email} ({user_type} account)")
+            
+            return JsonResponse({
+                'success': True,
+                'message': 'Password updated successfully',
+                'user_type': user_type,
+                'account_id': user.id
+            })
+            
+        except Exception as e:
+            print(f"Error in update_password: {str(e)}")
+            return JsonResponse({'error': str(e)}, status=500)
+    
+    return JsonResponse({'error': 'Method not allowed'}, status=405)
+

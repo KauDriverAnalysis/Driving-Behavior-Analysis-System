@@ -29,6 +29,7 @@ export interface SignInWithOAuthParams {
 export interface SignInWithPasswordParams {
   email: string;
   password: string;
+  accountType?: string;
 }
 
 export interface ResetPasswordParams {
@@ -47,8 +48,67 @@ class AuthClient {
   }
 
   async signInWithPassword(params: SignInWithPasswordParams): Promise<{ userType?: string; error?: string }> {
-    const { email, password } = params;
+    const { email, password, accountType = 'customer' } = params;
 
+    try {
+      // Determine which API endpoint to use based on accountType
+      let endpoint = 'http://localhost:8000/api/';
+      
+      if (accountType === 'company') {
+        endpoint += 'company_login/';
+      } else if (accountType === 'customer') {
+        endpoint += 'customer_login/'; 
+      } else if (accountType === 'admin') {
+        endpoint += 'admin_login/';
+      } else if (accountType === 'employee') {
+        endpoint += 'employee_login/';
+      }
+
+      const response = await fetch(endpoint, {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+        },
+        body: JSON.stringify({
+          Email: email,
+          Password: password
+        }),
+      });
+
+      const data = await response.json();
+      
+      if (!response.ok) {
+        return { error: data.error || 'Authentication failed' };
+      }
+      
+      // Store authentication token
+      if (data.token) {
+        localStorage.setItem('auth-token', data.token);
+      }
+      
+      // Determine user role from response
+      const userRole = data.role || accountType;
+      localStorage.setItem('user-type', userRole);
+      localStorage.setItem('user-id', data.id?.toString() || '');
+      
+      // Store additional info based on account type
+      if (accountType === 'company') {
+        localStorage.setItem('company-id', data.id?.toString() || '');
+        localStorage.setItem('company-name', data.Company_name || '');
+      } else if (accountType === 'customer') {
+        localStorage.setItem('customer-id', data.id?.toString() || '');
+        localStorage.setItem('customer-name', data.Name || '');
+      }
+      
+      return { userType: userRole, error: null };
+    } catch (error) {
+      console.error('Authentication error:', error);
+      return { error: 'Connection error. Please try again later.' };
+    }
+  }
+
+  // Helper method for mock authentication (for development, can be removed later)
+  private mockAuthentication(email: string, password: string): string | null {
     const adminEmail = 'admin@example.com';
     const adminPassword = 'AdminSecret';
     const customerEmail = 'customer@example.com';
@@ -59,63 +119,119 @@ class AuthClient {
     if (email === adminEmail && password === adminPassword) {
       const token = generateToken();
       localStorage.setItem('custom-auth-token', token);
-      const userData = {
-        id: 'admin-id',
-        name: 'Admin User',
-        email: adminEmail,
-        role: 'admin', // Ensure this is set correctly
-        // other user data
-      };
-      return { userType: 'admin', error: null };
+      return 'admin';
     }
 
     if (email === customerEmail && password === customerPassword) {
       const token = generateToken();
       localStorage.setItem('custom-auth-token', token);
-      const userData = {
-        id: 'customer-id',
-        name: 'Customer User',
-        email: customerEmail,
-        role: 'customer', // Ensure this is set correctly
-        // other user data
-      };
-      return { userType: 'customer', error: null };
+      return 'customer';
     }
 
     if (email === employeeEmail && password === employeePassword) {
       const token = generateToken();
       localStorage.setItem('custom-auth-token', token);
-      const userData = {
-        id: 'employee-id',
-        name: 'Employee User',
-        email: employeeEmail,
-        role: 'employee', // Ensure this is set correctly
-        // other user data
-      };
-      return { userType: 'employee', error: null };
+      return 'employee';
     }
 
-    return { userType: null, error: 'Invalid email or password' };
+    return null;
   }
 
-  async resetPassword(_: ResetPasswordParams): Promise<{ error?: string }> {
-    return { error: 'Password reset not implemented' };
+  async resetPassword(params: ResetPasswordParams): Promise<{ error?: string; success?: boolean }> {
+    const { email } = params;
+    
+    try {
+      const response = await fetch('http://localhost:8000/api/reset_password/', {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+        },
+        // Change from 'email' to 'email' to match what the backend expects
+        body: JSON.stringify({ email }),
+      });
+  
+      const data = await response.json();
+      
+      if (!response.ok) {
+        return { error: data.error || 'Password reset request failed' };
+      }
+      
+      return { 
+        success: true
+      };
+    } catch (error) {
+      console.error('Password reset error:', error);
+      return { error: 'Connection error. Please try again later.' };
+    }
   }
 
-  async updatePassword(_: ResetPasswordParams): Promise<{ error?: string }> {
-    return { error: 'Update reset not implemented' };
+  
+  async updatePassword(params: UpdatePasswordParams): Promise<{ error?: string; success?: boolean }> {
+    const { email, token, newPassword } = params;
+    
+    try {
+      console.log(`Attempting to reset password for ${email} with token ${token.substring(0, 6)}...`);
+      
+      const response = await fetch('http://localhost:8000/api/update_password/', {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+        },
+        body: JSON.stringify({ 
+          email,
+          token,
+          new_password: newPassword
+        }),
+      });
+  
+      const data = await response.json();
+      
+      console.log('Password reset response:', response.status, data);
+      
+      if (!response.ok) {
+        return { error: data.error || 'Password update failed' };
+      }
+      
+      return { 
+        success: true
+      };
+    } catch (error) {
+      console.error('Password update error:', error);
+      return { error: 'Connection error. Please try again later.' };
+    }
   }
 
   async getUser(): Promise<{ data?: User | null; error?: string }> {
-    const token = localStorage.getItem('custom-auth-token');
+    // Change this line to check for auth-token instead of custom-auth-token
+    const token = localStorage.getItem('auth-token');
     if (!token) {
       return { data: null };
     }
-    return { data: user };
+    
+    // Get user information from localStorage
+    const userType = localStorage.getItem('user-type');
+    const userId = localStorage.getItem('user-id');
+    
+    // Create a user object with data from localStorage
+    const userData = {
+      id: userId || 'USR-000',
+      userType: userType || 'guest',
+      // Include other user fields as needed
+      ...user // Keep the default avatar, etc.
+    };
+    
+    return { data: userData };
   }
 
   async signOut(): Promise<{ error?: string }> {
-    localStorage.removeItem('custom-auth-token');
+    // Make sure to clear all auth related items
+    localStorage.removeItem('auth-token');
+    localStorage.removeItem('user-type');
+    localStorage.removeItem('user-id');
+    localStorage.removeItem('company-id');
+    localStorage.removeItem('company-name');
+    localStorage.removeItem('customer-id');
+    localStorage.removeItem('customer-name');
     return {};
   }
 }
