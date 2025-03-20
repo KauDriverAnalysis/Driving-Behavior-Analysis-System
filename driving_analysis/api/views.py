@@ -58,7 +58,8 @@ def get_latest_data(request):
         data_dict = {
             'latitude': latest_location['latitude'],
             'longitude': latest_location['longitude'],
-            'speed': latest_location['speed']
+            'speed': latest_location['speed'],
+            'device_id': latest_location['device_id']
         }
         data_list = [data_dict]
     else:

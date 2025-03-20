@@ -37,7 +37,8 @@ class Command(BaseCommand):
             latest_location = {
                 'latitude': data_dict['latitude'],
                 'longitude': data_dict['longitude'],
-                'speed': data_dict['speed']
+                'speed': data_dict['speed'],
+                'device_id': latest_location['device_id']
             }
 
             # Cache the latest location and speed
