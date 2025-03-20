@@ -107,31 +107,7 @@ const ParentalControlDashboard = () => {
           )}
         </Stack>
         
-        <Box sx={{ display: 'flex', alignItems: 'center', gap: 1 }}>
-          <IconButton 
-            sx={{ 
-              bgcolor: 'primary.light', 
-              color: 'primary.main',
-              '&:hover': { bgcolor: 'primary.light' }
-            }}
-            size="small"
-          >
-            <NotificationsIcon />
-          </IconButton>
-          <Box 
-            sx={{ 
-              bgcolor: 'primary.main', 
-              color: 'white', 
-              borderRadius: '20px',
-              px: 2, 
-              py: 0.5,
-              fontWeight: 'medium',
-              fontSize: '0.875rem'
-            }}
-          >
-            Active
-          </Box>
-        </Box>
+
       </Box>
 
       {/* Notification */}

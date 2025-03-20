@@ -9,6 +9,7 @@ import IconButton from '@mui/material/IconButton';
 import Stack from '@mui/material/Stack';
 import { List as ListIcon } from '@phosphor-icons/react/dist/ssr/List';
 import { SignOut as SignOutIcon } from '@phosphor-icons/react/dist/ssr/SignOut';
+import NotificationsIcon from '@mui/icons-material/Notifications';
 
 import { MobileNav } from './mobile-nav';
 
@@ -62,20 +63,40 @@ export function MainNav(): React.JSX.Element {
             <ListIcon />
           </IconButton>
 
-          <Button 
-            variant="contained"
-            startIcon={<SignOutIcon />}
-            onClick={handleSignOut}
-            sx={{ 
+          <Stack
+            direction="row"
+            spacing={2}
+            sx={{
               ml: 'auto',
-              bgcolor: 'primary.main',
-              '&:hover': {
-                bgcolor: 'primary.dark',
-              }
+              alignItems: 'center'
             }}
           >
-            Sign Out
-          </Button>
+            <Box sx={{ display: 'flex', alignItems: 'center', gap: 1 }}>
+              <IconButton 
+                sx={{ 
+                  color: 'primary.main',
+                  '&:hover': { bgcolor: 'primary.light' }
+                }}
+                size="small"
+              >
+                <NotificationsIcon />
+              </IconButton>
+            </Box>
+
+            <Button 
+              variant="contained"
+              startIcon={<SignOutIcon />}
+              onClick={handleSignOut}
+              sx={{ 
+                bgcolor: 'primary.main',
+                '&:hover': {
+                  bgcolor: 'primary.dark',
+                }
+              }}
+            >
+              Sign Out
+            </Button>
+          </Stack>
         </Stack>
       </Box>
       <MobileNav
