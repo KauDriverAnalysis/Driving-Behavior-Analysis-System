@@ -18,7 +18,7 @@ export const navItems: NavItemConfig[] = [
     key: 'geofencing',
     title: 'Geofencing',
     href: paths.dashboardCustomer.geofencing,
-    icon: 'draw-polygon'
+    icon: 'geofencing' // Updated icon key for Geofencing
   },
   {
     key: 'carCustomers',
@@ -30,6 +30,6 @@ export const navItems: NavItemConfig[] = [
     key: 'account',
     title: 'Account',
     href: paths.dashboardCustomer.account,
-    icon: 'user'
+    icon: 'account' // Updated icon key for Account
   }
 ];
