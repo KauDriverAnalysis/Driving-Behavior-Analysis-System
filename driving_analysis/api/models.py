@@ -2,6 +2,8 @@ import os
 os.environ.setdefault('DJANGO_SETTINGS_MODULE', 'driving_analysis.settings')
 
 from django.db import models
+from django.contrib.postgres.fields import ArrayField
+import json
 
 class Customer(models.Model):
     Name = models.CharField(max_length=255)
@@ -67,3 +69,47 @@ class Employee(models.Model):
         if not Employee.objects.exists():  # If no employee exists, set the first user as Admin
             self.Admin = True
         super().save(*args, **kwargs)  # Call the original save method
+
+class Geofence(models.Model):
+    GEOFENCE_TYPES = (
+        ('circle', 'Circle'),
+        ('polygon', 'Polygon'),
+    )
+    
+    id = models.AutoField(primary_key=True)
+    name = models.CharField(max_length=100)
+    description = models.TextField(blank=True, null=True)
+    type = models.CharField(max_length=10, choices=GEOFENCE_TYPES)
+    coordinates_json = models.TextField()
+    radius = models.FloatField(null=True, blank=True)  # Only for circle type
+    color = models.CharField(max_length=20, default='#ff4444')
+    active = models.BooleanField(default=True)
+    created_at = models.DateTimeField(auto_now_add=True)
+    
+    def set_coordinates(self, coordinates):
+        self.coordinates_json = json.dumps(coordinates)
+        
+    def get_coordinates(self):
+        return json.loads(self.coordinates_json)
+    
+    def __str__(self):
+        return f"{self.name} ({self.type})"
+
+class GeofenceViolation(models.Model):
+    VIOLATION_TYPES = (
+        ('exit', 'Exit Geofence'),
+        ('entry', 'Enter Geofence'),
+    )
+    
+    id = models.AutoField(primary_key=True)
+    geofence = models.ForeignKey(Geofence, on_delete=models.CASCADE, related_name='violations')
+    car = models.ForeignKey(Car, on_delete=models.CASCADE, related_name='geofence_violations')
+    driver = models.ForeignKey(Driver, on_delete=models.SET_NULL, null=True, related_name='geofence_violations')
+    violation_type = models.CharField(max_length=10, choices=VIOLATION_TYPES)
+    latitude = models.FloatField()
+    longitude = models.FloatField()
+    timestamp = models.DateTimeField(auto_now_add=True)
+    
+    def __str__(self):
+        return f"{self.violation_type} violation by {self.car} at {self.timestamp}"
+

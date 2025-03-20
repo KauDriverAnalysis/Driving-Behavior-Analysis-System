@@ -15,7 +15,7 @@ const baseNavItems: NavItemConfig[] = [
   {
     title: 'Geofencing',
     href: paths.dashboardAdmin.geofencing,
-    icon: 'map-pin',
+    icon: 'draw-polygon', // Changed from 'map-pin' to 'draw-polygon'
   },
   {
     title: 'Cars',

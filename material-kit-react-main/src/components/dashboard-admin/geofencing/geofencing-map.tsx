@@ -30,6 +30,11 @@ interface GeofencingMapProps {
   onSelectGeofence: (id: string | null) => void;
   editMode?: boolean;
   onGeometryChange?: (type: 'circle' | 'polygon', data: any) => void;
+  previewGeometry?: {
+    type: 'circle' | 'polygon';
+    data: any;
+    color: string;
+  } | null;
 }
 
 export function GeofencingMap({ 
@@ -37,7 +42,8 @@ export function GeofencingMap({
   selectedGeofenceId, 
   onSelectGeofence,
   editMode = false,
-  onGeometryChange
+  onGeometryChange,
+  previewGeometry
 }: GeofencingMapProps) {
   const mapRef = useRef<HTMLDivElement | null>(null);
   const mapInstanceRef = useRef<L.Map | null>(null);
@@ -82,17 +88,51 @@ export function GeofencingMap({
               circlemarker: false,
               polygon: {
                 allowIntersection: false,
-                showArea: true
+                showArea: true,
+                drawError: {
+                  color: '#e1e100',
+                  message: '<strong>Invalid polygon!</strong> Please fix the shape.'
+                },
+                shapeOptions: {
+                  color: previewGeometry?.color || '#ff4444'
+                }
               },
               circle: true
             },
             edit: {
               featureGroup: drawnItemsRef.current,
+              edit: {
+                selectedPathOptions: {
+                  maintainColor: true,
+                  moveMarkers: true
+                }
+              },
               remove: false
             }
           });
           map.addControl(drawControl);
           drawControlRef.current = drawControl;
+
+          // If there's existing geometry, show it in edit mode
+          if (previewGeometry) {
+            let layer;
+            if (previewGeometry.type === 'circle') {
+              const { center, radius } = previewGeometry.data;
+              layer = L.circle(center, {
+                radius,
+                color: previewGeometry.color
+              });
+            } else if (previewGeometry.type === 'polygon') {
+              const { coordinates } = previewGeometry.data;
+              layer = L.polygon(coordinates.map((point: [number, number]) => L.latLng(point[0], point[1])), {
+                color: previewGeometry.color
+              });
+            }
+            if (layer) {
+              drawnItemsRef.current.addLayer(layer);
+              map.fitBounds(layer.getBounds());
+            }
+          }
 
           // Handle draw events
           map.on(L.Draw.Event.CREATED, (e: any) => {
@@ -128,6 +168,22 @@ export function GeofencingMap({
               }
             });
           });
+
+          // Add vertex editing for polygons
+          map.on('draw:editvertex', (e: any) => {
+            const layers = drawnItemsRef.current?.getLayers();
+            if (layers && layers.length > 0) {
+              const layer = layers[0];
+              if (layer instanceof L.Polygon) {
+                const latLngs = layer.getLatLngs()[0];
+                const coordinates = latLngs.map((latlng: L.LatLng) => [
+                  latlng.lat,
+                  latlng.lng
+                ]);
+                onGeometryChange?.('polygon', { coordinates });
+              }
+            }
+          });
         }
 
         // Store map instance in ref
@@ -147,7 +203,7 @@ export function GeofencingMap({
         mapInstanceRef.current = null;
       }
     };
-  }, [editMode, onGeometryChange]);
+  }, [editMode, onGeometryChange, previewGeometry]);
 
   // Update geofences on the map when they change
   useEffect(() => {
@@ -259,6 +315,44 @@ export function GeofencingMap({
       }
     }
   }, [selectedGeofenceId, geofences, editMode]);
+
+  // Add new effect to handle preview geometry
+  useEffect(() => {
+    if (!mapInstanceRef.current || !drawnItemsRef.current || !previewGeometry) return;
+
+    drawnItemsRef.current.clearLayers();
+
+    try {
+      let layer;
+      
+      if (previewGeometry.type === 'circle') {
+        const { center, radius } = previewGeometry.data;
+        layer = L.circle(center, {
+          radius,
+          color: previewGeometry.color,
+          fillColor: previewGeometry.color,
+          fillOpacity: 0.2,
+          weight: 2
+        });
+      } else if (previewGeometry.type === 'polygon') {
+        const { coordinates } = previewGeometry.data;
+        const latLngs = coordinates.map((point: [number, number]) => L.latLng(point[0], point[1]));
+        layer = L.polygon(latLngs, {
+          color: previewGeometry.color,
+          fillColor: previewGeometry.color,
+          fillOpacity: 0.2,
+          weight: 2
+        });
+      }
+
+      if (layer) {
+        drawnItemsRef.current.addLayer(layer);
+        mapInstanceRef.current.fitBounds(layer.getBounds());
+      }
+    } catch (err) {
+      console.error('Error rendering preview geometry:', err);
+    }
+  }, [previewGeometry]);
 
   return (
     <Box sx={{ position: 'relative', height: '100%', width: '100%' }}>

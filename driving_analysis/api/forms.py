@@ -1,11 +1,12 @@
 from django import forms
-from .models import Customer, Company, Car, Driver, DrivingData, Employee
+from .models import Customer, Company, Car, Driver, DrivingData, Employee, Geofence, GeofenceViolation
 from django.contrib.auth.hashers import make_password
 import re
 from django.core.exceptions import ValidationError
 from django.db.models import Q
 from functools import reduce
 import operator
+import json
 
 def check_email_uniqueness(email, exclude_model=None, exclude_id=None):
     """
@@ -134,3 +135,45 @@ class EmployeeForm(forms.ModelForm):
         if commit:
             employee.save()
         return employee
+
+class GeofenceForm(forms.ModelForm):
+    class Meta:
+        model = Geofence
+        fields = ['name', 'description', 'type', 'coordinates_json', 'radius', 'color', 'active']
+        
+    def clean(self):
+        cleaned_data = super().clean()
+        geofence_type = cleaned_data.get('type')
+        radius = cleaned_data.get('radius')
+        coordinates_json = cleaned_data.get('coordinates_json')
+        
+        try:
+            coordinates = json.loads(coordinates_json)
+        except json.JSONDecodeError:
+            raise ValidationError('Invalid JSON format for coordinates')
+            
+        if geofence_type == 'circle':
+            if radius is None or radius <= 0:
+                raise ValidationError('Circle geofence must have a positive radius')
+                
+            # Validate that coordinates is a pair of lat/lng
+            if not (isinstance(coordinates, list) and len(coordinates) == 2 and
+                   all(isinstance(c, (int, float)) for c in coordinates)):
+                raise ValidationError('Circle geofence requires a single coordinate pair [lat, lng]')
+                
+        elif geofence_type == 'polygon':
+            # Validate that coordinates is a list of lat/lng pairs
+            if not (isinstance(coordinates, list) and len(coordinates) >= 3):
+                raise ValidationError('Polygon geofence requires at least 3 coordinate pairs')
+                
+            for point in coordinates:
+                if not (isinstance(point, list) and len(point) == 2 and
+                       all(isinstance(c, (int, float)) for c in point)):
+                    raise ValidationError('Invalid coordinate pair in polygon')
+            
+        return cleaned_data
+
+class GeofenceViolationForm(forms.ModelForm):
+    class Meta:
+        model = GeofenceViolation
+        fields = ['geofence', 'car', 'driver', 'violation_type', 'latitude', 'longitude']

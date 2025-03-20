@@ -21,6 +21,11 @@ from django.core.mail import send_mail
 from django.conf import settings
 from django.template.loader import render_to_string
 
+# Add these imports at the top of your views.py
+from .models import Geofence, GeofenceViolation
+from .forms import GeofenceForm, GeofenceViolationForm
+import math
+
 def driver_map(request):
     latest_location = cache.get('latest_location')
     print(f"Driver map latest_location: {latest_location}")  # Debugging statement
@@ -985,3 +990,320 @@ def update_password(request):
     
     return JsonResponse({'error': 'Method not allowed'}, status=405)
 
+
+@csrf_exempt
+def geofence_list(request):
+    """Get all geofences or create a new one"""
+    if request.method == 'GET':
+        # Get all geofences without company filtering
+        geofences = Geofence.objects.all()
+            
+        data = []
+        for geofence in geofences:
+            geofence_data = {
+                'id': geofence.id,
+                'name': geofence.name,
+                'description': geofence.description,
+                'type': geofence.type,
+                'coordinates': geofence.get_coordinates(),
+                'radius': geofence.radius,
+                'color': geofence.color,
+                'active': geofence.active,
+                'createdAt': geofence.created_at.isoformat(),
+            }
+            data.append(geofence_data)
+        
+        return JsonResponse(data, safe=False)
+    
+    return JsonResponse({'error': 'Method not allowed'}, status=405)
+
+
+
+@csrf_exempt
+def check_geofence_violations(request):
+    """Check if a location is outside any active geofences"""
+    if request.method != 'POST':
+        return JsonResponse({'error': 'Method not allowed'}, status=405)
+    
+    try:
+        data = json.loads(request.body)
+        lat = data.get('latitude')
+        lng = data.get('longitude')
+        car_id = data.get('car_id')
+        
+        if not all([lat, lng, car_id]):
+            return JsonResponse({'error': 'Missing required parameters'}, status=400)
+        
+        # Get the car
+        try:
+            car = Car.objects.get(id=car_id)
+        except Car.DoesNotExist:
+            return JsonResponse({'error': 'Car not found'}, status=404)
+            
+        # Get all active geofences without company filtering
+        active_geofences = Geofence.objects.filter(active=True)
+        
+        # Check each geofence
+        violations = []
+        for geofence in active_geofences:
+            if geofence.type == 'circle':
+                center = geofence.get_coordinates()
+                # Calculate distance between point and center
+                import math
+                R = 6371000  # Earth radius in meters
+                lat1 = math.radians(center[0])
+                lat2 = math.radians(lat)
+                dlat = math.radians(lat - center[0])
+                dlng = math.radians(lng - center[1])
+                
+                a = math.sin(dlat/2)**2 + math.cos(lat1) * math.cos(lat2) * math.sin(dlng/2)**2
+                c = 2 * math.atan2(math.sqrt(a), math.sqrt(1-a))
+                distance = R * c
+                
+                if distance > geofence.radius:
+                    violations.append({
+                        'geofence_id': geofence.id,
+                        'name': geofence.name,
+                        'type': 'outside_boundary',
+                        'distance': distance - geofence.radius  # Distance beyond boundary
+                    })
+                    
+                    # Create a violation record
+                    driver = Driver.objects.filter(car_id=car).first()
+                    violation = GeofenceViolation(
+                        geofence=geofence,
+                        car=car,
+                        driver=driver,
+                        violation_type='exit',
+                        latitude=lat,
+                        longitude=lng
+                    )
+                    violation.save()
+            
+            elif geofence.type == 'polygon':
+                # Ray casting algorithm for point in polygon
+                polygon = geofence.get_coordinates()
+                x, y = lng, lat
+                inside = False
+                
+                j = len(polygon) - 1
+                for i in range(len(polygon)):
+                    xi, yi = polygon[i][1], polygon[i][0]  # Note: Coordinates stored as [lat, lng]
+                    xj, yj = polygon[j][1], polygon[j][0]
+                    
+                    intersect = ((yi > y) != (yj > y)) and (x < (xj - xi) * (y - yi) / (yj - yi) + xi)
+                    if intersect:
+                        inside = not inside
+                    j = i
+                
+                if not inside:
+                    violations.append({
+                        'geofence_id': geofence.id,
+                        'name': geofence.name,
+                        'type': 'outside_boundary',
+                        'distance': None  # Cannot easily calculate distance to polygon boundary
+                    })
+                    
+                    # Create a violation record
+                    driver = Driver.objects.filter(car_id=car).first()
+                    violation = GeofenceViolation(
+                        geofence=geofence,
+                        car=car,
+                        driver=driver,
+                        violation_type='exit',
+                        latitude=lat,
+                        longitude=lng
+                    )
+                    violation.save()
+        
+        return JsonResponse({
+            'location': {'latitude': lat, 'longitude': lng},
+            'violations': violations,
+            'in_compliance': len(violations) == 0
+        })
+    
+    except json.JSONDecodeError:
+        return JsonResponse({'error': 'Invalid JSON'}, status=400)
+    except Exception as e:
+        return JsonResponse({'error': str(e)}, status=500)
+
+@csrf_exempt
+def geofence_violations(request, car_id=None):
+    """Get geofence violations for a specific car or all cars"""
+    if request.method != 'GET':
+        return JsonResponse({'error': 'Method not allowed'}, status=405)
+        
+    try:
+        # Filter by car_id if provided
+        if car_id:
+            violations = GeofenceViolation.objects.filter(car_id=car_id).order_by('-timestamp')
+        else:
+            # Get all violations without company filtering
+            violations = GeofenceViolation.objects.all().order_by('-timestamp')
+        
+        # Limit results
+        limit = int(request.GET.get('limit', 100))
+        violations = violations[:limit]
+        
+        data = []
+        for violation in violations:
+            violation_data = {
+                'id': violation.id,
+                'geofence_id': violation.geofence_id,
+                'geofence_name': violation.geofence.name if violation.geofence else 'Unknown',
+                'car_id': violation.car_id,
+                'car_model': violation.car.Model_of_car if violation.car else 'Unknown',
+                'car_plate': violation.car.Plate_number if violation.car else 'Unknown',
+                'driver_id': violation.driver_id,
+                'driver_name': violation.driver.name if violation.driver else 'Unknown',
+                'violation_type': violation.violation_type,
+                'latitude': violation.latitude,
+                'longitude': violation.longitude,
+                'timestamp': violation.timestamp.isoformat()
+            }
+            data.append(violation_data)
+            
+        return JsonResponse(data, safe=False)
+    except Exception as e:
+        return JsonResponse({'error': str(e)}, status=500)
+
+@csrf_exempt
+def get_geofence(request, geofence_id):
+    """Get a specific geofence by ID"""
+    if request.method != 'GET':
+        return JsonResponse({'error': 'Method not allowed'}, status=405)
+        
+    try:
+        geofence = Geofence.objects.get(pk=geofence_id)
+        data = {
+            'id': geofence.id,
+            'name': geofence.name,
+            'description': geofence.description,
+            'type': geofence.type,
+            'coordinates': geofence.get_coordinates(),
+            'radius': geofence.radius,
+            'color': geofence.color,
+            'active': geofence.active,
+            'createdAt': geofence.created_at.isoformat(),
+        }
+        return JsonResponse(data)
+    except Geofence.DoesNotExist:
+        return JsonResponse({'error': 'Geofence not found'}, status=404)
+    except Exception as e:
+        return JsonResponse({'error': str(e)}, status=500)
+
+@csrf_exempt
+def update_geofence(request, geofence_id):
+    try:
+        geofence = Geofence.objects.get(id=geofence_id)
+    except Geofence.DoesNotExist:
+        return JsonResponse({'error': 'Geofence not found'}, status=404)
+        
+    try:
+        data = json.loads(request.body)
+        
+        # Handle partial update for just 'active' field
+        if 'active' in data and len(data.keys()) == 1:
+            geofence.active = data['active']
+            geofence.save()
+            
+            return JsonResponse({
+                'id': geofence.id,
+                'name': geofence.name,
+                'description': geofence.description,
+                'type': geofence.type,
+                'coordinates': geofence.get_coordinates(),
+                'radius': geofence.radius,
+                'color': geofence.color,
+                'active': geofence.active,
+                'createdAt': geofence.created_at.isoformat()
+            })
+        else:
+            # Handle full update with form validation
+            # Extract coordinates and convert to JSON string
+            coordinates = data.pop('coordinates', None)
+            if coordinates:
+                data['coordinates_json'] = json.dumps(coordinates)
+            
+            # Update the geofence
+            form = GeofenceForm(data, instance=geofence)
+            
+            if form.is_valid():
+                updated_geofence = form.save()
+                
+                response_data = {
+                    'id': updated_geofence.id,
+                    'name': updated_geofence.name,
+                    'description': updated_geofence.description,
+                    'type': updated_geofence.type,
+                    'coordinates': updated_geofence.get_coordinates(),
+                    'radius': updated_geofence.radius,
+                    'color': updated_geofence.color,
+                    'active': updated_geofence.active,
+                    'createdAt': updated_geofence.created_at.isoformat(),
+                }
+                
+                return JsonResponse(response_data)
+            else:
+                print(f"Form validation errors: {form.errors}")
+                return JsonResponse({'errors': form.errors}, status=400)
+            
+    except Exception as e:
+        return JsonResponse({'error': str(e)}, status=500)
+
+@csrf_exempt
+def delete_geofence(request, geofence_id):
+    """Delete a specific geofence"""
+    if request.method != 'DELETE':
+        return JsonResponse({'error': 'Method not allowed'}, status=405)
+        
+    try:
+        geofence = Geofence.objects.get(pk=geofence_id)
+        geofence.delete()
+        return JsonResponse({'message': 'Geofence deleted successfully'})
+    except Geofence.DoesNotExist:
+        return JsonResponse({'error': 'Geofence not found'}, status=404)
+    except Exception as e:
+        return JsonResponse({'error': str(e)}, status=500)
+
+@csrf_exempt
+def create_geofence(request):
+    """Create a new geofence"""
+    if request.method != 'POST':
+        return JsonResponse({'error': 'Method not allowed'}, status=405)
+        
+    try:
+        data = json.loads(request.body)
+        
+        # Extract coordinates and convert to JSON string
+        coordinates = data.pop('coordinates', None)
+        if coordinates:
+            data['coordinates_json'] = json.dumps(coordinates)
+        
+        # Create form with JSON data
+        form = GeofenceForm(data)
+        
+        if form.is_valid():
+            geofence = form.save()
+            
+            response_data = {
+                'id': geofence.id,
+                'name': geofence.name,
+                'description': geofence.description,
+                'type': geofence.type,
+                'coordinates': geofence.get_coordinates(),
+                'radius': geofence.radius,
+                'color': geofence.color,
+                'active': geofence.active,
+                'createdAt': geofence.created_at.isoformat()
+            }
+            
+            return JsonResponse(response_data, status=201)
+        else:
+            print(f"Form validation errors: {form.errors}")
+            return JsonResponse({'errors': form.errors}, status=400)
+            
+    except json.JSONDecodeError:
+        return JsonResponse({'error': 'Invalid JSON'}, status=400)
+    except Exception as e:
+        return JsonResponse({'error': str(e)}, status=500)

@@ -1,4 +1,4 @@
-import React from 'react';
+import React, { useEffect, useState } from 'react';
 import {
   Box,
   Paper,
@@ -13,6 +13,9 @@ import {
   Divider,
   Stack,
   Tooltip,
+  CircularProgress,
+  Snackbar,
+  Alert,
 } from '@mui/material';
 import AddIcon from '@mui/icons-material/Add';
 import DeleteIcon from '@mui/icons-material/Delete';
@@ -21,22 +24,110 @@ import PolygonIcon from '@mui/icons-material/Category';
 import { Geofence } from '@/app/dashboard-admin/geofencing/page';
 
 interface GeofencesListProps {
-  geofences: Geofence[];
   selectedGeofenceId: string | null;
   onSelect: (id: string | null) => void;
   onCreate: () => void;
-  onDelete: (id: string) => void;
-  onToggleActive: (id: string) => void;
 }
 
 export function GeofencesList({
-  geofences,
   selectedGeofenceId,
   onSelect,
   onCreate,
-  onDelete,
-  onToggleActive
 }: GeofencesListProps) {
+  const [geofences, setGeofences] = useState<Geofence[]>([]);
+  const [loading, setLoading] = useState<boolean>(true);
+  const [error, setError] = useState<string | null>(null);
+  const [notification, setNotification] = useState<{
+    open: boolean;
+    message: string;
+    type: 'success' | 'error';
+  }>({
+    open: false,
+    message: '',
+    type: 'success'
+  });
+
+  useEffect(() => {
+    fetchGeofences();
+  }, []);
+
+  const fetchGeofences = async () => {
+    try {
+      setLoading(true);
+      const response = await fetch('http://localhost:8000/api/geofences/');
+      const data = await response.json();
+      setGeofences(data);
+      setError(null);
+    } catch (err) {
+      console.error('Error fetching geofences:', err);
+      setError('Failed to load geofences. Please try again.');
+    } finally {
+      setLoading(false);
+    }
+  };
+
+  const handleToggleActive = async (id: string) => {
+    try {
+      const geofence = geofences.find(g => g.id === id);
+      if (!geofence) return;
+
+      // Send the complete geofence object with the toggled active status
+      const response = await fetch(`http://localhost:8000/api/geofences/${id}/update/`, {
+        method: 'PUT',
+        headers: {
+          'Content-Type': 'application/json',
+        },
+        body: JSON.stringify({
+          ...geofence,
+          active: !geofence.active
+        }),
+      });
+
+      if (!response.ok) {
+        throw new Error('Failed to update geofence status');
+      }
+
+      await fetchGeofences();
+      showNotification(`Geofence ${geofence.active ? 'deactivated' : 'activated'} successfully`, 'success');
+    } catch (err) {
+      console.error('Error toggling geofence status:', err);
+      showNotification('Failed to update geofence status', 'error');
+    }
+  };
+
+  const handleDeleteGeofence = async (id: string) => {
+    try {
+      const response = await fetch(`http://localhost:8000/api/geofences/${id}/delete/`, {
+        method: 'DELETE',
+      });
+
+      if (!response.ok) {
+        throw new Error('Failed to delete geofence');
+      }
+
+      await fetchGeofences();
+      showNotification('Geofence deleted successfully', 'success');
+    } catch (err) {
+      console.error('Error deleting geofence:', err);
+      showNotification('Failed to delete geofence', 'error');
+    }
+  };
+
+  const showNotification = (message: string, type: 'success' | 'error') => {
+    setNotification({
+      open: true,
+      message,
+      type
+    });
+  };
+
+  const handleCloseNotification = () => {
+    setNotification({
+      ...notification,
+      open: false
+    });
+  };
+
   return (
     <Paper 
       sx={{ 
@@ -62,7 +153,15 @@ export function GeofencesList({
       </Box>
       
       <Box sx={{ overflow: 'auto', flexGrow: 1 }}>
-        {geofences.length === 0 ? (
+        {loading ? (
+          <Box sx={{ display: 'flex', justifyContent: 'center', alignItems: 'center', height: '100%' }}>
+            <CircularProgress />
+          </Box>
+        ) : error ? (
+          <Box sx={{ p: 3, textAlign: 'center' }}>
+            <Typography color="error">{error}</Typography>
+          </Box>
+        ) : geofences.length === 0 ? (
           <Box sx={{ p: 3, textAlign: 'center' }}>
             <Typography color="text.secondary">
               No geofences defined yet
@@ -127,7 +226,7 @@ export function GeofencesList({
                         checked={geofence.active}
                         onClick={(e) => {
                           e.stopPropagation();
-                          onToggleActive(geofence.id);
+                          handleToggleActive(geofence.id);
                         }}
                       />
                     </Tooltip>
@@ -137,7 +236,7 @@ export function GeofencesList({
                         size="small" 
                         onClick={(e) => {
                           e.stopPropagation();
-                          onDelete(geofence.id);
+                          handleDeleteGeofence(geofence.id);
                         }}
                         sx={{ ml: 0.5 }}
                       >
@@ -152,6 +251,21 @@ export function GeofencesList({
           </List>
         )}
       </Box>
+
+      <Snackbar
+        open={notification.open}
+        autoHideDuration={6000}
+        onClose={handleCloseNotification}
+        anchorOrigin={{ vertical: 'bottom', horizontal: 'right' }}
+      >
+        <Alert 
+          onClose={handleCloseNotification} 
+          severity={notification.type} 
+          sx={{ width: '100%' }}
+        >
+          {notification.message}
+        </Alert>
+      </Snackbar>
     </Paper>
   );
 }

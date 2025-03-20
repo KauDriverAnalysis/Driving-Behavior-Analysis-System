@@ -1,6 +1,6 @@
 'use client';
 
-import { useState } from 'react';
+import { useState, useEffect } from 'react';
 import { 
   Box, 
   Stack, 
@@ -9,7 +9,10 @@ import {
   Paper,
   Card,
   CardHeader,
-  Divider 
+  Divider,
+  CircularProgress,
+  Alert,
+  Snackbar
 } from '@mui/material';
 import dynamic from 'next/dynamic';
 import MapIcon from '@mui/icons-material/Map';
@@ -38,78 +41,189 @@ export interface Geofence {
 export default function GeofencingPage() {
   const [selectedGeofence, setSelectedGeofence] = useState<string | null>(null);
   const [isCreating, setIsCreating] = useState<boolean>(false);
-  const [geofences, setGeofences] = useState<Geofence[]>([
-    {
-      id: '1',
-      name: 'Office Zone',
-      description: 'Main office parking area',
-      type: 'circle',
-      coordinates: [21.4858, 39.1925],
-      radius: 500,
-      color: '#ff4444',
-      active: true,
-      createdAt: new Date().toISOString()
-    },
-    {
-      id: '2',
-      name: 'Delivery Zone',
-      description: 'Northeast delivery area',
-      type: 'polygon',
-      coordinates: [
-        [21.5058, 39.2125],
-        [21.5158, 39.2225],
-        [21.5058, 39.2325],
-        [21.4958, 39.2225]
-      ],
-      color: '#33aa33',
-      active: true,
-      createdAt: new Date().toISOString()
-    }
-  ]);
+  const [loading, setLoading] = useState<boolean>(true);
+  const [error, setError] = useState<string | null>(null);
+  const [geofences, setGeofences] = useState<Geofence[]>([]);
+  const [notification, setNotification] = useState<{
+    open: boolean;
+    message: string;
+    type: 'success' | 'error';
+  }>({
+    open: false,
+    message: '',
+    type: 'success'
+  });
   
   const [tempGeometry, setTempGeometry] = useState<{
     type: 'circle' | 'polygon';
     data: any;
   } | null>(null);
+  const [previewColor, setPreviewColor] = useState<string>('#ff4444');
+  const [isEditing, setIsEditing] = useState<boolean>(false);
+
+  // Fetch geofences from Django when component mounts
+  useEffect(() => {
+    fetchGeofences();
+  }, []);
+
+  // Function to fetch geofences from Django
+  const fetchGeofences = async () => {
+    try {
+      setLoading(true);
+      const response = await fetch('http://localhost:8000/api/geofences/');
+      
+      if (!response.ok) {
+        throw new Error(`HTTP error! Status: ${response.status}`);
+      }
+      
+      const data = await response.json();
+      console.log('Fetched geofences from Django:', data);
+      
+      setGeofences(data);
+      setError(null);
+    } catch (err) {
+      console.error('Error fetching geofences:', err);
+      setError('Failed to load geofences from server');
+    } finally {
+      setLoading(false);
+    }
+  };
 
   const handleGeometryChange = (type: 'circle' | 'polygon', data: any) => {
     setTempGeometry({ type, data });
   };
 
+  const handleColorChange = (color: string) => {
+    setPreviewColor(color);
+  };
+
   const handleSelectGeofence = (id: string | null) => {
     setSelectedGeofence(id);
-    setIsCreating(false);
+    if (id) {
+      const selectedFence = geofences.find(g => g.id === id);
+      if (selectedFence) {
+        setIsEditing(true);
+        setIsCreating(true);
+        // Set initial geometry for editing
+        if (selectedFence.type === 'circle') {
+          setTempGeometry({
+            type: 'circle',
+            data: {
+              center: selectedFence.coordinates as [number, number],
+              radius: selectedFence.radius
+            }
+          });
+        } else {
+          setTempGeometry({
+            type: 'polygon',
+            data: {
+              coordinates: selectedFence.coordinates as [number, number][]
+            }
+          });
+        }
+        setPreviewColor(selectedFence.color);
+      }
+    } else {
+      setIsEditing(false);
+      setIsCreating(false);
+      setTempGeometry(null);
+    }
   };
 
   const handleCreateGeofence = () => {
     setSelectedGeofence(null);
+    setIsEditing(false);
     setIsCreating(true);
+    setTempGeometry(null);
   };
 
-  const handleSaveGeofence = (geofence: Geofence) => {
-    setGeofences((prev) => {
-      // If it's an existing geofence, update it
-      if (prev.some(g => g.id === geofence.id)) {
-        return prev.map(g => g.id === geofence.id ? geofence : g);
-      }
-      // Otherwise add new one
-      return [...prev, geofence];
-    });
+  // Handle saving a geofence (create or update)
+  const handleSaveGeofence = (geofence: any) => {
+    // Update local state for immediate UI feedback
+    if (isEditing && selectedGeofence) {
+      // Update existing geofence in state
+      setGeofences(prevGeofences => 
+        prevGeofences.map(g => g.id === selectedGeofence ? {...geofence, id: selectedGeofence} : g)
+      );
+    } else {
+      // Create a new geofence with a temporary ID
+      const newId = Date.now().toString();
+      setGeofences(prevGeofences => [
+        ...prevGeofences, 
+        {...geofence, id: newId, createdAt: new Date().toISOString()}
+      ]);
+    }
+    
     setIsCreating(false);
-    setSelectedGeofence(geofence.id);
+    setIsEditing(false);
+    
+    // Fetch fresh data from the server
+    fetchGeofences();
+    
+    // Show success notification
+    showNotification(
+      isEditing ? 'Geofence updated successfully' : 'Geofence created successfully', 
+      'success'
+    );
   };
 
-  const handleDeleteGeofence = (id: string) => {
-    setGeofences((prev) => prev.filter(g => g.id !== id));
-    if (selectedGeofence === id) {
-      setSelectedGeofence(null);
+  // Handle deleting a geofence
+  const handleDeleteGeofence = async (id: string) => {
+    try {
+      // Optimistically update UI first for responsiveness
+      setGeofences(prev => prev.filter(g => g.id !== id));
+      
+      // Then make the API call
+      const response = await fetch(`http://localhost:8000/api/geofences/${id}/delete/`, {
+        method: 'DELETE',
+      });
+  
+      if (!response.ok) {
+        throw new Error('Failed to delete geofence');
+      }
+      
+      // If the deleted geofence was selected, clear selection
+      if (selectedGeofence === id) {
+        setSelectedGeofence(null);
+      }
+      
+      // Optionally re-fetch from server to ensure sync
+      fetchGeofences();
+      
+    } catch (err) {
+      console.error('Error deleting geofence:', err);
+      // If delete failed, revert the state change by re-fetching
+      fetchGeofences();
     }
   };
 
+  // Handle toggling a geofence's active state
   const handleToggleActive = (id: string) => {
-    setGeofences((prev) => 
-      prev.map(g => g.id === id ? { ...g, active: !g.active } : g)
+    const geofence = geofences.find(g => g.id === id);
+    if (!geofence) return;
+  
+    // Update local state for immediate UI feedback
+    setGeofences(prevGeofences =>
+      prevGeofences.map(g => g.id === id ? { ...g, active: !g.active } : g)
     );
+    
+    // Fetch fresh data from the server
+    fetchGeofences();
+    
+    showNotification(`Geofence ${geofence.active ? 'deactivated' : 'activated'} successfully`, 'success');
+  };
+
+  // Helper function to show notification
+  const showNotification = (message: string, type: 'success' | 'error') => {
+    setNotification({
+      open: true,
+      message,
+      type
+    });
+  };
+
+  const handleCloseNotification = () => {
+    setNotification(prev => ({ ...prev, open: false }));
   };
 
   return (
@@ -120,12 +234,27 @@ export default function GeofencingPage() {
           <Typography variant="h4" fontWeight="600" color="primary.main">Geofencing Management</Typography>
         </Paper>
 
+        {error && (
+          <Alert severity="error" onClose={() => setError(null)}>
+            {error}
+          </Alert>
+        )}
+
         <Grid container spacing={3}>
           <Grid item xs={12} lg={4}>
             {isCreating ? (
               <GeofenceCreate
                 onSave={handleSaveGeofence}
-                onCancel={() => setIsCreating(false)}
+                onCancel={() => {
+                  setIsCreating(false);
+                  setIsEditing(false);
+                  setSelectedGeofence(null);
+                  setTempGeometry(null);
+                }}
+                geometry={tempGeometry}
+                onColorChange={handleColorChange}
+                initialColor={previewColor}
+                editGeofence={isEditing ? geofences.find(g => g.id === selectedGeofence) : undefined}
               />
             ) : (
               <Card sx={{ 
@@ -143,14 +272,20 @@ export default function GeofencingPage() {
                   sx={{ backgroundColor: 'background.paper', pb: 1 }}
                 />
                 <Divider />
-                <GeofencesList 
-                  geofences={geofences}
-                  selectedGeofenceId={selectedGeofence}
-                  onSelect={handleSelectGeofence}
-                  onCreate={handleCreateGeofence}
-                  onDelete={handleDeleteGeofence}
-                  onToggleActive={handleToggleActive}
-                />
+                {loading ? (
+                  <Box sx={{ display: 'flex', justifyContent: 'center', alignItems: 'center', height: '200px' }}>
+                    <CircularProgress />
+                  </Box>
+                ) : (
+                  <GeofencesList 
+                    geofences={geofences}
+                    selectedGeofenceId={selectedGeofence}
+                    onSelect={handleSelectGeofence}
+                    onCreate={handleCreateGeofence}
+                    onDelete={handleDeleteGeofence}
+                    onToggleActive={handleToggleActive}
+                  />
+                )}
               </Card>
             )}
           </Grid>
@@ -173,18 +308,50 @@ export default function GeofencingPage() {
               />
               <Divider />
               <Box sx={{ height: '600px', width: '100%', position: 'relative' }}>
+                {loading && (
+                  <Box sx={{ 
+                    position: 'absolute', 
+                    top: 0, left: 0, right: 0, bottom: 0, 
+                    display: 'flex', 
+                    justifyContent: 'center', 
+                    alignItems: 'center',
+                    backgroundColor: 'rgba(255,255,255,0.7)',
+                    zIndex: 1000
+                  }}>
+                    <CircularProgress />
+                  </Box>
+                )}
                 <GeofencingMapComponent 
                   geofences={geofences}
                   selectedGeofenceId={selectedGeofence}
                   onSelectGeofence={handleSelectGeofence}
                   editMode={isCreating}
                   onGeometryChange={handleGeometryChange}
+                  previewGeometry={tempGeometry ? {
+                    ...tempGeometry,
+                    color: previewColor
+                  } : null}
                 />
               </Box>
             </Card>
           </Grid>
         </Grid>
       </Stack>
+
+      <Snackbar
+        open={notification.open}
+        autoHideDuration={6000}
+        onClose={handleCloseNotification}
+        anchorOrigin={{ vertical: 'bottom', horizontal: 'right' }}
+      >
+        <Alert 
+          onClose={handleCloseNotification} 
+          severity={notification.type} 
+          sx={{ width: '100%' }}
+        >
+          {notification.message}
+        </Alert>
+      </Snackbar>
     </Box>
   );
 }

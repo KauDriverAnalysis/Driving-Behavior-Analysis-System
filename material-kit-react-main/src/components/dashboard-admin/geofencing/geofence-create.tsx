@@ -1,4 +1,4 @@
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 import { 
   Box, 
   Paper, 
@@ -14,37 +14,44 @@ import {
 } from '@mui/material';
 import { v4 as uuidv4 } from 'uuid';
 import { Geofence } from '@/app/dashboard-admin/geofencing/page';
-import { GeofencingMap } from './geofencing-map';
 
 interface GeofenceCreateProps {
   onSave: (geofence: Geofence) => void;
   onCancel: () => void;
   editGeofence?: Geofence;
-}
-
-export function GeofenceCreate({ onSave, onCancel, editGeofence }: GeofenceCreateProps) {
-  const [name, setName] = useState(editGeofence?.name || '');
-  const [description, setDescription] = useState(editGeofence?.description || '');
-  const [color, setColor] = useState(editGeofence?.color || '#ff4444');
-  const [geometry, setGeometry] = useState<{
+  geometry: {
     type: 'circle' | 'polygon';
     data: any;
-  }>({
-    type: editGeofence?.type || 'circle',
-    data: editGeofence?.type === 'circle' 
-      ? { center: editGeofence.coordinates, radius: editGeofence.radius } 
-      : { coordinates: editGeofence?.coordinates }
-  });
+  } | null;
+  onColorChange?: (color: string) => void;
+  initialColor?: string;
+}
+
+export function GeofenceCreate({ 
+  onSave, 
+  onCancel, 
+  editGeofence, 
+  geometry,
+  onColorChange,
+  initialColor = '#ff4444'
+}: GeofenceCreateProps) {
+  const [name, setName] = useState(editGeofence?.name || '');
+  const [description, setDescription] = useState(editGeofence?.description || '');
+  const [color, setColor] = useState(editGeofence?.color || initialColor);
+
+  // Update form when editGeofence changes
+  useEffect(() => {
+    if (editGeofence) {
+      setName(editGeofence.name);
+      setDescription(editGeofence.description || '');
+      setColor(editGeofence.color);
+    }
+  }, [editGeofence]);
 
   const [formErrors, setFormErrors] = useState({
     name: '',
     geometry: ''
   });
-
-  const handleGeometryChange = (type: 'circle' | 'polygon', data: any) => {
-    setGeometry({ type, data });
-    setFormErrors(prev => ({ ...prev, geometry: '' }));
-  };
 
   const validateForm = () => {
     const errors = {
@@ -56,7 +63,7 @@ export function GeofenceCreate({ onSave, onCancel, editGeofence }: GeofenceCreat
       errors.name = 'Name is required';
     }
     
-    if (!geometry.data) {
+    if (!geometry) {
       errors.geometry = 'Please draw a geofence on the map';
     }
     
@@ -64,15 +71,14 @@ export function GeofenceCreate({ onSave, onCancel, editGeofence }: GeofenceCreat
     return !errors.name && !errors.geometry;
   };
 
-  const handleSubmit = (e: React.FormEvent) => {
+  const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
     
-    if (!validateForm()) {
+    if (!validateForm() || !geometry) {
       return;
     }
     
-    const newGeofence: Geofence = {
-      id: editGeofence?.id || uuidv4(),
+    const geofenceData: Omit<Geofence, 'id' | 'createdAt'> = {
       name,
       description: description || undefined,
       type: geometry.type,
@@ -82,15 +88,65 @@ export function GeofenceCreate({ onSave, onCancel, editGeofence }: GeofenceCreat
       radius: geometry.type === 'circle' ? geometry.data.radius : undefined,
       color,
       active: editGeofence?.active !== undefined ? editGeofence.active : true,
-      createdAt: editGeofence?.createdAt || new Date().toISOString()
     };
-    
-    onSave(newGeofence);
+
+    try {
+      let response;
+      let resultGeofence;
+
+      // Check if we're editing an existing geofence or creating a new one
+      if (editGeofence) {
+        // Update existing geofence
+        response = await fetch(`http://localhost:8000/api/geofences/${editGeofence.id}/update/`, {
+          method: 'PUT',
+          headers: {
+            'Content-Type': 'application/json',
+          },
+          body: JSON.stringify(geofenceData),
+        });
+
+        if (!response.ok) {
+          throw new Error('Failed to update geofence');
+        }
+
+        resultGeofence = await response.json();
+      } else {
+        // Create new geofence
+        response = await fetch('http://localhost:8000/api/geofences/create/', {
+          method: 'POST',
+          headers: {
+            'Content-Type': 'application/json',
+          },
+          body: JSON.stringify(geofenceData),
+        });
+
+        if (!response.ok) {
+          throw new Error('Failed to create geofence');
+        }
+
+        resultGeofence = await response.json();
+      }
+
+      // Pass the result back to the parent component
+      onSave(resultGeofence);
+    } catch (err) {
+      console.error(`Error ${editGeofence ? 'updating' : 'creating'} geofence:`, err);
+      setFormErrors(prev => ({ 
+        ...prev, 
+        geometry: `Failed to ${editGeofence ? 'update' : 'create'} geofence. Please try again.` 
+      }));
+    }
+  };
+
+  const handleColorChange = (e: any) => {
+    const newColor = e.target.value;
+    setColor(newColor);
+    onColorChange?.(newColor);
   };
 
   return (
-    <Box sx={{ height: '100%', display: 'flex', flexDirection: 'column' }}>
-      <Paper sx={{ p: 3, mb: 2 }}>
+    <Box sx={{ height: '100%' }}>
+      <Paper sx={{ p: 3 }}>
         <Typography variant="h6" mb={2}>
           {editGeofence ? 'Edit Geofence' : 'Create New Geofence'}
         </Typography>
@@ -123,7 +179,7 @@ export function GeofenceCreate({ onSave, onCancel, editGeofence }: GeofenceCreat
               <InputLabel>Color</InputLabel>
               <Select
                 value={color}
-                onChange={(e) => setColor(e.target.value)}
+                onChange={handleColorChange}
                 label="Color"
               >
                 <MenuItem value="#ff4444" sx={{ color: '#ff4444' }}>Red</MenuItem>
@@ -145,16 +201,6 @@ export function GeofenceCreate({ onSave, onCancel, editGeofence }: GeofenceCreat
           </Stack>
         </form>
       </Paper>
-      
-      <Box sx={{ flexGrow: 1, height: 'calc(100% - 280px)', minHeight: '300px' }}>
-        <GeofencingMap
-          geofences={[]}
-          selectedGeofenceId={null}
-          onSelectGeofence={() => {}}
-          editMode={true}
-          onGeometryChange={handleGeometryChange}
-        />
-      </Box>
     </Box>
   );
 }
