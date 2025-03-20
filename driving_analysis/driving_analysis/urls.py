@@ -56,4 +56,6 @@ urlpatterns = [
     path('api/geofences/create/', views.create_geofence, name='create_geofence'),
     path('api/geofences/<int:geofence_id>/update/', views.update_geofence, name='update_geofence'),
     path('api/geofences/<int:geofence_id>/delete/', views.delete_geofence, name='delete_geofence'),
+    path('api/get-car-location/<int:car_id>/', views.get_car_location, name='get_car_location'),
+    path('api/get-car-location/', views.get_car_location, name='get_all_car_locations'),
 ]

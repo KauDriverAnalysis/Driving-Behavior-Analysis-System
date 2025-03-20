@@ -240,7 +240,7 @@ def create_car(request):
             if data.get('customer_id'):
                 try:
                     # Fixed the syntax error here - was using id() function incorrectly
-                    customer = Customer.objects.get(id=data['customer_id'])
+                    customer = Customer.objects.get(id(data['customer_id']))
                     data['customer_id'] = customer
                 except Customer.DoesNotExist:
                     return JsonResponse({'errors': {'customer_id': 'Invalid customer ID'}}, status=400)
@@ -1133,4 +1133,88 @@ def create_geofence(request):
     except json.JSONDecodeError:
         return JsonResponse({'error': 'Invalid JSON'}, status=400)
     except Exception as e:
+        return JsonResponse({'error': str(e)}, status=500)
+
+@csrf_exempt
+def get_car_location(request, car_id=None):
+    """
+    Get location data for a specific car or all cars.
+    If car_id is provided, return data for that specific car.
+    Otherwise, return location data for all cars.
+    """
+    try:
+        # Get all cars with their device IDs
+        cars = list(Car.objects.all().values('id', 'device_id', 'Model_of_car', 'Plate_number'))
+        latest_location = cache.get('latest_location')
+        
+        if car_id:
+            # Get the device_id for the requested car
+            car = next((c for c in cars if c['id'] == car_id), None)
+            if not car:
+                return JsonResponse({'error': f'Car with id {car_id} not found'}, status=404)
+            
+            device_id = car['device_id']
+            print(f"Looking for car with device_id: {device_id}")
+            print(f"Latest location data: {latest_location}")
+            
+            # Check if we have location data for this device (case insensitive comparison)
+            if latest_location and latest_location.get('device_id', '').lower() == device_id.lower():
+                # We found location data for this specific car
+                return JsonResponse({
+                    'latitude': latest_location['latitude'],
+                    'longitude': latest_location['longitude'],
+                    'speed': latest_location.get('speed', 0),
+                    'device_id': device_id,
+                    'model': car['Model_of_car'],
+                    'plate': car['Plate_number']
+                })
+            else:
+                # No location data for this car yet
+                return JsonResponse({
+                    'latitude': 21.4858,  # Default to Jeddah coordinates if no data
+                    'longitude': 39.1925,
+                    'speed': 0,
+                    'device_id': device_id,
+                    'model': car['Model_of_car'],
+                    'plate': car['Plate_number']
+                })
+        else:
+            # Return all cars with their locations or default coordinates
+            car_locations = []
+            
+            # For each car, check if we have location data matching its device_id
+            for car in cars:
+                device_id = car['device_id']
+                
+                # If we have data for this device, use it, otherwise use default values
+                if latest_location and latest_location.get('device_id', '').lower() == device_id.lower():
+                    car_locations.append({
+                        'id': car['id'],
+                        'latitude': latest_location['latitude'],
+                        'longitude': latest_location['longitude'],
+                        'speed': latest_location.get('speed', 0),
+                        'device_id': device_id,
+                        'model': car['Model_of_car'],
+                        'plate': car['Plate_number']
+                    })
+                else:
+                    car_locations.append({
+                        'id': car['id'],
+                        'latitude': 21.4858,  # Default to Jeddah coordinates if no data
+                        'longitude': 39.1925,
+                        'speed': 0,
+                        'device_id': device_id,
+                        'model': car['Model_of_car'],
+                        'plate': car['Plate_number']
+                    })
+            
+            response = JsonResponse(car_locations, safe=False)
+            # Add CORS headers
+            response["Access-Control-Allow-Origin"] = "http://localhost:3000"
+            response["Access-Control-Allow-Methods"] = "GET, OPTIONS"
+            response["Access-Control-Allow-Headers"] = "Content-Type, Authorization"
+            return response
+            
+    except Exception as e:
+        print(f"Error in get_car_location: {str(e)}")
         return JsonResponse({'error': str(e)}, status=500)
