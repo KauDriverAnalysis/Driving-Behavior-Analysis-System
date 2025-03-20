@@ -10,9 +10,7 @@ import CardHeader from '@mui/material/CardHeader';
 import Divider from '@mui/material/Divider';
 import FormControl from '@mui/material/FormControl';
 import InputLabel from '@mui/material/InputLabel';
-import MenuItem from '@mui/material/MenuItem';
 import OutlinedInput from '@mui/material/OutlinedInput';
-import Select from '@mui/material/Select';
 import Grid from '@mui/material/Unstable_Grid2';
 import EditIcon from '@mui/icons-material/Edit';
 import SaveIcon from '@mui/icons-material/Save';
@@ -21,11 +19,10 @@ import Alert from '@mui/material/Alert';
 import Snackbar from '@mui/material/Snackbar';
 
 interface UserData {
-  Name: string;
-  gender: 'male' | 'female';
-  phone_number: string;
-  address: string | null;
+  Company_name: string;
+  Contact_number: string;
   Email: string;
+  location: string;
   Password: string;
   reset_token?: string | null;
   reset_token_expires?: string | null;
@@ -35,11 +32,10 @@ export function AccountDetailsForm(): React.JSX.Element {
   const [isEditing, setIsEditing] = useState(false);
   const [notification, setNotification] = useState<{ message: string; type: 'success' | 'error' } | null>(null);
   const [userData, setUserData] = useState<UserData>({
-    Name: '',
-    gender: 'male',
-    phone_number: '',
-    address: '',
+    Company_name: '',
+    Contact_number: '',
     Email: '',
+    location: '',
     Password: '',
     reset_token: null,
     reset_token_expires: null
@@ -87,37 +83,35 @@ export function AccountDetailsForm(): React.JSX.Element {
       <form onSubmit={handleSave}>
         <Card>
           <CardHeader 
-            subheader={isEditing ? "Edit your profile information" : "Your profile information"} 
-            title="Profile" 
+            subheader={isEditing ? "Edit company information" : "Company information"} 
+            title="Company Profile" 
           />
           <Divider />
           <CardContent>
             <Grid container spacing={3}>
               <Grid md={6} xs={12}>
                 <FormControl fullWidth required>
-                  <InputLabel>Name</InputLabel>
+                  <InputLabel>Company Name</InputLabel>
                   <OutlinedInput
-                    value={tempData.Name}
-                    onChange={handleInputChange('Name')}
-                    label="Name"
-                    name="Name"
+                    value={tempData.Company_name}
+                    onChange={handleInputChange('Company_name')}
+                    label="Company Name"
+                    name="Company_name"
                     disabled={!isEditing}
                   />
                 </FormControl>
               </Grid>
               <Grid md={6} xs={12}>
                 <FormControl fullWidth required>
-                  <InputLabel>Gender</InputLabel>
-                  <Select
-                    value={tempData.gender}
-                    onChange={(e) => setTempData(prev => ({ ...prev, gender: e.target.value as 'male' | 'female' }))}
-                    label="Gender"
-                    name="gender"
+                  <InputLabel>Contact Number</InputLabel>
+                  <OutlinedInput
+                    value={tempData.Contact_number}
+                    onChange={handleInputChange('Contact_number')}
+                    label="Contact Number"
+                    name="Contact_number"
+                    type="tel"
                     disabled={!isEditing}
-                  >
-                    <MenuItem value="male">Male</MenuItem>
-                    <MenuItem value="female">Female</MenuItem>
-                  </Select>
+                  />
                 </FormControl>
               </Grid>
               <Grid md={6} xs={12}>
@@ -135,27 +129,12 @@ export function AccountDetailsForm(): React.JSX.Element {
               </Grid>
               <Grid md={6} xs={12}>
                 <FormControl fullWidth required>
-                  <InputLabel>Phone Number</InputLabel>
+                  <InputLabel>Location</InputLabel>
                   <OutlinedInput
-                    value={tempData.phone_number}
-                    onChange={handleInputChange('phone_number')}
-                    label="Phone Number"
-                    name="phone_number"
-                    type="tel"
-                    disabled={!isEditing}
-                  />
-                </FormControl>
-              </Grid>
-              <Grid xs={12}>
-                <FormControl fullWidth>
-                  <InputLabel>Address</InputLabel>
-                  <OutlinedInput
-                    value={tempData.address || ''}
-                    onChange={handleInputChange('address')}
-                    label="Address"
-                    name="address"
-                    multiline
-                    rows={2}
+                    value={tempData.location}
+                    onChange={handleInputChange('location')}
+                    label="Location"
+                    name="location"
                     disabled={!isEditing}
                   />
                 </FormControl>

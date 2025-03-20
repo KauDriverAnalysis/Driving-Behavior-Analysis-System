@@ -7,10 +7,10 @@ export const paths = {
   },
   dashboardCustomer: {
     overview: '/dashboard-customer',
-    parentalControl: '/dashboard-customer/parental-control', // Match the path name
+    parentalControl: '/dashboard-customer/parental-control',
     carCustomers: '/dashboard-customer/car-customers',
     account: '/dashboard-customer/account',
-
+    geofencing: '/dashboard-customer/geofencing', // Added new geofencing path
   },
   dashboardAdmin: {
     overview: '/dashboard-admin',
@@ -18,6 +18,8 @@ export const paths = {
     geofencing: '/dashboard-admin/geofencing',
     cars: '/dashboard-admin/cars',
     employees: '/dashboard-admin/employees',
+    drivers: '/dashboard-admin/drivers ',
+    account: '/dashboard-admin/account',
   },
   errors: { 
     notFound: '/errors/not-found' 

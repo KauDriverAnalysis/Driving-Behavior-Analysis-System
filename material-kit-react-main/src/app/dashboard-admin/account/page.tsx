@@ -9,7 +9,7 @@ import Divider from '@mui/material/Divider';
 import PersonIcon from '@mui/icons-material/Person';
 
 import { config } from '@/config';
-import { AccountDetailsForm } from '@/components/dashboard-customer/account/account-details-form';
+import { AccountDetailsForm } from '@/components/dashboard-admin/account/account-details-form';
 
 export const metadata = { title: `Account Settings | ${config.site.name}` } satisfies Metadata;
 
