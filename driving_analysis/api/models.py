@@ -95,21 +95,5 @@ class Geofence(models.Model):
     def __str__(self):
         return f"{self.name} ({self.type})"
 
-class GeofenceViolation(models.Model):
-    VIOLATION_TYPES = (
-        ('exit', 'Exit Geofence'),
-        ('entry', 'Enter Geofence'),
-    )
-    
-    id = models.AutoField(primary_key=True)
-    geofence = models.ForeignKey(Geofence, on_delete=models.CASCADE, related_name='violations')
-    car = models.ForeignKey(Car, on_delete=models.CASCADE, related_name='geofence_violations')
-    driver = models.ForeignKey(Driver, on_delete=models.SET_NULL, null=True, related_name='geofence_violations')
-    violation_type = models.CharField(max_length=10, choices=VIOLATION_TYPES)
-    latitude = models.FloatField()
-    longitude = models.FloatField()
-    timestamp = models.DateTimeField(auto_now_add=True)
-    
-    def __str__(self):
-        return f"{self.violation_type} violation by {self.car} at {self.timestamp}"
+
 

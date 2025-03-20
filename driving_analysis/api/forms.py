@@ -1,5 +1,5 @@
 from django import forms
-from .models import Customer, Company, Car, Driver, DrivingData, Employee, Geofence, GeofenceViolation
+from .models import Customer, Company, Car, Driver, DrivingData, Employee, Geofence
 from django.contrib.auth.hashers import make_password
 import re
 from django.core.exceptions import ValidationError
@@ -173,7 +173,3 @@ class GeofenceForm(forms.ModelForm):
             
         return cleaned_data
 
-class GeofenceViolationForm(forms.ModelForm):
-    class Meta:
-        model = GeofenceViolation
-        fields = ['geofence', 'car', 'driver', 'violation_type', 'latitude', 'longitude']
