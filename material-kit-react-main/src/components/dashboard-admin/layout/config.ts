@@ -20,7 +20,7 @@ const baseNavItems: NavItemConfig[] = [
   {
     title: 'Drivers',
     href: paths.dashboardAdmin.drivers,
-    icon: 'user',
+    icon: 'driver', // Changed icon for Drivers
   }
 ];
 
@@ -50,7 +50,7 @@ export const getNavItems = (userType?: string): NavItemConfig[] => {
       key: 'account',
       title: 'Account',
       href: paths.dashboardAdmin.account,
-      icon: 'user'
+      icon: 'user-circle', // Changed icon for Account
     });
   }
 
