@@ -996,8 +996,11 @@ def update_password(request):
 def geofence_list(request):
     """Get all geofences or create a new one"""
     if request.method == 'GET':
-        # Get all geofences without company filtering
-        geofences = Geofence.objects.all()
+        # Filter geofences based on the logged-in customer if the user is a customer
+        if request.user.is_authenticated and hasattr(request.user, 'customer'):
+            geofences = Geofence.objects.filter(customer=request.user.customer)
+        else:
+            geofences = Geofence.objects.all()
             
         data = []
         for geofence in geofences:
@@ -1086,6 +1089,12 @@ def delete_geofence(request, geofence_id):
         
     try:
         geofence = Geofence.objects.get(pk=geofence_id)
+        
+        # Check if the user is a customer and owns the geofence
+        if request.user.is_authenticated and hasattr(request.user, 'customer'):
+            if geofence.customer != request.user.customer:
+                return JsonResponse({'error': 'Permission denied'}, status=403)
+        
         geofence.delete()
         return JsonResponse({'message': 'Geofence deleted successfully'})
     except Geofence.DoesNotExist:
@@ -1111,7 +1120,13 @@ def create_geofence(request):
         form = GeofenceForm(data)
         
         if form.is_valid():
-            geofence = form.save()
+            geofence = form.save(commit=False)
+            
+            # Associate the geofence with the logged-in customer if the user is a customer
+            if request.user.is_authenticated and hasattr(request.user, 'customer'):
+                geofence.customer = request.user.customer
+            
+            geofence.save()
             
             response_data = {
                 'id': geofence.id,

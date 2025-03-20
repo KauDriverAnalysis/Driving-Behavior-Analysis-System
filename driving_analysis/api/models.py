@@ -65,10 +65,6 @@ class Employee(models.Model):
     reset_token = models.CharField(max_length=100, null=True, blank=True)
     reset_token_expires = models.DateTimeField(null=True, blank=True)
 
-    def save(self, *args, **kwargs):
-        if not Employee.objects.exists():  # If no employee exists, set the first user as Admin
-            self.Admin = True
-        super().save(*args, **kwargs)  # Call the original save method
 
 class Geofence(models.Model):
     GEOFENCE_TYPES = (
@@ -85,6 +81,7 @@ class Geofence(models.Model):
     color = models.CharField(max_length=20, default='#ff4444')
     active = models.BooleanField(default=True)
     created_at = models.DateTimeField(auto_now_add=True)
+    customer = models.ForeignKey('Customer', on_delete=models.CASCADE, null=True, blank=True)  # Optional customer foreign key
     
     def set_coordinates(self, coordinates):
         self.coordinates_json = json.dumps(coordinates)

@@ -135,6 +135,11 @@ class EmployeeForm(forms.ModelForm):
         if commit:
             employee.save()
         return employee
+    
+    def save(self, *args, **kwargs):
+        if not Employee.objects.exists():  # If no employee exists, set the first user as Admin
+            self.Admin = True
+        super().save(*args, **kwargs)  # Call the original save method
 
 class GeofenceForm(forms.ModelForm):
     class Meta:
@@ -172,4 +177,13 @@ class GeofenceForm(forms.ModelForm):
                     raise ValidationError('Invalid coordinate pair in polygon')
             
         return cleaned_data
+
+    def save(self, commit=True):
+        geofence = super(GeofenceForm, self).save(commit=False)
+        user = self.request.user
+        if hasattr(user, 'customer'):
+            geofence.customer = user.customer
+        if commit:
+            geofence.save()
+        return geofence
 
