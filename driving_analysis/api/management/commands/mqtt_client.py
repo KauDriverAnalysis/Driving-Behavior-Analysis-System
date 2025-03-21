@@ -69,17 +69,42 @@ class Command(BaseCommand):
                     cache.set('analysis_results', analysis_results, timeout=None)
                     
                     # Save the analysis results to the database
-                    from api.models import DrivingData
+                    from api.models import DrivingData, Car
                     
-                    DrivingData.objects.create(
-                        distance=analysis_results.get('distance_km', 0.1),
-                        harsh_braking_events=analysis_results.get('harsh_braking_events', 0),
-                        harsh_acceleration_events=analysis_results.get('harsh_acceleration_events', 0),
-                        swerving_events=analysis_results.get('swerving_events', 0),
-                        potential_swerving_events=analysis_results.get('potential_swerving_events', 0),
-                        over_speed_events=analysis_results.get('over_speed_events', 0),
-                        score=analysis_results.get('score', 100)
-                    )
+                    # Get the device_id from the data
+                    device_id = data_list[0]  # The device name is the first element
+                    
+                    # Find the car with this device_id
+                    try:
+                        car = Car.objects.get(device_id=device_id)
+                        print(f"Found car with ID {car.id} for device {device_id}")
+                        
+                        # Create DrivingData record with car_id
+                        DrivingData.objects.create(
+                            car_id=car,  # Link to the car
+                            distance=analysis_results.get('distance_km', 0.1),
+                            harsh_braking_events=analysis_results.get('harsh_braking_events', 0),
+                            harsh_acceleration_events=analysis_results.get('harsh_acceleration_events', 0),
+                            swerving_events=analysis_results.get('swerving_events', 0),
+                            potential_swerving_events=analysis_results.get('potential_swerving_events', 0),
+                            over_speed_events=analysis_results.get('over_speed_events', 0),
+                            score=analysis_results.get('score', 100)
+                        )
+                        print(f"Data saved to database and linked to car ID {car.id}")
+                    except Car.DoesNotExist:
+                        print(f"Warning: No car found with device_id {device_id}")
+                        # Save data without car association as fallback
+                        DrivingData.objects.create(
+                            distance=analysis_results.get('distance_km', 0.1),
+                            harsh_braking_events=analysis_results.get('harsh_braking_events', 0),
+                            harsh_acceleration_events=analysis_results.get('harsh_acceleration_events', 0),
+                            swerving_events=analysis_results.get('swerving_events', 0),
+                            potential_swerving_events=analysis_results.get('potential_swerving_events', 0),
+                            over_speed_events=analysis_results.get('over_speed_events', 0),
+                            score=analysis_results.get('score', 100)
+                        )
+                        print("Data saved to database without car association")
+                    
                     print("Data saved to database")
                     
                     # Clear buffer after processing

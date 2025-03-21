@@ -11,6 +11,8 @@ interface DrivingDataDetail {
   potential_swerving_events: number;
   over_speed_events: number;
   score: number;
+  current_speed: number;
+  total_records: number;
 }
 
 interface CarDetailPanelProps {
@@ -35,10 +37,10 @@ export default function CarDetailPanel({ data }: CarDetailPanelProps): React.JSX
 
   // Calculate total events for summary
   const totalEvents = 
-    data.harsh_braking_events + 
-    data.harsh_acceleration_events + 
-    data.swerving_events + 
-    data.over_speed_events;
+    (data.harsh_braking_events ?? 0) + 
+    (data.harsh_acceleration_events ?? 0) + 
+    (data.swerving_events ?? 0) + 
+    (data.over_speed_events ?? 0);
 
   return (
     <Fade in={true} timeout={500}>
@@ -71,7 +73,7 @@ export default function CarDetailPanel({ data }: CarDetailPanelProps): React.JSX
                 py: 0.5,
                 borderRadius: 1
               }}>
-                <Typography variant="body2" fontWeight="bold">Score: {data.score}</Typography>
+                <Typography variant="body2" fontWeight="bold">Score: {(data.score !== undefined && data.score !== null) ? `${data.score}/100` : 'N/A'}</Typography>
               </Box>
             </Box>
           }
@@ -102,9 +104,11 @@ export default function CarDetailPanel({ data }: CarDetailPanelProps): React.JSX
                   <Route size={24} color="#2196f3" />
                 </Box>
                 <Typography variant="h4" color="primary.main" fontWeight="bold" gutterBottom>
-                  {data.distance.toFixed(1)} km
+                  {(data.distance !== undefined && data.distance !== null) 
+                    ? `${data.distance.toFixed(1)} km`
+                    : 'N/A'}
                 </Typography>
-                <Typography variant="body2" color="text.secondary">Total Distance</Typography>
+                <Typography variant="body2" color="text.secondary">Total Distance ({data.total_records || 0} trips)</Typography>
               </Paper>
             </Grid>
             
@@ -121,7 +125,7 @@ export default function CarDetailPanel({ data }: CarDetailPanelProps): React.JSX
                   <Shield size={24} color={getScoreColor(data.score)} />
                 </Box>
                 <Typography variant="h4" sx={{ color: getScoreColor(data.score) }} fontWeight="bold" gutterBottom>
-                  {data.score}/100
+                  {(data.score !== undefined && data.score !== null) ? `${data.score}/100` : 'N/A'}
                 </Typography>
                 <Typography variant="body2" color="text.secondary">Safety Score</Typography>
               </Paper>
@@ -147,6 +151,21 @@ export default function CarDetailPanel({ data }: CarDetailPanelProps): React.JSX
             </Grid>
           </Grid>
           
+          {/* Add current speed indicator */}
+          <Box sx={{ mb: 2, display: 'flex', alignItems: 'center' }}>
+            <Typography variant="subtitle1">Current Speed:</Typography>
+            <Typography 
+              variant="h6" 
+              sx={{ 
+                ml: 1, 
+                color: (data.current_speed > 80) ? 'error.main' : 
+                       (data.current_speed > 60) ? 'warning.main' : 'success.main'
+              }}
+            >
+              {data.current_speed || 0} km/h
+            </Typography>
+          </Box>
+
           <Typography variant="h6" gutterBottom mt={2}>
             Detailed Event Metrics
           </Typography>
@@ -169,7 +188,7 @@ export default function CarDetailPanel({ data }: CarDetailPanelProps): React.JSX
                 </Box>
                 
                 <Typography variant="h3" fontWeight="medium" align="center">
-                  {data.harsh_braking_events}
+                  {data.harsh_braking_events ?? 0}
                 </Typography>
                 
                 <Typography variant="caption" color="text.secondary" mt={1} sx={{ 
@@ -201,7 +220,7 @@ export default function CarDetailPanel({ data }: CarDetailPanelProps): React.JSX
                 </Box>
                 
                 <Typography variant="h3" fontWeight="medium" align="center">
-                  {data.harsh_acceleration_events}
+                  {data.harsh_acceleration_events ?? 0}
                 </Typography>
                 
                 <Typography variant="caption" color="text.secondary" mt={1} sx={{ 
@@ -233,7 +252,7 @@ export default function CarDetailPanel({ data }: CarDetailPanelProps): React.JSX
                 </Box>
                 
                 <Typography variant="h3" fontWeight="medium" align="center">
-                  {data.swerving_events}
+                  {data.swerving_events ?? 0}
                 </Typography>
                 
                 <Typography variant="caption" color="text.secondary" mt={1} sx={{ 
@@ -265,7 +284,7 @@ export default function CarDetailPanel({ data }: CarDetailPanelProps): React.JSX
                 </Box>
                 
                 <Typography variant="h3" fontWeight="medium" align="center">
-                  {data.potential_swerving_events}
+                  {data.potential_swerving_events ?? 0}
                 </Typography>
                 
                 <Typography variant="caption" color="text.secondary" mt={1} sx={{ 
@@ -297,7 +316,7 @@ export default function CarDetailPanel({ data }: CarDetailPanelProps): React.JSX
                 </Box>
                 
                 <Typography variant="h3" fontWeight="medium" align="center">
-                  {data.over_speed_events}
+                  {data.over_speed_events ?? 0}
                 </Typography>
                 
                 <Typography variant="caption" color="text.secondary" mt={1} sx={{ 

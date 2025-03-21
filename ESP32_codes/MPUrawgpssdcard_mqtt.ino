@@ -210,17 +210,17 @@ void setup() {
   
   GPS.begin(9600, SERIAL_8N1, RX_PIN, TX_PIN);
   delay(100); 
-  GPS.print("$PCAS03,1,0,0,0,0,1,0,002\r\n"); // Enable only the GGA and VTG sentences
-  GPS.print("$PCAS01,519\r\n"); // Set GPS to 115200 bps
-  GPS.print("$PCAS02,1001E\r\n"); // Set GPS update rate to 10Hz
+  GPS.print("$PCAS03,1,0,0,0,0,1,0,0*02\r\n"); // Enable only the GGA and VTG sentences
+  GPS.print("$PCAS01,5*19\r\n"); // Set GPS to 115200 bps
+  GPS.print("$PCAS02,100*1E\r\n"); // Set GPS update rate to 10Hz
   delay(100);
   GPS.end();
   delay(100); 
   GPS.begin(115200, SERIAL_8N1, RX_PIN, TX_PIN);
   delay(100); 
-  GPS.print("$PCAS03,1,0,0,0,0,1,0,002\r\n"); // Enable only the GGA and VTG sentences
-  GPS.print("$PCAS01,519\r\n"); // Set GPS to 115200 bps
-  GPS.print("$PCAS02,1001E\r\n"); // Set GPS update rate to 10Hz
+  GPS.print("$PCAS03,1,0,0,0,0,1,0,0*02\r\n"); // Enable only the GGA and VTG sentences
+  GPS.print("$PCAS01,5*19\r\n"); // Set GPS to 115200 bps
+  GPS.print("$PCAS02,100*1E\r\n"); // Set GPS update rate to 10Hz
 
   Wire.begin();
   Wire.setClock(400000);

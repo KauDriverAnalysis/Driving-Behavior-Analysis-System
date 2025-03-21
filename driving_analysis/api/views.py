@@ -686,36 +686,84 @@ def delete_employee(request, employee_id):
 @csrf_exempt
 def get_car_driving_data(request, car_id):
     try:
-        # Get the most recent driving data for this car
-        driving_data = DrivingData.objects.filter(car_id=car_id).order_by('-id').first()
+        # Get the car
+        car = get_object_or_404(Car, pk=car_id)
         
-        if driving_data:
+        # Get the most recent driving data for this car
+        latest_driving_data = DrivingData.objects.filter(car_id=car_id).order_by('-created_at').first()
+        
+        # Get historical data for trends (last 10 records)
+        historical_data = DrivingData.objects.filter(car_id=car_id).order_by('-created_at')[:10]
+        
+        if latest_driving_data:
+            # Calculate statistics from historical data
+            total_distance = sum(data.distance for data in historical_data)
+            avg_score = sum(data.score for data in historical_data) / len(historical_data) if historical_data else 100
+            
+            # Calculate total events from all historical data
+            total_harsh_braking = sum(data.harsh_braking_events for data in historical_data)
+            total_harsh_acceleration = sum(data.harsh_acceleration_events for data in historical_data)
+            total_swerving = sum(data.swerving_events for data in historical_data)
+            total_potential_swerving = sum(data.potential_swerving_events for data in historical_data)
+            total_over_speed = sum(data.over_speed_events for data in historical_data)
+            
             data = {
                 'car_id': car_id,
-                'distance': driving_data.distance,
-                'harsh_braking_events': driving_data.harsh_braking_events,
-                'harsh_acceleration_events': driving_data.harsh_acceleration_events,
-                'swerving_events': driving_data.swerving_events,
-                'potential_swerving_events': driving_data.potential_swerving_events,
-                'over_speed_events': driving_data.over_speed_events,
-                'score': driving_data.score,
-                'speed': driving_data.speed,
+                'model': car.Model_of_car,
+                'plate_number': car.Plate_number,
+                'device_id': car.device_id,
+                'state': car.State_of_car,
+                'current': {
+                    'distance': latest_driving_data.distance,
+                    'harsh_braking_events': latest_driving_data.harsh_braking_events,
+                    'harsh_acceleration_events': latest_driving_data.harsh_acceleration_events,
+                    'swerving_events': latest_driving_data.swerving_events,
+                    'potential_swerving_events': latest_driving_data.potential_swerving_events,
+                    'over_speed_events': latest_driving_data.over_speed_events,
+                    'score': latest_driving_data.score,
+                    'speed': latest_driving_data.speed,
+                    'created_at': latest_driving_data.created_at.isoformat() if hasattr(latest_driving_data, 'created_at') else None
+                },
+                'summary': {
+                    'total_distance': total_distance,
+                    'avg_score': avg_score,
+                    'total_records': len(historical_data),
+                    'total_harsh_braking': total_harsh_braking,
+                    'total_harsh_acceleration': total_harsh_acceleration,
+                    'total_swerving': total_swerving,
+                    'total_potential_swerving': total_potential_swerving,
+                    'total_over_speed': total_over_speed
+                }
             }
             return JsonResponse(data)
         else:
+            # Return default data when no driving data is found
             return JsonResponse({
                 'car_id': car_id,
-                'distance': 0,
-                'harsh_braking_events': 0,
-                'harsh_acceleration_events': 0,
-                'swerving_events': 0,
-                'potential_swerving_events': 0,
-                'over_speed_events': 0,
-                'score': 100,
-                'speed': 0
+                'model': car.Model_of_car,
+                'plate_number': car.Plate_number,
+                'device_id': car.device_id,
+                'state': car.State_of_car,
+                'current': {
+                    'distance': 0,
+                    'harsh_braking_events': 0,
+                    'harsh_acceleration_events': 0,
+                    'swerving_events': 0,
+                    'potential_swerving_events': 0,
+                    'over_speed_events': 0,
+                    'score': 100,
+                    'speed': 0
+                },
+                'summary': {
+                    'total_distance': 0,
+                    'avg_score': 100,
+                    'total_records': 0
+                }
             })
     except Exception as e:
-        return JsonResponse({'error': str(e)}, status=500)        # In api/views.py
+        print(f"Error in get_car_driving_data: {str(e)}")
+        return JsonResponse({'error': str(e)}, status=500)
+        # In api/views.py
 
 @csrf_exempt
 def company_login(request):

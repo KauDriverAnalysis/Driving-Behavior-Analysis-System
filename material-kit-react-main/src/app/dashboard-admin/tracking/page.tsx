@@ -34,8 +34,32 @@ export default function Tracking(): React.JSX.Element {
   const [fetchingForCarId, setFetchingForCarId] = useState(null);
   const [detailPanelKey, setDetailPanelKey] = useState(0);
 
-  // Fetch cars from API
+  // Fetch all cars data initially
   useEffect(() => {
+    fetchCars();
+    
+    // Set up regular polling for car data
+    const carsInterval = setInterval(fetchCars, 5000);
+    
+    return () => clearInterval(carsInterval);
+  }, []);
+  
+  // Fetch detailed data for selected car and poll
+  useEffect(() => {
+    if (!selectedCar) return;
+    
+    fetchCarDetails(selectedCar);
+    
+    // Poll for updated details every 5 seconds
+    const detailsInterval = setInterval(() => {
+      fetchCarDetails(selectedCar);
+    }, 5000);
+    
+    return () => clearInterval(detailsInterval);
+  }, [selectedCar]);
+  
+  // Function to fetch all cars
+  const fetchCars = () => {
     fetch('http://localhost:8000/api/cars/')
       .then(response => response.json())
       .then(data => {
@@ -44,7 +68,7 @@ export default function Tracking(): React.JSX.Element {
         // Add status field based on state property
         const processedCars = data.map((car: any) => {
           const stateValue = car.state?.toLowerCase() || '';
-
+          
           return {
             ...car,
             status: stateValue === 'online' ? 'Active' : 'Non-Active',
@@ -54,14 +78,116 @@ export default function Tracking(): React.JSX.Element {
 
         setCars(processedCars);
         setLoading(false);
+        
+        // After getting basic car data, fetch latest metrics for each car
+        fetchAllCarsLatestMetrics(processedCars);
       })
       .catch(error => {
         console.error('Error fetching cars:', error);
         setLoading(false);
       });
-  }, []);
+  };
 
-  // Handle car selection with race condition prevention
+  // Function to fetch latest metrics (speed and score) for all cars
+  const fetchAllCarsLatestMetrics = (carsList) => {
+    // Create array of promises for each car's data
+    const metricPromises = carsList.map(car => 
+      fetch(`http://localhost:8000/api/car-driving-data/${car.id}/`)
+        .then(response => response.json())
+        .catch(error => {
+          console.error(`Error fetching metrics for car ${car.id}:`, error);
+          return null;
+        })
+    );
+
+    // When all promises resolve, update cars with the metrics
+    Promise.all(metricPromises)
+      .then(results => {
+        // Filter out any failed requests
+        const validResults = results.filter(result => result !== null);
+        
+        // Update each car with its metrics
+        const updatedCars = carsList.map(car => {
+          // Find matching result for this car
+          const carData = validResults.find(result => 
+            result && (result.car_id === car.id || result.car_id === car.id.toString())
+          );
+          
+          if (carData && carData.current) {
+            return {
+              ...car,
+              speed: carData.current.speed,
+              score: carData.current.score
+            };
+          }
+          return car;
+        });
+        
+        // Update state with enhanced car data
+        setCars(updatedCars);
+      })
+      .catch(error => {
+        console.error('Error updating car metrics:', error);
+      });
+  };
+  
+ // Function to fetch details for a specific car
+// Function to fetch details for a specific car
+const fetchCarDetails = (carId) => {
+  setFetchingForCarId(carId);
+
+  // Fetch driving data for selected car
+  fetch(`http://localhost:8000/api/car-driving-data/${carId}/`)
+    .then(response => response.json())
+    .then(data => {
+      // Only update if this is still the car we want data for
+      if (fetchingForCarId === carId) {
+        console.log('Car driving data received:', data); // Debug the structure
+        
+        // Check if data is in the correct format
+        if (data && data.current && data.summary) {
+          // Combine current data with summary data
+          setDrivingData({
+            car_id: data.car_id,
+            model: data.model,
+            plate_number: data.plate_number,
+            device_id: data.device_id,
+            state: data.state,
+            
+            // Latest values for current speed
+            current_speed: data.current.speed,
+            
+            // Aggregated values
+            distance: data.summary.total_distance,
+            score: data.summary.avg_score,
+            
+            // Sum of all events from historical data
+            harsh_braking_events: data.summary.total_harsh_braking,
+            harsh_acceleration_events: data.summary.total_harsh_acceleration,
+            swerving_events: data.summary.total_swerving,
+            potential_swerving_events: data.summary.total_potential_swerving,
+            over_speed_events: data.summary.total_over_speed,
+            
+            // Additional metadata
+            total_records: data.summary.total_records
+          });
+        } else {
+          // Use data as is
+          setDrivingData(data);
+        }
+        
+        setDetailPanelKey(prevKey => prevKey + 1); // Force re-render of panel
+      }
+    })
+    .catch(error => {
+      console.error('Error fetching driving data:', error);
+      if (fetchingForCarId === carId) {
+        setDrivingData(null);
+      }
+    });
+};
+
+  // Handle car selection
   const handleSelectCar = (carId) => {
     // Toggle behavior: if clicking the same car again, close the panel
     if (selectedCar === carId) {
@@ -73,26 +199,9 @@ export default function Tracking(): React.JSX.Element {
     // Set selected car immediately for UI feedback
     setSelectedCar(carId);
     setDrivingData(null); // Clear previous data while loading
-
-    // Track which car we're currently fetching for
-    setFetchingForCarId(carId);
-
-    // Fetch driving data for selected car
-    fetch(`http://localhost:8000/api/car-driving-data/${carId}/`)
-      .then(response => response.json())
-      .then(data => {
-        // Only update if this is still the car we want data for
-        if (fetchingForCarId === carId) {
-          setDrivingData(data);
-          setDetailPanelKey(prevKey => prevKey + 1); // Force re-render of panel
-        }
-      })
-      .catch(error => {
-        console.error('Error fetching driving data:', error);
-        if (fetchingForCarId === carId) {
-          setDrivingData(null);
-        }
-      });
+    
+    // Fetch data for the selected car
+    fetchCarDetails(carId);
   };
 
   return (
@@ -181,3 +290,4 @@ export default function Tracking(): React.JSX.Element {
     </Box>
   );
 }
+
