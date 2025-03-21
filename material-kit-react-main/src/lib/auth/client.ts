@@ -86,19 +86,36 @@ class AuthClient {
         localStorage.setItem('auth-token', data.token);
       }
       
+      // Debug the raw response data to diagnose issues
+      console.log('Raw response data:', data);
+      
       // Store the user type and user ID directly from the response
       if (data.userType && data.userId) {
         localStorage.setItem('userType', data.userType);
         localStorage.setItem('userId', data.userId.toString());
-        
-        console.log(`Saved auth data to localStorage - userType: ${data.userType}, userId: ${data.userId}`);
       }
       
       // Determine user role from response
-      const userRole = data.role || accountType;
+      let userRole = data.role || accountType;
       const userId = data.id?.toString() || '';
       
+      // Check if this is an employee with admin privileges
+      const isAdmin = 
+        userRole === 'admin' || 
+        data.role === 'admin' || 
+        data.Admin === true || 
+        (typeof data.Admin === 'string' && data.Admin.toLowerCase() === 'true');
+      
+      // If admin, ensure role is set correctly
+      if (isAdmin) {
+        userRole = 'admin';
+        localStorage.setItem('is-admin', 'true');
+        console.log('Admin user detected - setting role to admin');
+      }
+      
+      // Store consistent role information
       localStorage.setItem('user-type', userRole);
+      localStorage.setItem('userType', userRole); // Make these consistent
       localStorage.setItem('user-id', userId);
       
       // Store additional info based on account type
@@ -108,13 +125,26 @@ class AuthClient {
       } else if (accountType === 'customer') {
         localStorage.setItem('customer-id', userId);
         localStorage.setItem('customer-name', data.Name || '');
+      } else if (isAdmin) {
+        // Add these explicit admin keys
+        localStorage.setItem('admin-id', userId);
+        localStorage.setItem('is-admin', 'true'); // Ensure this is set
+        localStorage.setItem('admin-name', data.name || '');
+        
+        // Also ensure employee data is stored for admin users
+        localStorage.setItem('employee-id', userId);
+        console.log('Admin keys set in localStorage');
+      } else if (accountType === 'employee') {
+        localStorage.setItem('employee-id', userId);
+        localStorage.setItem('employee-name', data.name || '');
       }
       
-      console.log(`User logged in - ID: ${userId}, Type: ${userRole}`);
+      console.log(`User logged in - ID: ${userId}, Type: ${userRole}, Admin: ${isAdmin}`);
       
+      // Return consistent userType
       return { 
-        userId: data.userId?.toString() || data.id?.toString() || '',
-        userType: data.userType || data.role || '', 
+        userId,
+        userType: userRole,
         error: null 
       };
     } catch (error) {
@@ -188,6 +218,14 @@ class AuthClient {
   }
 
   async getUser(): Promise<{ data?: User | null; error?: string }> {
+    // Add debug logging
+    console.log('Auth Debug - User information:');
+    console.log('auth-token:', localStorage.getItem('auth-token'));
+    console.log('user-type:', localStorage.getItem('user-type'));
+    console.log('userType:', localStorage.getItem('userType'));
+    console.log('role from login:', localStorage.getItem('userType'));
+    console.log('is-admin flag:', localStorage.getItem('is-admin'));
+    
     // Change this line to check for auth-token instead of custom-auth-token
     const token = localStorage.getItem('auth-token');
     if (!token) {

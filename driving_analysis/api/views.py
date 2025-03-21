@@ -784,7 +784,6 @@ def company_login(request):
                 if check_password(password, employee.Password) or password == employee.Password:
                     is_admin = employee.Admin
                     role = "admin" if is_admin else "employee"
-                    print(f"Login successful - Role: {role}")  # Debug print
                     
                     token = f"{employee.id}_{int(time.time())}"
                     return JsonResponse({
@@ -792,9 +791,11 @@ def company_login(request):
                         'token': token,
                         'id': employee.id,
                         'name': employee.Name,
-                        'role': role,
-                        'userType': 'employee',  # Add this for consistent authentication
-                        'userId': employee.id    # Add this for consistent authentication
+                        'role': role,  # This should be 'admin' for admins
+                        'userType': role,  # Make these consistent
+                        'userId': employee.id,
+                        'Admin': is_admin,  # Add explicit Admin flag
+                        'company_id': employee.company_id_id if hasattr(employee, 'company_id') else None
                     }, status=200)
             except Employee.DoesNotExist:
                 try:
@@ -1136,7 +1137,22 @@ def geofence_list(request):
             if not user_type or not user_id:
                 return JsonResponse({'error': 'userType and userId are required'}, status=400)
 
-            if user_type == 'customer':
+            # For admin users, show all geofences or company-specific geofences if admin is linked to a company
+            if user_type == 'admin':
+                try:
+                    # Check if this admin is associated with a company
+                    employee = Employee.objects.get(id=user_id)
+                    if employee.company_id:
+                        # If admin is linked to a company, show that company's geofences
+                        geofences = Geofence.objects.filter(company_id=employee.company_id.id)
+                        print(f"Admin is linked to company ID {employee.company_id.id}, showing company geofences")
+                    else:
+                        # If admin is not linked to any company, show all geofences
+                        geofences = Geofence.objects.all()
+                        print("Admin is not linked to any company, showing all geofences")
+                except Employee.DoesNotExist:
+                    return JsonResponse({'error': 'Admin user not found'}, status=404)
+            elif user_type == 'customer':
                 geofences = Geofence.objects.filter(customer_id=user_id)
             elif user_type == 'company':
                 geofences = Geofence.objects.filter(company_id=user_id)
@@ -1163,6 +1179,9 @@ def geofence_list(request):
             return JsonResponse(data, safe=False)
             
         except Exception as e:
+            print(f"Error in geofence_list: {str(e)}")
+            import traceback
+            traceback.print_exc()
             return JsonResponse({'error': str(e)}, status=500)
 
     return JsonResponse({'error': 'Method not allowed'}, status=405)
@@ -1197,6 +1216,15 @@ def update_geofence(request, geofence_id):
             return JsonResponse({'error': 'Permission denied - customer mismatch'}, status=403)
         elif user_type == 'company' and geofence.company_id_id != user_id:
             return JsonResponse({'error': 'Permission denied - company mismatch'}, status=403)
+        # Add this after the other ownership checks
+        elif user_type == 'admin':
+            # Admins can manage all geofences, or only company geofences if linked to a company
+            try:
+                employee = Employee.objects.get(id=user_id)
+                if employee.company_id and geofence.company_id_id != employee.company_id.id:
+                    return JsonResponse({'error': 'Permission denied - admin can only manage their company geofences'}, status=403)
+            except Employee.DoesNotExist:
+                return JsonResponse({'error': 'Admin user not found'}, status=404)
         
         # Handle partial update for just 'active' field
         if 'active' in data and len(data.keys()) == 1:
@@ -1279,6 +1307,15 @@ def delete_geofence(request, geofence_id):
             return JsonResponse({'error': 'Permission denied'}, status=403)
         elif user_type == 'company' and geofence.company_id_id != int(user_id):
             return JsonResponse({'error': 'Permission denied'}, status=403)
+        # Add this after the other ownership checks
+        elif user_type == 'admin':
+    # Admins can manage all geofences, or only company geofences if linked to a company
+            try:
+                employee = Employee.objects.get(id=user_id)
+                if employee.company_id and geofence.company_id_id != employee.company_id.id:
+                    return JsonResponse({'error': 'Permission denied - admin can only manage their company geofences'}, status=403)
+            except Employee.DoesNotExist:
+                return JsonResponse({'error': 'Admin user not found'}, status=404)
         
         geofence.delete()
         return JsonResponse({'message': 'Geofence deleted successfully'})
@@ -1341,6 +1378,18 @@ def create_geofence(request):
             except Company.DoesNotExist:
                 print(f"❌ Company with ID {user_id} not found in database!")
                 return JsonResponse({'error': f'Company with ID {user_id} not found'}, status=404)
+        elif user_type == 'admin':
+            try:
+                # If admin creates a geofence, check if they're associated with a company
+                employee = Employee.objects.get(id=user_id)
+                if employee.company_id:
+                    company_id = employee.company_id
+                else:
+                    # If admin isn't linked to a company, create the geofence without company association
+                    # or return an error if you want to enforce company association
+                    return JsonResponse({'error': 'Admin must be associated with a company to create geofences'}, status=400)
+            except Employee.DoesNotExist:
+                return JsonResponse({'error': 'Admin user not found'}, status=404)
         else:
             return JsonResponse({'error': 'Invalid user type'}, status=400)
         
