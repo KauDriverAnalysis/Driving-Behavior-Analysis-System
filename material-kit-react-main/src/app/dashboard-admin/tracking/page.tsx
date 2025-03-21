@@ -1,7 +1,7 @@
 "use client";
 
 import * as React from 'react';
-import { useState, useEffect } from 'react';
+import { useState, useEffect, useRef } from 'react';
 import { 
   Stack, 
   Grid, 
@@ -33,16 +33,28 @@ export default function Tracking(): React.JSX.Element {
   const [drivingData, setDrivingData] = useState(null);
   const [fetchingForCarId, setFetchingForCarId] = useState(null);
   const [detailPanelKey, setDetailPanelKey] = useState(0);
+  // Use ref to store the last metrics data to preserve between updates
+  const lastMetricsRef = useRef({});
 
   // Fetch all cars data initially
   useEffect(() => {
     fetchCars();
     
-    // Set up regular polling for car data
+    // Set up regular polling for car data (basic data only)
     const carsInterval = setInterval(fetchCars, 5000);
     
-    return () => clearInterval(carsInterval);
-  }, []);
+    // Set up separate less frequent interval for metrics
+    const metricsInterval = setInterval(() => {
+      if (cars.length > 0) {
+        fetchAllCarsLatestMetrics(cars);
+      }
+    }, 15000); // Update metrics every 15 seconds
+    
+    return () => {
+      clearInterval(carsInterval);
+      clearInterval(metricsInterval);
+    };
+  }, [cars.length]);
   
   // Fetch detailed data for selected car and poll
   useEffect(() => {
@@ -58,7 +70,7 @@ export default function Tracking(): React.JSX.Element {
     return () => clearInterval(detailsInterval);
   }, [selectedCar]);
   
-  // Function to fetch all cars
+  // Function to fetch all cars (basic data only)
   const fetchCars = () => {
     fetch('http://localhost:8000/api/cars/')
       .then(response => response.json())
@@ -68,19 +80,27 @@ export default function Tracking(): React.JSX.Element {
         // Add status field based on state property
         const processedCars = data.map((car: any) => {
           const stateValue = car.state?.toLowerCase() || '';
+          const carId = car.id.toString();
+          
+          // Preserve existing metrics if available
+          const existingMetrics = lastMetricsRef.current[carId] || {};
           
           return {
             ...car,
             status: stateValue === 'online' ? 'Active' : 'Non-Active',
-            isActive: stateValue === 'online'
+            isActive: stateValue === 'online',
+            speed: existingMetrics.speed !== undefined ? existingMetrics.speed : null,
+            score: existingMetrics.score !== undefined ? existingMetrics.score : null
           };
         });
 
         setCars(processedCars);
         setLoading(false);
         
-        // After getting basic car data, fetch latest metrics for each car
-        fetchAllCarsLatestMetrics(processedCars);
+        // Only fetch metrics initially if we don't have any
+        if (Object.keys(lastMetricsRef.current).length === 0) {
+          fetchAllCarsLatestMetrics(processedCars);
+        }
       })
       .catch(error => {
         console.error('Error fetching cars:', error);
@@ -90,6 +110,8 @@ export default function Tracking(): React.JSX.Element {
 
   // Function to fetch latest metrics (speed and score) for all cars
   const fetchAllCarsLatestMetrics = (carsList) => {
+    console.log("Fetching metrics for all cars...");
+    
     // Create array of promises for each car's data
     const metricPromises = carsList.map(car => 
       fetch(`http://localhost:8000/api/car-driving-data/${car.id}/`)
@@ -106,20 +128,30 @@ export default function Tracking(): React.JSX.Element {
         // Filter out any failed requests
         const validResults = results.filter(result => result !== null);
         
-        // Update each car with its metrics
+        // Update cars with preserved values
         const updatedCars = carsList.map(car => {
           // Find matching result for this car
           const carData = validResults.find(result => 
             result && (result.car_id === car.id || result.car_id === car.id.toString())
           );
           
+          const carId = car.id.toString();
+          
           if (carData && carData.current) {
+            // Update the cached metrics for this car
+            lastMetricsRef.current[carId] = {
+              speed: carData.current.speed,
+              score: carData.current.score
+            };
+            
             return {
               ...car,
               speed: carData.current.speed,
               score: carData.current.score
             };
           }
+          
+          // Keep previous values if no new data
           return car;
         });
         
@@ -131,74 +163,73 @@ export default function Tracking(): React.JSX.Element {
       });
   };
   
- // Function to fetch details for a specific car
-// Function to fetch details for a specific car
-const fetchCarDetails = (carId) => {
-  setFetchingForCarId(carId);
+  // Function to fetch details for a specific car
+  const fetchCarDetails = (carId) => {
+    setFetchingForCarId(carId);
+    
+    // Keep the previous driving data while loading
+    const previousData = drivingData;
 
-  // Fetch driving data for selected car
-  fetch(`http://localhost:8000/api/car-driving-data/${carId}/`)
-    .then(response => response.json())
-    .then(data => {
-      // Only update if this is still the car we want data for
-      if (fetchingForCarId === carId) {
-        console.log('Car driving data received:', data); // Debug the structure
-        
-        // Check if data is in the correct format
-        if (data && data.current && data.summary) {
-          // Combine current data with summary data
-          setDrivingData({
-            car_id: data.car_id,
-            model: data.model,
-            plate_number: data.plate_number,
-            device_id: data.device_id,
-            state: data.state,
+    // Fetch driving data for selected car
+    fetch(`http://localhost:8000/api/car-driving-data/${carId}/`)
+      .then(response => response.json())
+      .then(data => {
+        // Only update if this is still the car we want data for
+        if (fetchingForCarId === carId) {
+          console.log('Car driving data received:', data);
+          
+          // Check if data is in the correct format
+          if (data && data.current && data.summary) {
+            // Combine current data with summary data
+            setDrivingData({
+              car_id: data.car_id,
+              model: data.model,
+              plate_number: data.plate_number,
+              device_id: data.device_id,
+              state: data.state,
+              
+              // Latest values for current speed
+              current_speed: data.current.speed,
+              
+              // Aggregated values
+              distance: data.summary.total_distance,
+              score: data.summary.avg_score,
+              
+              // Sum of all events from historical data
+              harsh_braking_events: data.summary.total_harsh_braking,
+              harsh_acceleration_events: data.summary.total_harsh_acceleration,
+              swerving_events: data.summary.total_swerving,
+              potential_swerving_events: data.summary.total_potential_swerving,
+              over_speed_events: data.summary.total_over_speed,
+              
+              // Additional metadata
+              total_records: data.summary.total_records
+            });
             
-            // Latest values for current speed
-            current_speed: data.current.speed,
-            
-            // Aggregated values
-            distance: data.summary.total_distance,
-            score: data.summary.avg_score,
-            
-            // Sum of all events from historical data
-            harsh_braking_events: data.summary.total_harsh_braking,
-            harsh_acceleration_events: data.summary.total_harsh_acceleration,
-            swerving_events: data.summary.total_swerving,
-            potential_swerving_events: data.summary.total_potential_swerving,
-            over_speed_events: data.summary.total_over_speed,
-            
-            // Additional metadata
-            total_records: data.summary.total_records
-          });
-        } else {
-          // Use data as is
-          setDrivingData(data);
+            // Increment panel key to force re-render
+            setDetailPanelKey(prevKey => prevKey + 1);
+          } else {
+            // Use data as is
+            setDrivingData(data);
+          }
         }
-        
-        setDetailPanelKey(prevKey => prevKey + 1); // Force re-render of panel
-      }
-    })
-    .catch(error => {
-      console.error('Error fetching driving data:', error);
-      if (fetchingForCarId === carId) {
-        setDrivingData(null);
-      }
-    });
-};
+      })
+      .catch(error => {
+        console.error('Error fetching driving data:', error);
+        // On error, don't clear existing data
+      });
+  };
 
   // Handle car selection
   const handleSelectCar = (carId) => {
     // Toggle behavior: if clicking the same car again, close the panel
     if (selectedCar === carId) {
       setSelectedCar(null);
-      setDrivingData(null);
       return;
     }
 
     // Set selected car immediately for UI feedback
     setSelectedCar(carId);
-    setDrivingData(null); // Clear previous data while loading
     
     // Fetch data for the selected car
     fetchCarDetails(carId);

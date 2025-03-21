@@ -39,8 +39,9 @@ interface LocationMapProps {
 export function LocationMap({ selectedCar }: LocationMapProps) {
   const mapRef = useRef<HTMLDivElement | null>(null);
   const mapInstanceRef = useRef<L.Map | null>(null);
-  const markerRef = useRef<L.Marker | null>(null);
+  const markerLayerRef = useRef<L.LayerGroup | null>(null);
   const routeRef = useRef<L.Polyline | null>(null);
+  const markersRef = useRef<{[carId: string]: L.Marker}>({});
   const [currentSpeed, setCurrentSpeed] = useState<number>(0);
   const [currentDirection, setCurrentDirection] = useState<number>(0);
   const [isLoading, setIsLoading] = useState<boolean>(true);
@@ -51,7 +52,7 @@ export function LocationMap({ selectedCar }: LocationMapProps) {
   useEffect(() => {
     if (mapRef.current && !mapInstanceRef.current) {
       try {
-        // Create the map only if it hasn't been initialized yet
+        // Create map and add layer group for markers
         const map = L.map(mapRef.current, {
           zoomControl: true,
           attributionControl: true
@@ -62,10 +63,12 @@ export function LocationMap({ selectedCar }: LocationMapProps) {
           attribution: '&copy; <a href="https://www.openstreetmap.org/copyright">OpenStreetMap</a> contributors'
         }).addTo(map);
 
-        // Add scale control
         L.control.scale().addTo(map);
-
-        // Store map instance in ref
+        
+        // Add a layer group for all markers
+        const markerLayer = L.layerGroup().addTo(map);
+        markerLayerRef.current = markerLayer;
+        
         mapInstanceRef.current = map;
         setIsLoading(false);
       } catch (err) {
@@ -75,89 +78,158 @@ export function LocationMap({ selectedCar }: LocationMapProps) {
       }
     }
 
-    // Cleanup when component unmounts
     return () => {
       if (mapInstanceRef.current) {
         mapInstanceRef.current.remove();
         mapInstanceRef.current = null;
       }
     };
-  }, []); // Empty dependency array - run once on mount
+  }, []);
 
-  // Set up the data polling in a separate effect
+  // Set up the data polling in a separate effect with 15-second interval
   useEffect(() => {
-    // Don't proceed if map isn't initialized
     if (!mapInstanceRef.current) return;
-
-    const map = mapInstanceRef.current;
+    
     let lastFetchTime = 0;
     let consecutiveErrors = 0;
 
-    const updateMarker = (location: LocationData) => {
+    const updateMarkers = (locations: any) => {
       try {
-        // Create a new point for the route
-        const newPoint = new L.LatLng(location.latitude, location.longitude);
+        if (!mapInstanceRef.current || !markerLayerRef.current) return;
         
-        // Update route points and draw polyline
-        const updatedPoints = [...routePoints, newPoint];
-        setRoutePoints(updatedPoints);
+        const map = mapInstanceRef.current;
         
-        // Remove previous polyline if it exists
-        if (routeRef.current) {
-          map.removeLayer(routeRef.current);
-        }
-        
-        // Draw new route line if we have at least 2 points
-        if (updatedPoints.length >= 2) {
-          const routeLine = L.polyline(updatedPoints, {
-            color: '#4a90e2',
-            weight: 4,
-            opacity: 0.7,
-            dashArray: '10, 10',
-            lineCap: 'round'
-          }).addTo(map);
+        // If selectedCar is set, handle single car mode
+        if (selectedCar) {
+          // Find the selected car's location data
+          const location = Array.isArray(locations) 
+            ? locations.find(loc => loc.id?.toString() === selectedCar?.toString())
+            : locations;
+            
+          if (!location) return;
           
-          routeRef.current = routeLine;
+          // Clear previous route if any
+          if (routeRef.current) {
+            map.removeLayer(routeRef.current);
+          }
+          
+          // Clear all markers
+          markerLayerRef.current.clearLayers();
+          markersRef.current = {};
+          
+          // Create new point and update route
+          const newPoint = new L.LatLng(location.latitude, location.longitude);
+          const updatedPoints = [...routePoints, newPoint];
+          setRoutePoints(updatedPoints);
+          
+          // Draw route line if we have multiple points
+          if (updatedPoints.length >= 2) {
+            const routeLine = L.polyline(updatedPoints, {
+              color: '#4a90e2',
+              weight: 4,
+              opacity: 0.7,
+              dashArray: '10, 10',
+              lineCap: 'round'
+            }).addTo(map);
+            
+            routeRef.current = routeLine;
+          }
+          
+          // Add marker for selected car
+          const rotationAngle = location.direction || 0;
+          const newMarker = L.marker([location.latitude, location.longitude], {
+            icon: CarIcon || DefaultIcon,
+          })
+            .addTo(markerLayerRef.current)
+            .bindPopup(`
+              <div style="text-align: center;">
+                <b>${location.model || 'Vehicle ' + selectedCar}</b><br/>
+                Speed: ${location.speed || 0} km/h<br/>
+                Plate: ${location.plate || 'Unknown'}
+              </div>
+            `);
+            
+          // Update speed display
+          setCurrentSpeed(location.speed || 0);
+          
+          // Center map on the vehicle
+          map.panTo(new L.LatLng(location.latitude, location.longitude), {
+            animate: true,
+            duration: 1
+          });
+        } 
+        // Handle all cars mode
+        else {
+          // Clear any existing route
+          if (routeRef.current) {
+            map.removeLayer(routeRef.current);
+            routeRef.current = null;
+          }
+          
+          setRoutePoints([]);
+          
+          // Clear speed display when no car is selected
+          setCurrentSpeed(0);
+          
+          // Make sure we have an array of locations
+          if (!Array.isArray(locations)) return;
+          
+          // Remove markers that are no longer present
+          Object.keys(markersRef.current).forEach(id => {
+            if (!locations.find(loc => loc.id?.toString() === id)) {
+              if (markersRef.current[id]) {
+                markerLayerRef.current?.removeLayer(markersRef.current[id]);
+                delete markersRef.current[id];
+              }
+            }
+          });
+          
+          // Add or update markers for all cars
+          locations.forEach(loc => {
+            const carId = loc.id?.toString();
+            if (!carId) return;
+            
+            // If marker already exists, update its position
+            if (markersRef.current[carId]) {
+              markersRef.current[carId].setLatLng([loc.latitude, loc.longitude]);
+              // Update popup content
+              markersRef.current[carId].getPopup()?.setContent(`
+                <div style="text-align: center;">
+                  <b>${loc.model || 'Vehicle ' + carId}</b><br/>
+                  Speed: ${loc.speed || 0} km/h<br/>
+                  Plate: ${loc.plate || 'Unknown'}
+                </div>
+              `);
+            } 
+            // Otherwise create a new marker
+            else {
+              const marker = L.marker([loc.latitude, loc.longitude], {
+                icon: CarIcon || DefaultIcon
+              })
+                .addTo(markerLayerRef.current)
+                .bindPopup(`
+                  <div style="text-align: center;">
+                    <b>${loc.model || 'Vehicle ' + carId}</b><br/>
+                    Speed: ${loc.speed || 0} km/h<br/>
+                    Plate: ${loc.plate || 'Unknown'}
+                  </div>
+                `);
+              
+              markersRef.current[carId] = marker;
+            }
+          });
+          
+          // If we have locations, fit the map to show all markers
+          if (locations.length > 0) {
+            const group = L.featureGroup(Object.values(markersRef.current));
+            map.fitBounds(group.getBounds(), { padding: [50, 50] });
+          }
         }
-
-        // Remove previous marker if it exists
-        if (markerRef.current) {
-          map.removeLayer(markerRef.current);
-        }
-
-        // Calculate rotation for the marker based on direction
-        const rotationAngle = location.direction || 0;
-
-        // Add new marker with custom icon if available
-        const newMarker = L.marker([location.latitude, location.longitude], {
-          icon: CarIcon || DefaultIcon,
-          rotationAngle: rotationAngle // Requires leaflet-rotatedmarker plugin
-        })
-          .addTo(map)
-          .bindPopup(`
-            <div style="text-align: center;">
-              <b>Vehicle ${selectedCar || 'Unknown'}</b><br/>
-              Speed: ${location.speed || 0} km/h<br/>
-              Heading: ${location.direction || 0}°
-            </div>
-          `);
-
-        markerRef.current = newMarker;
-        
-        // Pan to the new location smoothly
-        map.panTo(new L.LatLng(location.latitude, location.longitude), {
-          animate: true,
-          duration: 1
-        });
-        
-        // Update state with current speed and direction
-        setCurrentSpeed(location.speed || 0);
-        setCurrentDirection(location.direction || 0);
         
         // Reset error counter on success
         consecutiveErrors = 0;
       } catch (err) {
-        console.error('Error updating marker:', err);
+        console.error('Error updating markers:', err);
         consecutiveErrors++;
         
         if (consecutiveErrors > 5) {
@@ -166,19 +238,16 @@ export function LocationMap({ selectedCar }: LocationMapProps) {
       }
     };
 
-    // Function to fetch latest location data
+    // Function to fetch location data
     const fetchLocationData = () => {
       const now = Date.now();
-      // Rate limit requests to no more than once per second
-      if (now - lastFetchTime < 1000) return;
+      // Rate limit requests to no more than once every 15 seconds
+      if (now - lastFetchTime < 15000) return;
       
       lastFetchTime = now;
       
-      const url = selectedCar 
-        ? `http://localhost:8000/api/get-car-location/${selectedCar}/`
-        : 'http://localhost:8000/api/get-latest-data/';
-      
-      fetch(url)
+      // Always get all car locations - we'll filter on the frontend
+      fetch('http://localhost:8000/api/get-car-location/')
         .then(response => {
           if (!response.ok) {
             throw new Error(`HTTP error! status: ${response.status}`);
@@ -186,11 +255,8 @@ export function LocationMap({ selectedCar }: LocationMapProps) {
           return response.json();
         })
         .then(data => {
-          if (Array.isArray(data) && data.length > 0) {
-            updateMarker(data[0]);
-          } else if (data && data.latitude) {
-            // Handle case where API returns direct object instead of array
-            updateMarker(data);
+          if (data) {
+            updateMarkers(data);
           }
         })
         .catch(error => {
@@ -206,11 +272,11 @@ export function LocationMap({ selectedCar }: LocationMapProps) {
     // Initial fetch
     fetchLocationData();
     
-    // Set up polling interval
-    const interval = setInterval(fetchLocationData, 2000); // Update every 2 seconds
+    // Set up polling interval - every 15 seconds
+    const interval = setInterval(fetchLocationData, 15000);
 
     return () => clearInterval(interval);
-  }, [selectedCar, routePoints]); // Dependency on selectedCar to refetch when car changes
+  }, [selectedCar, routePoints]);
 
   // Speed and direction counters
   const SpeedCounter = () => (
