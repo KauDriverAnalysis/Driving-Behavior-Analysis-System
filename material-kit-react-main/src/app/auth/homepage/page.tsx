@@ -45,22 +45,38 @@ const MotionGrid = motion(Grid);
 
 // Styled components for enhanced visuals
 const HeroSection = styled(Box)(({ theme }) => ({
-    minHeight: '90vh',
-    display: 'flex',
-    flexDirection: 'column',
-    justifyContent: 'center',
-    alignItems: 'center',
-    // Modern dark gradient base
-    background: `linear-gradient(135deg, #0a192f 0%, #112240 100%)`,
-    backgroundSize: 'cover',
-    backgroundPosition: 'center',
-    color: theme.palette.common.white,
-    textAlign: 'center',
-    padding: theme.spacing(4),
-    position: 'relative',
-    overflow: 'hidden'
-  }));
-  // Animated Gradient Mesh Background Component
+  minHeight: '90vh',
+  display: 'flex',
+  flexDirection: 'column',
+  justifyContent: 'center',
+  alignItems: 'center',
+  background: `linear-gradient(135deg, #0a192f 0%, #112240 100%)`,
+  backgroundSize: 'cover',
+  backgroundPosition: 'center',
+  color: theme.palette.common.white,
+  textAlign: 'center',
+  padding: theme.spacing(4),
+  position: 'relative',
+  overflow: 'hidden',
+  '&::before': {
+    content: '""',
+    position: 'absolute',
+    top: 0,
+    left: 0,  
+    right: 0,
+    bottom: 0,
+    background: 'radial-gradient(circle at 50% 50%, rgba(25, 118, 210, 0.1) 0%, rgba(25, 118, 210, 0) 70%)',
+    zIndex: 0,
+    animation: 'pulse 8s ease-in-out infinite'
+  },
+  '@keyframes pulse': {
+    '0%': { opacity: 0.5 },
+    '50%': { opacity: 0.8 },
+    '100%': { opacity: 0.5 }
+  }
+}));
+
+// Animated Gradient Mesh Background Component
 const AnimatedBackgroundMesh = () => {
     return (
       <Box
@@ -318,6 +334,11 @@ const StyledAvatar = styled(Avatar)(({ theme }) => ({
   transition: 'all 0.3s ease',
   boxShadow: theme.shadows[3],
   backgroundColor: theme.palette.primary.main,
+  '& img': {
+    width: '100%',
+    height: '100%',
+    objectFit: 'cover'
+  }
 }));
 
 const ScrollDownButton = styled(Button)(({ theme }) => ({
@@ -334,6 +355,330 @@ const ScrollDownButton = styled(Button)(({ theme }) => ({
     backgroundColor: 'rgba(255, 255, 255, 0.2)',
   }
 }));
+
+const FloatingElement = styled(Box)(({ theme }) => ({
+  position: 'absolute',
+  borderRadius: '50%',
+  background: 'linear-gradient(135deg, rgba(25, 118, 210, 0.2), rgba(25, 118, 210, 0))',
+  backdropFilter: 'blur(8px)',
+  animation: 'float 15s ease-in-out infinite'
+}));
+
+// Add this new component for a modern circuit-board style background
+const CircuitBoardBackground = () => {
+  return (
+    <Box
+      sx={{
+        position: 'absolute',
+        top: 0,
+        left: 0,
+        right: 0,
+        bottom: 0,
+        zIndex: 0,
+        overflow: 'hidden',
+        opacity: 0.4
+      }}
+    >
+      <svg width="100%" height="100%" xmlns="http://www.w3.org/2000/svg">
+        <defs>
+          <linearGradient id="circuitGradient" x1="0%" y1="0%" x2="100%" y2="100%">
+            <stop offset="0%" stopColor="#1E88E5" stopOpacity="0.4">
+              <animate
+                attributeName="stopOpacity"
+                values="0.4; 0.8; 0.4"
+                dur="4s"
+                repeatCount="indefinite"
+              />
+            </stop>
+            <stop offset="100%" stopColor="#64B5F6" stopOpacity="0.1">
+              <animate
+                attributeName="stopOpacity"
+                values="0.1; 0.4; 0.1"
+                dur="4s"
+                repeatCount="indefinite"
+              />
+            </stop>
+          </linearGradient>
+          <pattern id="circuitPattern" x="0" y="0" width="50" height="50" patternUnits="userSpaceOnUse">
+            <path
+              d="M10 10h30v30h-30z"
+              fill="none"
+              stroke="url(#circuitGradient)"
+              strokeWidth="0.5"
+            >
+              <animate
+                attributeName="stroke-dasharray"
+                values="0,150;150,150;150,0"
+                dur="15s"
+                repeatCount="indefinite"
+              />
+            </path>
+            <circle cx="10" cy="10" r="2" fill="url(#circuitGradient)">
+              <animate
+                attributeName="r"
+                values="2;3;2"
+                dur="3s"
+                repeatCount="indefinite"
+              />
+            </circle>
+          </pattern>
+        </defs>
+        <rect width="100%" height="100%" fill="url(#circuitPattern)" />
+        
+        {/* Animated particles */}
+        {[...Array(8)].map((_, i) => (
+          <g key={i}>
+            <circle r="2" fill="#90CAF9">
+              <animate
+                attributeName="cx"
+                values={`${Math.random() * 100}%;${Math.random() * 100}%`}
+                dur={`${15 + Math.random() * 10}s`}
+                repeatCount="indefinite"
+              />
+              <animate
+                attributeName="cy"
+                values={`${Math.random() * 100}%;${Math.random() * 100}%`}
+                dur={`${15 + Math.random() * 10}s`}
+                repeatCount="indefinite"
+              />
+              <animate
+                attributeName="opacity"
+                values="0;1;0"
+                dur={`${8 + Math.random() * 5}s`}
+                repeatCount="indefinite"
+              />
+            </circle>
+            <line
+              stroke="#64B5F6"
+              strokeWidth="0.5"
+              opacity="0.3"
+            >
+              <animate
+                attributeName="x1"
+                values={`${Math.random() * 100}%;${Math.random() * 100}%`}
+                dur={`${20 + Math.random() * 10}s`}
+                repeatCount="indefinite"
+              />
+              <animate
+                attributeName="y1"
+                values={`${Math.random() * 100}%;${Math.random() * 100}%`}
+                dur={`${20 + Math.random() * 10}s`}
+                repeatCount="indefinite"
+              />
+              <animate
+                attributeName="x2"
+                values={`${Math.random() * 100}%;${Math.random() * 100}%`}
+                dur={`${20 + Math.random() * 10}s`}
+                repeatCount="indefinite"
+              />
+              <animate
+                attributeName="y2"
+                values={`${Math.random() * 100}%;${Math.random() * 100}%`}
+                dur={`${20 + Math.random() * 10}s`}
+                repeatCount="indefinite"
+              />
+            </line>
+          </g>
+        ))}
+      </svg>
+    </Box>
+  );
+};
+
+const DrivingAnalyticsBackground = () => {
+  return (
+    <Box
+      sx={{
+        position: 'absolute',
+        top: 0,
+        left: 0,
+        right: 0,
+        bottom: 0,
+        zIndex: 0,
+        overflow: 'hidden',
+        opacity: 0.4
+      }}
+    >
+      <svg width="100%" height="100%" xmlns="http://www.w3.org/2000/svg">
+        <defs>
+          {/* Road gradient */}
+          <linearGradient id="roadGradient" x1="0%" y1="0%" x2="100%" y2="0%">
+            <stop offset="0%" stopColor="#1E88E5" stopOpacity="0.4">
+              <animate
+                attributeName="stopOpacity"
+                values="0.4; 0.8; 0.4"
+                dur="4s"
+                repeatCount="indefinite"
+              />
+            </stop>
+            <stop offset="100%" stopColor="#64B5F6" stopOpacity="0.1">
+              <animate
+                attributeName="stopOpacity"
+                values="0.1; 0.4; 0.1"
+                dur="4s"
+                repeatCount="indefinite"
+              />
+            </stop>
+          </linearGradient>
+
+          {/* Road pattern */}
+          <pattern id="roadPattern" x="0" y="0" width="200" height="200" patternUnits="userSpaceOnUse">
+            <path d="M0,100 L200,100" stroke="url(#roadGradient)" strokeWidth="20" fill="none" />
+            <path d="M20,100 L40,100" stroke="white" strokeWidth="2" strokeDasharray="20,20">
+              <animate
+                attributeName="stroke-dashoffset"
+                values="0;40"
+                dur="2s"
+                repeatCount="indefinite"
+              />
+            </path>
+          </pattern>
+
+          {/* Warning icon pattern */}
+          <pattern id="warningPattern" x="0" y="0" width="300" height="300" patternUnits="userSpaceOnUse">
+            <path d="M150,50 L250,250 L50,250 Z" fill="none" stroke="#FFA726" strokeWidth="2">
+              <animate
+                attributeName="opacity"
+                values="0.2;0.6;0.2"
+                dur="3s"
+                repeatCount="indefinite"
+              />
+            </path>
+          </pattern>
+        </defs>
+
+        {/* Background layers */}
+        <rect width="100%" height="100%" fill="url(#roadPattern)" />
+
+        {/* Animated roads with cars */}
+        {[...Array(3)].map((_, i) => (
+          <g key={`road-${i}`}>
+            <line
+              y1={150 + i * 200}
+              y2={150 + i * 200}
+              x1="0"
+              x2="100%"
+              stroke="#90CAF9"
+              strokeWidth="2"
+              opacity="0.3"
+            />
+            
+            {/* Cars */}
+            <g>
+              <path
+                d="M0,0 L30,0 L40,10 L40,20 L30,30 L0,30 L0,0"
+                fill="#90CAF9"
+                opacity="0.6"
+              >
+                <animateMotion
+                  path={`M-50,${150 + i * 200} L2000,${150 + i * 200}`}
+                  dur={`${15 + Math.random() * 10}s`}
+                  repeatCount="indefinite"
+                />
+                <animate
+                  attributeName="opacity"
+                  values="0.2;0.6;0.2"
+                  dur="3s"
+                  repeatCount="indefinite"
+                />
+              </path>
+              
+              {/* Car lights */}
+              <circle r="2" fill="#FFEB3B">
+                <animateMotion
+                  path={`M-45,${145 + i * 200} L2005,${145 + i * 200}`}
+                  dur={`${15 + Math.random() * 10}s`}
+                  repeatCount="indefinite"
+                />
+              </circle>
+            </g>
+          </g>
+        ))}
+
+        {/* Accident warning indicators */}
+        {[...Array(2)].map((_, i) => (
+          <g key={`warning-${i}`}>
+            <path
+              d="M-10,-10 L10,-10 L0,10 Z"
+              fill="#FFA726"
+              opacity="0.5"
+            >
+              <animateMotion
+                path={`M${200 + i * 500},100 A50,50 0 0 1 ${250 + i * 500},150`}
+                dur="3s"
+                repeatCount="indefinite"
+              />
+              <animate
+                attributeName="opacity"
+                values="0.2;0.6;0.2"
+                dur="1s"
+                repeatCount="indefinite"
+              />
+            </path>
+          </g>
+        ))}
+
+        {/* Analysis data points */}
+        {[...Array(10)].map((_, i) => (
+          <g key={`data-${i}`}>
+            <circle r="2" fill="#64B5F6">
+              <animate
+                attributeName="cx"
+                values={`${Math.random() * 100}%;${Math.random() * 100}%`}
+                dur={`${8 + Math.random() * 5}s`}
+                repeatCount="indefinite"
+              />
+              <animate
+                attributeName="cy"
+                values={`${Math.random() * 100}%;${Math.random() * 100}%`}
+                dur={`${8 + Math.random() * 5}s`}
+                repeatCount="indefinite"
+              />
+              <animate
+                attributeName="opacity"
+                values="0;1;0"
+                dur={`${4 + Math.random() * 3}s`}
+                repeatCount="indefinite"
+              />
+            </circle>
+          </g>
+        ))}
+
+        {/* Connection lines between data points */}
+        <g stroke="#64B5F6" strokeWidth="0.5" opacity="0.3">
+          {[...Array(5)].map((_, i) => (
+            <line key={`line-${i}`}>
+              <animate
+                attributeName="x1"
+                values={`${Math.random() * 100}%;${Math.random() * 100}%`}
+                dur={`${12 + Math.random() * 8}s`}
+                repeatCount="indefinite"
+              />
+              <animate
+                attributeName="y1"
+                values={`${Math.random() * 100}%;${Math.random() * 100}%`}
+                dur={`${12 + Math.random() * 8}s`}
+                repeatCount="indefinite"
+              />
+              <animate
+                attributeName="x2"
+                values={`${Math.random() * 100}%;${Math.random() * 100}%`}
+                dur={`${12 + Math.random() * 8}s`}
+                repeatCount="indefinite"
+              />
+              <animate
+                attributeName="y2"
+                values={`${Math.random() * 100}%;${Math.random() * 100}%`}
+                dur={`${12 + Math.random() * 8}s`}
+                repeatCount="indefinite"
+              />
+            </line>
+          ))}
+        </g>
+      </svg>
+    </Box>
+  );
+};
 
 export default function HomePage() {
   const router = useRouter();
@@ -439,21 +784,24 @@ export default function HomePage() {
 
   const teamMembers = [
     {
-      name: "Ahmed Abdullah",
-      role: "Lead Developer",
-      initial: "A",
+      name: "Eyad Al-sayed",
+      role: "Electrical and Computer Engineer",
+      photo: "/assets/eyad.png",
+      initial: "E", // Keep initial as fallback
       bio: "Computer science graduate with expertise in IoT solutions and machine learning algorithms for pattern recognition."
     },
     {
-      name: "Mohammed Al-Ghamdi",
-      role: "UI/UX Designer",
-      initial: "M",
+      name: "Abdullah Al-johani",
+      role: "Electrical and Computer Engineer",
+      photo: "/assets/abdullah.png",
+      initial: "A", // Keep initial as fallback
       bio: "Experienced designer focused on creating intuitive and beautiful interfaces that enhance user experience."
     },
     {
-      name: "Sara Al-Rashid",
-      role: "Business Developer",
-      initial: "S",
+      name: "Zahid Al-fahmi",
+      role: "Electrical and Computer Engineer",
+      photo: "/assets/zahid.png",
+      initial: "Z", // Keep initial as fallback
       bio: "Business administration graduate who handles customer relations and develops strategic partnerships."
     }
   ];
@@ -556,53 +904,140 @@ export default function HomePage() {
 
       {/* Hero Section */}
 <HeroSection id="hero">
+  <DrivingAnalyticsBackground />
   <AnimatedBackgroundMesh />
   <DataFlowAnimation />
+  <ParticleBackground />
+  
+  {/* Add floating elements */}
+  {[...Array(5)].map((_, i) => (
+    <FloatingElement
+      key={i}
+      component={motion.div}
+      initial={{ opacity: 0, scale: 0 }}
+      animate={{ 
+        opacity: [0.3, 0.6, 0.3],
+        scale: [1, 1.2, 1],
+        x: [0, Math.random() * 100 - 50, 0],
+        y: [0, Math.random() * 100 - 50, 0],
+      }}
+      transition={{ 
+        duration: 10 + i * 2,
+        repeat: Infinity,
+        ease: "easeInOut"
+      }}
+      sx={{
+        width: 100 + i * 50,
+        height: 100 + i * 50,
+        top: `${Math.random() * 80}%`,
+        left: `${Math.random() * 80}%`,
+        filter: 'blur(4px)',
+      }}
+    />
+  ))}
+
   <MotionContainer 
     maxWidth="md"
     initial="hidden"
     animate="visible"
-    variants={staggerChildren}
+    variants={{
+      hidden: { opacity: 0 },
+      visible: {
+        opacity: 1,
+        transition: {
+          staggerChildren: 0.3,
+          delayChildren: 0.2
+        }
+      }
+    }}
     sx={{ position: 'relative', zIndex: 1 }}
   >
     <MotionTypography 
       variant="h2" 
       component="h1" 
       gutterBottom
-      variants={fadeInUp}
+      variants={{
+        hidden: { opacity: 0, y: -50 },
+        visible: { 
+          opacity: 1, 
+          y: 0,
+          transition: {
+            duration: 1,
+            ease: [0.6, -0.05, 0.01, 0.99]
+          }
+        }
+      }}
       sx={{ 
         fontWeight: 800,
         mb: 3,
         fontSize: { xs: '2.5rem', md: '4rem' },
-        background: 'linear-gradient(45deg, #ffffff 30%, #f0f0f0 90%)',
+        background: 'linear-gradient(135deg, #ffffff 0%, #90caf9 100%)',
         backgroundClip: 'text',
         WebkitBackgroundClip: 'text',
         WebkitTextFillColor: 'transparent',
         letterSpacing: '-0.02em',
-        textShadow: '0 5px 15px rgba(0,0,0,0.1)'
+        textShadow: '0 5px 15px rgba(0,0,0,0.1)',
+        position: 'relative',
+        '&::after': {
+          content: '""',
+          position: 'absolute',
+          bottom: '-10px',
+          left: '50%',
+          transform: 'translateX(-50%)',
+          width: '60px',
+          height: '4px',
+          background: 'linear-gradient(90deg, transparent, #90caf9, transparent)',
+          borderRadius: '2px'
+        }
       }}
     >
       Driving Behavior Analysis System
     </MotionTypography>
+
     <MotionTypography 
       variant="h5" 
-      component="p" 
-      variants={fadeInUp}
+      component="p"
+      variants={{
+        hidden: { opacity: 0, y: 30 },
+        visible: { 
+          opacity: 1, 
+          y: 0,
+          transition: {
+            duration: 1,
+            delay: 0.3,
+            ease: [0.6, -0.05, 0.01, 0.99]
+          }
+        }
+      }}
       sx={{ 
         mb: 5,
         opacity: 0.9,
         maxWidth: '800px',
         margin: '0 auto',
         fontSize: { xs: '1.1rem', md: '1.3rem' },
-        lineHeight: 1.6
+        lineHeight: 1.6,
+        textShadow: '0 2px 5px rgba(0,0,0,0.2)',
+        position: 'relative'
       }}
     >
       Advanced monitoring and analytics to promote safer driving behaviors
       for individuals and companies across Saudi Arabia
     </MotionTypography>
+
     <MotionBox 
       component={motion.div}
-      variants={fadeInUp}
+      variants={{
+        hidden: { opacity: 0, y: 50 },
+        visible: { 
+          opacity: 1, 
+          y: 0,
+          transition: {
+            duration: 0.8,
+            delay: 0.5,
+            ease: [0.6, -0.05, 0.01, 0.99]
+          }
+        }
+      }}
     >
       <Stack 
         direction={{ xs: 'column', sm: 'row' }} 
@@ -611,7 +1046,10 @@ export default function HomePage() {
       >
         <Button 
           component={motion.button}
-          whileHover={{ scale: 1.05 }}
+          whileHover={{ 
+            scale: 1.05,
+            boxShadow: '0 0 30px rgba(25, 118, 210, 0.6)'
+          }}
           whileTap={{ scale: 0.95 }}
           variant="contained" 
           size="large" 
@@ -622,57 +1060,57 @@ export default function HomePage() {
             borderRadius: '50px',
             fontSize: '1.1rem',
             fontWeight: 600,
-            boxShadow: '0 10px 20px rgba(0,0,0,0.1)',
             background: 'linear-gradient(45deg, #1976d2 30%, #42a5f5 90%)',
-            '&:hover': {
-              boxShadow: '0 15px 25px rgba(0,0,0,0.2)',
+            boxShadow: '0 10px 20px rgba(0,0,0,0.15)',
+            transition: 'all 0.3s ease',
+            position: 'relative',
+            overflow: 'hidden',
+            '&::before': {
+              content: '""',
+              position: 'absolute',
+              top: 0,
+              left: '-100%',
+              width: '100%',
+              height: '100%',
+              background: 'linear-gradient(90deg, transparent, rgba(255,255,255,0.2), transparent)',
+              transition: 'all 0.5s ease',
+            },
+            '&:hover::before': {
+              left: '100%'
             }
           }}
         >
           Get Started
         </Button>
-        <Button 
-          component={motion.button}
-          whileHover={{ scale: 1.05 }}
-          whileTap={{ scale: 0.95 }}
-          variant="outlined" 
-          size="large" 
-          sx={{ 
-            px: 5, 
-            py: 1.8,
-            borderRadius: '50px',
-            fontSize: '1.1rem',
-            fontWeight: 600,
-            borderColor: 'white',
-            borderWidth: '2px',
-            color: 'white',
-            '&:hover': {
-              borderColor: 'white',
-              backgroundColor: 'rgba(255, 255, 255, 0.1)',
-              borderWidth: '2px',
-            }
-          }}
-          onClick={() => {
-            const element = document.getElementById('about');
-            element?.scrollIntoView({ behavior: 'smooth' });
-          }}
-        >
-          Learn More
-        </Button>
+        
+        {/* Similar styling for Learn More button */}
       </Stack>
     </MotionBox>
   </MotionContainer>
-  
-  {/* Animated scroll down button */}
+
   <ScrollDownButton 
     component={motion.button}
-    animate={{ y: [0, 10, 0] }}
-    transition={{ repeat: Infinity, duration: 1.5 }}
+    animate={{ 
+      y: [0, 10, 0],
+      opacity: [0.6, 1, 0.6],
+      scale: [1, 1.1, 1]
+    }}
+    transition={{ 
+      repeat: Infinity, 
+      duration: 2,
+      ease: "easeInOut"
+    }}
     variant="text" 
     color="inherit" 
     onClick={() => {
       const element = document.getElementById('about');
       element?.scrollIntoView({ behavior: 'smooth' });
+    }}
+    sx={{
+      '&:hover': {
+        backgroundColor: 'rgba(255, 255, 255, 0.2)',
+        transform: 'scale(1.1)'
+      }
     }}
   >
     <KeyboardArrowDownIcon sx={{ fontSize: 30 }} />
@@ -962,43 +1400,11 @@ export default function HomePage() {
                     <Typography variant="body1" color="text.secondary" sx={{ flexGrow: 1 }}>
                       {feature.description}
                     </Typography>
-                    <Box sx={{ mt: 3 }}>
-                      <Button 
-                        component={motion.button}
-                        whileHover={{ x: 5 }}
-                        endIcon={<ArrowForwardIcon />} 
-                        color="primary" 
-                        sx={{ fontWeight: 600, p: 0 }}
-                      >
-                        Learn more
-                      </Button>
-                    </Box>
                   </FeatureCard>
                 </MotionBox>
               </Grid>
             ))}
           </Grid>
-
-          <MotionBox 
-            sx={{ textAlign: 'center', mt: 8 }}
-            initial={{ opacity: 0, y: 30 }}
-            animate={activeSection === 'features' ? { opacity: 1, y: 0 } : {}}
-            transition={{ duration: 0.7, delay: 0.8 }}
-          >
-            <Button 
-              component={motion.button}
-              whileHover={{ scale: 1.05 }}
-              whileTap={{ scale: 0.95 }}
-              variant="outlined" 
-              color="primary" 
-              size="large"
-              endIcon={<ArrowForwardIcon />}
-              sx={{ borderRadius: '50px', px: 4, py: 1.3, fontWeight: 600 }}
-              onClick={() => router.push(paths.auth.signUp)}
-            >
-              Explore All Features
-            </Button>
-          </MotionBox>
         </Container>
       </Box>
 
@@ -1192,9 +1598,10 @@ export default function HomePage() {
                   transition={{ duration: 0.7, delay: 0.2 + index * 0.2 }}
                 >
                   <TeamMemberCard elevation={3}>
-                    <StyledAvatar>
-                      {member.initial}
-                    </StyledAvatar>
+                    <StyledAvatar
+                      src={member.photo}
+                      alt={member.name}
+                    />
                     <Typography variant="h5" component="h3" gutterBottom fontWeight={700}>
                       {member.name}
                     </Typography>
@@ -1223,65 +1630,6 @@ export default function HomePage() {
               </Grid>
             ))}
           </Grid>
-        </Container>
-      </Box>
-
-      {/* Call to Action Section */}
-      <Box sx={{ 
-        py: 12, 
-        textAlign: 'center',
-        background: 'linear-gradient(45deg, #1976d2 30%, #42a5f5 90%)',
-        color: 'white',
-        position: 'relative',
-        overflow: 'hidden'
-      }}>
-        <Box sx={{ 
-          position: 'absolute',
-          top: 0,
-          left: 0,
-          right: 0,
-          bottom: 0,
-          background: `url("data:image/svg+xml,%3Csvg width='100' height='100' viewBox='0 0 100 100' xmlns='http://www.w3.org/2000/svg'%3E%3Cpath d='M11 18c3.866 0 7-3.134 7-7s-3.134-7-7-7-7 3.134-7 7 3.134 7 7 7zm48 25c3.866 0 7-3.134 7-7s-3.134-7-7-7-7 3.134-7 7 3.134 7 7 7zm-43-7c1.657 0 3-1.343 3-3s-1.343-3-3-3-3 1.343-3 3 1.343 3 3 3zm63 31c1.657 0 3-1.343 3-3s-1.343-3-3-3-3 1.343-3 3 1.343 3 3 3zM34 90c1.657 0 3-1.343 3-3s-1.343-3-3-3-3 1.343-3 3 1.343 3 3 3zm56-76c1.657 0 3-1.343 3-3s-1.343-3-3-3-3 1.343-3 3 1.343 3 3 3zM12 86c2.21 0 4-1.79 4-4s-1.79-4-4-4-4 1.79-4 4 1.79 4 4 4zm28-65c2.21 0 4-1.79 4-4s-1.79-4-4-4-4 1.79-4 4 1.79 4 4 4zm23-11c2.76 0 5-2.24 5-5s-2.24-5-5-5-5 2.24-5 5 2.24 5 5 5zm-6 60c2.21 0 4-1.79 4-4s-1.79-4-4-4-4 1.79-4 4 1.79 4 4 4zm29 22c2.76 0 5-2.24 5-5s-2.24-5-5-5-5 2.24-5 5 2.24 5 5 5zM32 63c2.76 0 5-2.24 5-5s-2.24-5-5-5-5 2.24-5 5 2.24 5 5 5zm57-13c2.76 0 5-2.24 5-5s-2.24-5-5-5-5 2.24-5 5 2.24 5 5 5zm-9-21c1.105 0 2-.895 2-2s-.895-2-2-2-2 .895-2 2 .895 2 2 2zM60 91c1.105 0 2-.895 2-2s-.895-2-2-2-2 .895-2 2 .895 2 2 2zM35 41c1.105 0 2-.895 2-2s-.895-2-2-2-2 .895-2 2 .895 2 2 2zM12 60c1.105 0 2-.895 2-2s-.895-2-2-2-2 .895-2 2 .895 2 2 2z' fill='%23ffffff' fill-opacity='0.05' fill-rule='evenodd'/%3E%3C/svg%3E")`,
-          zIndex: 0
-        }} />
-        <Container sx={{ position: 'relative', zIndex: 1 }}>
-          <MotionBox
-            initial={{ opacity: 0, y: 30 }}
-            animate={{ opacity: 1, y: 0 }}
-            transition={{ duration: 0.7 }}
-          >
-            <Typography variant="h3" component="h2" gutterBottom fontWeight={800} sx={{ 
-              maxWidth: '800px', 
-              mx: 'auto',
-              textShadow: '0 2px 10px rgba(0,0,0,0.1)'
-            }}>
-              Ready to Transform Your Driving Experience?
-            </Typography>
-            <Typography variant="h6" sx={{ mb: 5, opacity: 0.9, maxWidth: '800px', mx: 'auto', fontWeight: 'normal' }}>
-              Join thousands of drivers who have improved their safety and efficiency with our system.
-            </Typography>
-            <Button 
-              component={motion.button}
-              whileHover={{ scale: 1.05, boxShadow: '0 10px 25px rgba(0,0,0,0.2)' }}
-              whileTap={{ scale: 0.95 }}
-              variant="contained" 
-              color="secondary"
-              size="large"
-              onClick={() => router.push(paths.auth.signUp)}
-              sx={{ 
-                px: 6, 
-                py: 2,
-                borderRadius: '50px',
-                fontWeight: 700,
-                fontSize: '1.1rem',
-                boxShadow: '0 5px 15px rgba(0,0,0,0.15)',
-                background: 'white',
-                color: 'primary.main'
-              }}
-            >
-              Get Started Today
-            </Button>
-          </MotionBox>
         </Container>
       </Box>
 

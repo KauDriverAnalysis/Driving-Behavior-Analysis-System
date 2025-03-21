@@ -16,6 +16,7 @@ export const paths = {
     overview: '/dashboard-admin',
     tracking: '/dashboard-admin/tracking',
     geofencing: '/dashboard-admin/geofencing',
+    pattrenScore: '/dashboard-admin/pattren-score',
     cars: '/dashboard-admin/cars',
     employees: '/dashboard-admin/employees',
     drivers: '/dashboard-admin/drivers ',

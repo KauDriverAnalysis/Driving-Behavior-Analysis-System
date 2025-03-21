@@ -4,7 +4,7 @@ import { paths } from '@/paths';
 const baseNavItems: NavItemConfig[] = [
   {
     title: 'Overview',
-    href: paths.dashboardAdmin.index,
+    href: paths.dashboardAdmin.overview,
     icon: 'chart-pie',
   },
   {
@@ -20,7 +20,7 @@ const baseNavItems: NavItemConfig[] = [
   {
     title: 'Drivers',
     href: paths.dashboardAdmin.drivers,
-    icon: 'user',
+    icon: 'driver', // Changed icon for Drivers
   }
 ];
 
@@ -44,13 +44,20 @@ export const getNavItems = (userType?: string): NavItemConfig[] => {
       href: paths.dashboardAdmin.geofencing,
       icon: 'draw-polygon',
     });
+    
+    navItems.splice(trackingIndex + 3, 0, {
+      key: 'pattrenScore',
+      title: 'Pattren Score',
+      href: paths.dashboardAdmin.pattrenScore,
+      icon: 'chart-pie',
+    });
 
     // Add account at the end
     navItems.push({
       key: 'account',
       title: 'Account',
       href: paths.dashboardAdmin.account,
-      icon: 'user'
+      icon: 'user-circle', // Changed icon for Account
     });
   }
 
