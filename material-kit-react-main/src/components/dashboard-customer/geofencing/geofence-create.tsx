@@ -78,25 +78,27 @@ export function GeofenceCreate({
       return;
     }
     
-    const geofenceData: Omit<Geofence, 'id' | 'createdAt'> = {
+    // Get userId from localStorage or your auth context
+    const userId = localStorage.getItem('userId');
+    
+    const geofenceData = {
       name,
-      description: description || undefined,
+      description: description || '',
       type: geometry.type,
       coordinates: geometry.type === 'circle' 
         ? geometry.data.center 
         : geometry.data.coordinates,
       radius: geometry.type === 'circle' ? geometry.data.radius : undefined,
       color,
-      active: editGeofence?.active !== undefined ? editGeofence.active : true,
+      active: true,
+      userId // Add userId to the request
     };
 
     try {
       let response;
       let resultGeofence;
 
-      // Check if we're editing an existing geofence or creating a new one
       if (editGeofence) {
-        // Update existing geofence
         response = await fetch(`http://localhost:8000/api/geofences/${editGeofence.id}/update/`, {
           method: 'PUT',
           headers: {
@@ -104,14 +106,7 @@ export function GeofenceCreate({
           },
           body: JSON.stringify(geofenceData),
         });
-
-        if (!response.ok) {
-          throw new Error('Failed to update geofence');
-        }
-
-        resultGeofence = await response.json();
       } else {
-        // Create new geofence
         response = await fetch('http://localhost:8000/api/geofences/create/', {
           method: 'POST',
           headers: {
@@ -119,18 +114,17 @@ export function GeofenceCreate({
           },
           body: JSON.stringify(geofenceData),
         });
-
-        if (!response.ok) {
-          throw new Error('Failed to create geofence');
-        }
-
-        resultGeofence = await response.json();
       }
 
-      // Pass the result back to the parent component
+      if (!response.ok) {
+        const errorData = await response.json();
+        throw new Error(errorData.error || 'Failed to save geofence');
+      }
+
+      resultGeofence = await response.json();
       onSave(resultGeofence);
     } catch (err) {
-      console.error(`Error ${editGeofence ? 'updating' : 'creating'} geofence:`, err);
+      console.error('Error saving geofence:', err);
       setFormErrors(prev => ({ 
         ...prev, 
         geometry: `Failed to ${editGeofence ? 'update' : 'create'} geofence. Please try again.` 

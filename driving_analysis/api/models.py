@@ -4,6 +4,7 @@ os.environ.setdefault('DJANGO_SETTINGS_MODULE', 'driving_analysis.settings')
 from django.db import models
 from django.contrib.postgres.fields import ArrayField
 import json
+from django.core.exceptions import ValidationError
 
 class Customer(models.Model):
     Name = models.CharField(max_length=255)
@@ -81,16 +82,16 @@ class Geofence(models.Model):
     color = models.CharField(max_length=20, default='#ff4444')
     active = models.BooleanField(default=True)
     created_at = models.DateTimeField(auto_now_add=True)
-    customer = models.ForeignKey('Customer', on_delete=models.CASCADE, null=True, blank=True)  # Optional customer foreign key
-    
+    customer_id = models.ForeignKey(Customer, on_delete=models.CASCADE, null=True, blank=True)
+    company_id = models.ForeignKey(Company, on_delete=models.CASCADE, null=True, blank=True)
+
     def set_coordinates(self, coordinates):
         self.coordinates_json = json.dumps(coordinates)
         
     def get_coordinates(self):
         return json.loads(self.coordinates_json)
     
-    def __str__(self):
-        return f"{self.name} ({self.type})"
+ 
 
 
 

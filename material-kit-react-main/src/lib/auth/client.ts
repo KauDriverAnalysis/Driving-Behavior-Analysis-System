@@ -47,7 +47,7 @@ class AuthClient {
     return { error: 'Social authentication not implemented' };
   }
 
-  async signInWithPassword(params: SignInWithPasswordParams): Promise<{ userType?: string; error?: string }> {
+  async signInWithPassword(params: SignInWithPasswordParams): Promise<{ userId?: string; userType?: string; error?: string }> {
     const { email, password, accountType = 'customer' } = params;
 
     try {
@@ -88,55 +88,34 @@ class AuthClient {
       
       // Determine user role from response
       const userRole = data.role || accountType;
+      const userId = data.id?.toString() || '';
+      
       localStorage.setItem('user-type', userRole);
-      localStorage.setItem('user-id', data.id?.toString() || '');
+      localStorage.setItem('user-id', userId);
       
       // Store additional info based on account type
       if (accountType === 'company') {
-        localStorage.setItem('company-id', data.id?.toString() || '');
+        localStorage.setItem('company-id', userId);
         localStorage.setItem('company-name', data.Company_name || '');
       } else if (accountType === 'customer') {
-        localStorage.setItem('customer-id', data.id?.toString() || '');
+        localStorage.setItem('customer-id', userId);
         localStorage.setItem('customer-name', data.Name || '');
       }
       
-      return { userType: userRole, error: null };
+      console.log(`User logged in - ID: ${userId}, Type: ${userRole}`);
+      
+      return { 
+        userId: userId,
+        userType: userRole, 
+        error: null 
+      };
     } catch (error) {
       console.error('Authentication error:', error);
       return { error: 'Connection error. Please try again later.' };
     }
   }
 
-  // Helper method for mock authentication (for development, can be removed later)
-  private mockAuthentication(email: string, password: string): string | null {
-    const adminEmail = 'admin@example.com';
-    const adminPassword = 'AdminSecret';
-    const customerEmail = 'customer@example.com';
-    const customerPassword = 'CustomerSecret';
-    const employeeEmail = 'employee@example.com';
-    const employeePassword = 'EmployeeSecret';
-
-    if (email === adminEmail && password === adminPassword) {
-      const token = generateToken();
-      localStorage.setItem('custom-auth-token', token);
-      return 'admin';
-    }
-
-    if (email === customerEmail && password === customerPassword) {
-      const token = generateToken();
-      localStorage.setItem('custom-auth-token', token);
-      return 'customer';
-    }
-
-    if (email === employeeEmail && password === employeePassword) {
-      const token = generateToken();
-      localStorage.setItem('custom-auth-token', token);
-      return 'employee';
-    }
-
-    return null;
-  }
-
+ 
   async resetPassword(params: ResetPasswordParams): Promise<{ error?: string; success?: boolean }> {
     const { email } = params;
     

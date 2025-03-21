@@ -144,30 +144,37 @@ class EmployeeForm(forms.ModelForm):
 class GeofenceForm(forms.ModelForm):
     class Meta:
         model = Geofence
-        fields = ['name', 'description', 'type', 'coordinates_json', 'radius', 'color', 'active']
+        fields = ['name', 'description', 'type', 'coordinates_json', 'radius', 'color', 'active','customer_id', 'company_id']
+        
+    def __init__(self, *args, **kwargs):
+        super().__init__(*args, **kwargs)
+        # Make some fields optional
+        self.fields['description'].required = False
         
     def clean(self):
         cleaned_data = super().clean()
         geofence_type = cleaned_data.get('type')
         radius = cleaned_data.get('radius')
         coordinates_json = cleaned_data.get('coordinates_json')
+        company_id = cleaned_data.get('company_id')
+        customer_id = cleaned_data.get('customer_id')
         
+        # Validate coordinates format
         try:
             coordinates = json.loads(coordinates_json)
         except json.JSONDecodeError:
             raise ValidationError('Invalid JSON format for coordinates')
             
+        # Validate geofence type-specific requirements
         if geofence_type == 'circle':
             if radius is None or radius <= 0:
                 raise ValidationError('Circle geofence must have a positive radius')
                 
-            # Validate that coordinates is a pair of lat/lng
             if not (isinstance(coordinates, list) and len(coordinates) == 2 and
                    all(isinstance(c, (int, float)) for c in coordinates)):
                 raise ValidationError('Circle geofence requires a single coordinate pair [lat, lng]')
                 
         elif geofence_type == 'polygon':
-            # Validate that coordinates is a list of lat/lng pairs
             if not (isinstance(coordinates, list) and len(coordinates) >= 3):
                 raise ValidationError('Polygon geofence requires at least 3 coordinate pairs')
                 
@@ -175,15 +182,21 @@ class GeofenceForm(forms.ModelForm):
                 if not (isinstance(point, list) and len(point) == 2 and
                        all(isinstance(c, (int, float)) for c in point)):
                     raise ValidationError('Invalid coordinate pair in polygon')
+
+        # Validate owner constraints
+        if not company_id and not customer_id:
+            raise ValidationError("Either company_id or customer_id must be set")
+        if company_id and customer_id:
+            raise ValidationError("Cannot set both company_id and customer_id")
             
         return cleaned_data
 
-    def save(self, commit=True):
-        geofence = super(GeofenceForm, self).save(commit=False)
-        user = self.request.user
-        if hasattr(user, 'customer'):
-            geofence.customer = user.customer
-        if commit:
-            geofence.save()
-        return geofence
+    def save(self, *args, **kwargs):
+        self.clean()
+        super().save(*args, **kwargs)
+    
+    def __str__(self):
+        return f"{self.name} ({self.type})"
+
+
 

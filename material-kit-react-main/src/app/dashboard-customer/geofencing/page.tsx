@@ -19,7 +19,6 @@ import MapIcon from '@mui/icons-material/Map';
 import FenceIcon from '@mui/icons-material/Fence';
 import { GeofencesList } from '@/components/dashboard-customer/geofencing/geofences-list';
 import { GeofenceCreate } from '@/components/dashboard-customer/geofencing/geofence-create';
-import { Geofence } from '@/app/dashboard-customer/geofencing/page';
 
 // Import map component dynamically to prevent SSR issues
 const GeofencingMapComponent = dynamic(

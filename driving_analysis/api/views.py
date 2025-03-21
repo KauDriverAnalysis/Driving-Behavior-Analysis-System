@@ -651,17 +651,20 @@ def company_login(request):
             email = data.get('Email')
             password = data.get('Password')
             
+            print(f"Company/Employee login attempt for email: {email}")  # Debug print
+            
             # First check if this is an admin/employee
             try:
                 employee = Employee.objects.get(Email=email)
+                print(f"Employee found: {employee.Name} (ID: {employee.id})")  # Debug print
+                
                 # Check password
-                if check_password(password, employee.Password) or password == employee.Password:  # Check both hashed and plain for development
-                    # Determine if this is an admin
-                    is_admin = employee.Admin  # Assuming you have this field
+                if check_password(password, employee.Password) or password == employee.Password:
+                    is_admin = employee.Admin
                     role = "admin" if is_admin else "employee"
+                    print(f"Login successful - Role: {role}")  # Debug print
                     
                     token = f"{employee.id}_{int(time.time())}"
-                    
                     return JsonResponse({
                         'success': True,
                         'token': token,
@@ -670,13 +673,13 @@ def company_login(request):
                         'role': role
                     }, status=200)
             except Employee.DoesNotExist:
-                # Not an employee, check if it's a company
                 try:
                     company = Company.objects.get(Email=email)
-                    # Check password
-                    if check_password(password, company.Password) or password == company.Password:  # Check both for development
+                    print(f"Company found: {company.Company_name} (ID: {company.id})")  # Debug print
+                    
+                    if check_password(password, company.Password) or password == company.Password:
+                        print(f"Company login successful")  # Debug print
                         token = f"{company.id}_{int(time.time())}"
-                        
                         return JsonResponse({
                             'success': True,
                             'token': token,
@@ -685,11 +688,13 @@ def company_login(request):
                             'role': 'company'
                         }, status=200)
                 except Company.DoesNotExist:
+                    print(f"No company or employee found with email: {email}")  # Debug print
                     return JsonResponse({'error': 'Invalid credentials'}, status=401)
             
             return JsonResponse({'error': 'Invalid credentials'}, status=401)
             
         except Exception as e:
+            print(f"Error in company_login: {str(e)}")  # Debug print
             return JsonResponse({'error': str(e)}, status=500)
     
     return JsonResponse({'error': 'Method not allowed'}, status=405)
@@ -706,13 +711,11 @@ def customer_login(request):
             
             try:
                 customer = Customer.objects.get(Email=email)
-                print(f"Customer found: {customer.Name}")  # Debug print
+                print(f"Customer found: {customer.Name} (ID: {customer.id})")  # Debug print
                 
-                # Check password using Django's check_password function
-                # We also do direct comparison as fallback during development
                 if check_password(password, customer.Password) or password == customer.Password:
-                    # Create a simple authentication token
                     token = f"{customer.id}_{int(time.time())}"
+                    print(f"Customer login successful")  # Debug print
                     
                     return JsonResponse({
                         'success': True,
@@ -722,8 +725,10 @@ def customer_login(request):
                         'role': 'customer'
                     }, status=200)
                 else:
+                    print(f"Invalid password for customer: {customer.Name}")  # Debug print
                     return JsonResponse({'error': 'Invalid credentials'}, status=401)
             except Customer.DoesNotExist:
+                print(f"No customer found with email: {email}")  # Debug print
                 return JsonResponse({'error': 'Invalid email or password'}, status=401)
         except Exception as e:
             print(f"Exception in customer_login: {str(e)}")
@@ -994,36 +999,49 @@ def update_password(request):
 
 @csrf_exempt
 def geofence_list(request):
-    """Get all geofences or create a new one"""
+    """Get geofences based on user type and ID"""
     if request.method == 'GET':
-        # Filter geofences based on the logged-in customer if the user is a customer
-        if request.user.is_authenticated and hasattr(request.user, 'customer'):
-            geofences = Geofence.objects.filter(customer=request.user.customer)
-        else:
-            geofences = Geofence.objects.all()
-            
-        data = []
-        for geofence in geofences:
-            geofence_data = {
-                'id': geofence.id,
-                'name': geofence.name,
-                'description': geofence.description,
-                'type': geofence.type,
-                'coordinates': geofence.get_coordinates(),
-                'radius': geofence.radius,
-                'color': geofence.color,
-                'active': geofence.active,
-                'createdAt': geofence.created_at.isoformat(),
-            }
-            data.append(geofence_data)
-        
-        return JsonResponse(data, safe=False)
-    
-    return JsonResponse({'error': 'Method not allowed'}, status=405)
+        try:
+            user_type = request.GET.get('userType')
+            user_id = request.GET.get('userId')
 
+            if not user_type or not user_id:
+                return JsonResponse({'error': 'userType and userId are required'}, status=400)
+
+            if user_type == 'customer':
+                geofences = Geofence.objects.filter(customer_id=user_id)
+            elif user_type == 'company':
+                geofences = Geofence.objects.filter(company_id=user_id)
+            else:
+                return JsonResponse({'error': 'Invalid user type'}, status=400)
+
+            data = []
+            for geofence in geofences:
+                geofence_data = {
+                    'id': geofence.id,
+                    'name': geofence.name,
+                    'description': geofence.description,
+                    'type': geofence.type,
+                    'coordinates': geofence.get_coordinates(),
+                    'radius': geofence.radius,
+                    'color': geofence.color,
+                    'active': geofence.active,
+                    'createdAt': geofence.created_at.isoformat(),
+                    'customer_id': geofence.customer_id_id,
+                    'company_id': geofence.company_id_id
+                }
+                data.append(geofence_data)
+            
+            return JsonResponse(data, safe=False)
+            
+        except Exception as e:
+            return JsonResponse({'error': str(e)}, status=500)
+
+    return JsonResponse({'error': 'Method not allowed'}, status=405)
 
 @csrf_exempt
 def update_geofence(request, geofence_id):
+    """Update a specific geofence"""
     try:
         geofence = Geofence.objects.get(id=geofence_id)
     except Geofence.DoesNotExist:
@@ -1031,6 +1049,14 @@ def update_geofence(request, geofence_id):
         
     try:
         data = json.loads(request.body)
+        user_type = data.pop('userType', None)
+        user_id = data.pop('userId', None)
+
+        # Check ownership
+        if user_type == 'customer' and geofence.customer_id_id != user_id:
+            return JsonResponse({'error': 'Permission denied'}, status=403)
+        elif user_type == 'company' and geofence.company_id_id != user_id:
+            return JsonResponse({'error': 'Permission denied'}, status=403)
         
         # Handle partial update for just 'active' field
         if 'active' in data and len(data.keys()) == 1:
@@ -1046,37 +1072,37 @@ def update_geofence(request, geofence_id):
                 'radius': geofence.radius,
                 'color': geofence.color,
                 'active': geofence.active,
-                'createdAt': geofence.created_at.isoformat()
+                'createdAt': geofence.created_at.isoformat(),
+                'customer_id': geofence.customer_id_id,
+                'company_id': geofence.company_id_id
             })
+        
+        # Handle full update
+        coordinates = data.pop('coordinates', None)
+        if coordinates:
+            data['coordinates_json'] = json.dumps(coordinates)
+            
+        form = GeofenceForm(data, instance=geofence)
+        if form.is_valid():
+            updated_geofence = form.save()
+            
+            response_data = {
+                'id': updated_geofence.id,
+                'name': updated_geofence.name,
+                'description': updated_geofence.description,
+                'type': updated_geofence.type,
+                'coordinates': updated_geofence.get_coordinates(),
+                'radius': updated_geofence.radius,
+                'color': updated_geofence.color,
+                'active': updated_geofence.active,
+                'createdAt': updated_geofence.created_at.isoformat(),
+                'customer_id': updated_geofence.customer_id_id,
+                'company_id': updated_geofence.company_id_id
+            }
+            
+            return JsonResponse(response_data)
         else:
-            # Handle full update with form validation
-            # Extract coordinates and convert to JSON string
-            coordinates = data.pop('coordinates', None)
-            if coordinates:
-                data['coordinates_json'] = json.dumps(coordinates)
-            
-            # Update the geofence
-            form = GeofenceForm(data, instance=geofence)
-            
-            if form.is_valid():
-                updated_geofence = form.save()
-                
-                response_data = {
-                    'id': updated_geofence.id,
-                    'name': updated_geofence.name,
-                    'description': updated_geofence.description,
-                    'type': updated_geofence.type,
-                    'coordinates': updated_geofence.get_coordinates(),
-                    'radius': updated_geofence.radius,
-                    'color': updated_geofence.color,
-                    'active': updated_geofence.active,
-                    'createdAt': updated_geofence.created_at.isoformat(),
-                }
-                
-                return JsonResponse(response_data)
-            else:
-                print(f"Form validation errors: {form.errors}")
-                return JsonResponse({'errors': form.errors}, status=400)
+            return JsonResponse({'errors': form.errors}, status=400)
             
     except Exception as e:
         return JsonResponse({'error': str(e)}, status=500)
@@ -1089,11 +1115,14 @@ def delete_geofence(request, geofence_id):
         
     try:
         geofence = Geofence.objects.get(pk=geofence_id)
-        
-        # Check if the user is a customer and owns the geofence
-        if request.user.is_authenticated and hasattr(request.user, 'customer'):
-            if geofence.customer != request.user.customer:
-                return JsonResponse({'error': 'Permission denied'}, status=403)
+        user_type = request.GET.get('userType')
+        user_id = request.GET.get('userId')
+
+        # Check ownership
+        if user_type == 'customer' and geofence.customer_id_id != int(user_id):
+            return JsonResponse({'error': 'Permission denied'}, status=403)
+        elif user_type == 'company' and geofence.company_id_id != int(user_id):
+            return JsonResponse({'error': 'Permission denied'}, status=403)
         
         geofence.delete()
         return JsonResponse({'message': 'Geofence deleted successfully'})
@@ -1110,22 +1139,37 @@ def create_geofence(request):
         
     try:
         data = json.loads(request.body)
-        
+        user_type = data.pop('userType', None)
+        user_id = data.pop('userId', None)
+
+        if not user_type or not user_id:
+            return JsonResponse({'error': 'userType and userId are required'}, status=400)
+
         # Extract coordinates and convert to JSON string
         coordinates = data.pop('coordinates', None)
         if coordinates:
             data['coordinates_json'] = json.dumps(coordinates)
+        
+        # Add radius if it's a circle type geofence
+        if data.get('type') == 'circle' and 'radius' in data:
+            data['radius'] = float(data['radius'])
+
+        # Set the appropriate foreign key based on user type
+        if user_type == 'customer':
+            data['customer_id'] = user_id
+            data['company_id'] = None
+        elif user_type == 'company':
+            data['company_id'] = user_id
+            data['customer_id'] = None
+        else:
+            return JsonResponse({'error': 'Invalid user type'}, status=400)
         
         # Create form with JSON data
         form = GeofenceForm(data)
         
         if form.is_valid():
             geofence = form.save(commit=False)
-            
-            # Associate the geofence with the logged-in customer if the user is a customer
-            if request.user.is_authenticated and hasattr(request.user, 'customer'):
-                geofence.customer = request.user.customer
-            
+            geofence.active = True
             geofence.save()
             
             response_data = {
@@ -1137,17 +1181,17 @@ def create_geofence(request):
                 'radius': geofence.radius,
                 'color': geofence.color,
                 'active': geofence.active,
-                'createdAt': geofence.created_at.isoformat()
+                'createdAt': geofence.created_at.isoformat(),
+                'customer_id': geofence.customer_id_id,
+                'company_id': geofence.company_id_id
             }
             
             return JsonResponse(response_data, status=201)
         else:
-            print(f"Form validation errors: {form.errors}")
             return JsonResponse({'errors': form.errors}, status=400)
             
-    except json.JSONDecodeError:
-        return JsonResponse({'error': 'Invalid JSON'}, status=400)
     except Exception as e:
+        print(f"Error creating geofence: {str(e)}")
         return JsonResponse({'error': str(e)}, status=500)
 
 @csrf_exempt
