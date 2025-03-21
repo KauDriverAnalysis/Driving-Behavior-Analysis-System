@@ -40,6 +40,65 @@ export interface Geofence {
 }
 
 export default function GeofencingPage() {
+  // Get user info from localStorage
+  const [userType, setUserType] = useState<string>('');
+  const [userId, setUserId] = useState<string>('');
+
+  // Set up user information when component mounts
+  useEffect(() => {
+    console.log("Checking localStorage for user credentials...");
+    
+    // Debug: Log all localStorage items for inspection
+    console.log("All localStorage items:", Object.keys(localStorage).map(key => ({
+      key,
+      value: localStorage.getItem(key)
+    })));
+    
+    // First, try the direct userType and userId that we now save from the login response
+    const userType = localStorage.getItem('userType');
+    const userId = localStorage.getItem('userId');
+    
+    if (userType && userId) {
+      console.log(`✅ User detected from direct keys! Type: ${userType}, ID: ${userId}`);
+      setUserType(userType);
+      setUserId(userId);
+      return;
+    }
+    
+    // If direct keys are not found, check for company or customer specific IDs
+    const companyId = localStorage.getItem('company-id');
+    console.log("Company ID from localStorage:", companyId);
+    
+    if (companyId) {
+      console.log("✅ Company detected! Setting userType=company, userId=", companyId);
+      setUserType('company');
+      setUserId(companyId);
+      return;
+    }
+    
+    // Check if we're logged in as a customer
+    const customerId = localStorage.getItem('customer-id');
+    console.log("Customer ID from localStorage:", customerId);
+    
+    if (customerId) {
+      console.log("✅ Customer detected! Setting userType=customer, userId=", customerId);
+      setUserType('customer');
+      setUserId(customerId);
+      return;
+    }
+    
+    // No user credentials found
+    console.log("❌ No user detected. Setting error message.");
+    setError('Unable to determine user type. Please log in again.');
+  }, []);
+
+  // Fetch geofences from Django when user info is available
+  useEffect(() => {
+    if (userType && userId) {
+      fetchGeofences();
+    }
+  }, [userType, userId]); // Added userType and userId as dependencies
+
   const [selectedGeofence, setSelectedGeofence] = useState<string | null>(null);
   const [isCreating, setIsCreating] = useState<boolean>(false);
   const [loading, setLoading] = useState<boolean>(true);
@@ -62,16 +121,18 @@ export default function GeofencingPage() {
   const [previewColor, setPreviewColor] = useState<string>('#ff4444');
   const [isEditing, setIsEditing] = useState<boolean>(false);
 
-  // Fetch geofences from Django when component mounts
-  useEffect(() => {
-    fetchGeofences();
-  }, []);
-
   // Function to fetch geofences from Django
   const fetchGeofences = async () => {
+    if (!userType || !userId) {
+      setError('User information not available. Please log in again.');
+      setLoading(false);
+      return;
+    }
+    
     try {
       setLoading(true);
-      const response = await fetch('http://localhost:8000/api/geofences/');
+      // Update URL to include userType and userId as query parameters
+      const response = await fetch(`http://localhost:8000/api/geofences/?userType=${userType}&userId=${userId}`);
       
       if (!response.ok) {
         throw new Error(`HTTP error! Status: ${response.status}`);
@@ -140,25 +201,11 @@ export default function GeofencingPage() {
 
   // Handle saving a geofence (create or update)
   const handleSaveGeofence = (geofence: any) => {
-    // Update local state for immediate UI feedback
-    if (isEditing && selectedGeofence) {
-      // Update existing geofence in state
-      setGeofences(prevGeofences => 
-        prevGeofences.map(g => g.id === selectedGeofence ? {...geofence, id: selectedGeofence} : g)
-      );
-    } else {
-      // Create a new geofence with a temporary ID
-      const newId = Date.now().toString();
-      setGeofences(prevGeofences => [
-        ...prevGeofences, 
-        {...geofence, id: newId, createdAt: new Date().toISOString()}
-      ]);
-    }
-    
+    // Reset UI state
     setIsCreating(false);
     setIsEditing(false);
     
-    // Fetch fresh data from the server
+    // Don't update the state manually, just fetch fresh data from the server
     fetchGeofences();
     
     // Show success notification
@@ -171,11 +218,20 @@ export default function GeofencingPage() {
   // Handle deleting a geofence
   const handleDeleteGeofence = async (id: string) => {
     try {
+      // Get user type and ID from localStorage
+      const userType = localStorage.getItem('userType');
+      const userId = localStorage.getItem('userId');
+      
+      if (!userType || !userId) {
+        showNotification('User information not available. Please log in again.', 'error');
+        return;
+      }
+      
       // Optimistically update UI first for responsiveness
       setGeofences(prev => prev.filter(g => g.id !== id));
       
-      // Then make the API call
-      const response = await fetch(`http://localhost:8000/api/geofences/${id}/delete/`, {
+      // Then make the API call with user type and ID as query parameters
+      const response = await fetch(`http://localhost:8000/api/geofences/${id}/delete/?userType=${userType}&userId=${userId}`, {
         method: 'DELETE',
       });
   
@@ -188,31 +244,64 @@ export default function GeofencingPage() {
         setSelectedGeofence(null);
       }
       
-      // Optionally re-fetch from server to ensure sync
-      fetchGeofences();
-      
+      showNotification('Geofence deleted successfully', 'success');
     } catch (err) {
       console.error('Error deleting geofence:', err);
       // If delete failed, revert the state change by re-fetching
       fetchGeofences();
+      showNotification('Failed to delete geofence', 'error');
     }
   };
 
   // Handle toggling a geofence's active state
-  const handleToggleActive = (id: string) => {
-    const geofence = geofences.find(g => g.id === id);
-    if (!geofence) return;
+const handleToggleActive = async (id: string) => {
+  const geofence = geofences.find(g => g.id === id);
+  if (!geofence) return;
+
+  // Get user type and ID from localStorage
+  const userType = localStorage.getItem('userType');
+  const userId = localStorage.getItem('userId');
   
-    // Update local state for immediate UI feedback
-    setGeofences(prevGeofences =>
-      prevGeofences.map(g => g.id === id ? { ...g, active: !g.active } : g)
-    );
-    
-    // Fetch fresh data from the server
-    fetchGeofences();
+  if (!userType || !userId) {
+    showNotification('User information not available. Please log in again.', 'error');
+    return;
+  }
+
+  console.log(`Toggling geofence ${id} active status with userType: ${userType}, userId: ${userId}`);
+
+  // Update local state for immediate UI feedback
+  setGeofences(prevGeofences =>
+    prevGeofences.map(g => g.id === id ? { ...g, active: !g.active } : g)
+  );
+  
+  try {
+    // Make API call to update geofence active status
+    const response = await fetch(`http://localhost:8000/api/geofences/${id}/update/`, {
+      method: 'PUT',
+      headers: {
+        'Content-Type': 'application/json',
+      },
+      body: JSON.stringify({
+        active: !geofence.active,
+        userType: userType,
+        userId: userId
+      }),
+    });
+
+    if (!response.ok) {
+      throw new Error('Failed to update geofence status');
+    }
     
     showNotification(`Geofence ${geofence.active ? 'deactivated' : 'activated'} successfully`, 'success');
-  };
+  } catch (err) {
+    console.error('Error updating geofence status:', err);
+    // Revert the UI change if the update failed
+    setGeofences(prevGeofences =>
+      prevGeofences.map(g => g.id === id ? { ...g, active: geofence.active } : g)
+    );
+    showNotification('Failed to update geofence status', 'error');
+  }
+};
 
   // Helper function to show notification
   const showNotification = (message: string, type: 'success' | 'error') => {

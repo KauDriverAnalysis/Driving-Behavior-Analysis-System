@@ -116,7 +116,7 @@ class DrivingDataForm(forms.ModelForm):
 class EmployeeForm(forms.ModelForm):
     class Meta:
         model = Employee
-        fields = ['Name', 'gender', 'phone_number', 'address', 'Email', 'Password', 'Admin', 'reset_token', 'reset_token_expires']
+        fields = ['Name', 'gender', 'phone_number', 'address', 'Email', 'Password', 'Admin', 'reset_token', 'reset_token_expires','company_id']
         # Make token fields hidden by default
         widgets = {
             'reset_token': forms.HiddenInput(),

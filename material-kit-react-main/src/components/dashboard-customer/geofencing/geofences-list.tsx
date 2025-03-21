@@ -15,6 +15,11 @@ import {
   CircularProgress,
   Snackbar,
   Alert,
+  Dialog,
+  DialogTitle,
+  DialogContent,
+  DialogContentText,
+  DialogActions,
 } from '@mui/material';
 import AddIcon from '@mui/icons-material/Add';
 import DeleteIcon from '@mui/icons-material/Delete';
@@ -50,9 +55,21 @@ export function GeofencesList({
     message: '',
     type: 'success'
   });
+  const [deleteId, setDeleteId] = useState<string | null>(null);
+  const [showDeleteDialog, setShowDeleteDialog] = useState<boolean>(false);
 
   const handleToggleActive = async (id: string) => {
     try {
+      // Get user type and ID from localStorage using the correct keys
+      const userType = localStorage.getItem('userType');
+      const userId = localStorage.getItem('userId');
+      
+      if (!userType || !userId) {
+        showNotification('User information not available. Please log in again.', 'error');
+        return;
+      }
+      
+      console.log(`Toggling geofence active status with userType: ${userType}, userId: ${userId}`);
       onToggleActive(id);
       showNotification('Geofence status updated successfully', 'success');
     } catch (err) {
@@ -61,14 +78,41 @@ export function GeofencesList({
     }
   };
 
-  const handleDeleteGeofence = async (id: string) => {
+  const handleDeleteClick = (id: string) => {
+    setDeleteId(id);
+    setShowDeleteDialog(true);
+  };
+
+  const handleDeleteCancel = () => {
+    setDeleteId(null);
+    setShowDeleteDialog(false);
+  };
+
+  const handleDeleteConfirm = () => {
+    if (!deleteId) return;
+    
     try {
-      onDelete(id);
+      // Get user type and ID from localStorage using the correct keys
+      const userType = localStorage.getItem('userType');
+      const userId = localStorage.getItem('userId');
+      
+      if (!userType || !userId) {
+        showNotification('User information not available. Please log in again.', 'error');
+        return;
+      }
+      
+      console.log(`Deleting geofence with userType: ${userType}, userId: ${userId}`);
+      
+      // Call the delete function with the necessary parameters
+      onDelete(deleteId);
       showNotification('Geofence deleted successfully', 'success');
     } catch (err) {
       console.error('Error deleting geofence:', err);
       showNotification('Failed to delete geofence', 'error');
     }
+    
+    setDeleteId(null);
+    setShowDeleteDialog(false);
   };
 
   const showNotification = (message: string, type: 'success' | 'error') => {
@@ -83,11 +127,17 @@ export function GeofencesList({
     setNotification(prev => ({ ...prev, open: false }));
   };
 
+  // Get user type for customizing the UI
+  const userType = localStorage.getItem('userType');
+  const isCompany = userType === 'company';
+
   return (
     <Box sx={{ height: '100%', display: 'flex', flexDirection: 'column' }}>
       <Box sx={{ p: 2, borderBottom: 1, borderColor: 'divider' }}>
         <Stack direction="row" alignItems="center" justifyContent="space-between">
-          <Typography variant="h6">My Geofences</Typography>
+          <Typography variant="h6">
+            {isCompany ? 'Company Geofences' : 'My Geofences'}
+          </Typography>
           <Button
             variant="contained"
             startIcon={<AddIcon />}
@@ -162,7 +212,7 @@ export function GeofencesList({
                         size="small"
                         onClick={(e) => {
                           e.stopPropagation();
-                          handleDeleteGeofence(geofence.id);
+                          handleDeleteClick(geofence.id);
                         }}
                       >
                         <DeleteIcon fontSize="small" />
@@ -176,6 +226,28 @@ export function GeofencesList({
           </List>
         )}
       </Box>
+
+      {/* Delete confirmation dialog */}
+      <Dialog
+        open={showDeleteDialog}
+        onClose={handleDeleteCancel}
+        aria-labelledby="delete-dialog-title"
+      >
+        <DialogTitle id="delete-dialog-title">Delete Geofence</DialogTitle>
+        <DialogContent>
+          <DialogContentText>
+            Are you sure you want to delete this geofence? This action cannot be undone.
+          </DialogContentText>
+        </DialogContent>
+        <DialogActions>
+          <Button onClick={handleDeleteCancel} color="primary">
+            Cancel
+          </Button>
+          <Button onClick={handleDeleteConfirm} color="error" autoFocus>
+            Delete
+          </Button>
+        </DialogActions>
+      </Dialog>
 
       <Snackbar
         open={notification.open}

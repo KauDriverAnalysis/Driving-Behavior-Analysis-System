@@ -1,7 +1,6 @@
 import React, { useEffect, useState } from 'react';
 import {
   Box,
-  Paper,
   List,
   ListItem,
   ListItemText,
@@ -16,26 +15,36 @@ import {
   CircularProgress,
   Snackbar,
   Alert,
+  Dialog,
+  DialogTitle,
+  DialogContent,
+  DialogContentText,
+  DialogActions,
 } from '@mui/material';
 import AddIcon from '@mui/icons-material/Add';
 import DeleteIcon from '@mui/icons-material/Delete';
 import CircleIcon from '@mui/icons-material/Circle';
 import PolygonIcon from '@mui/icons-material/Category';
-import { Geofence } from '@/app/dashboard-admin/geofencing/page';
+import { Geofence } from '@/app/dashboard-customer/geofencing/page';
 
 interface GeofencesListProps {
   selectedGeofenceId: string | null;
   onSelect: (id: string | null) => void;
   onCreate: () => void;
+  onDelete: (id: string) => void;
+  onToggleActive: (id: string) => void;
+  geofences: Geofence[];
 }
 
 export function GeofencesList({
   selectedGeofenceId,
   onSelect,
   onCreate,
+  onDelete,
+  onToggleActive,
+  geofences
 }: GeofencesListProps) {
-  const [geofences, setGeofences] = useState<Geofence[]>([]);
-  const [loading, setLoading] = useState<boolean>(true);
+  const [loading, setLoading] = useState<boolean>(false);
   const [error, setError] = useState<string | null>(null);
   const [notification, setNotification] = useState<{
     open: boolean;
@@ -46,71 +55,64 @@ export function GeofencesList({
     message: '',
     type: 'success'
   });
-
-  useEffect(() => {
-    fetchGeofences();
-  }, []);
-
-  const fetchGeofences = async () => {
-    try {
-      setLoading(true);
-      const response = await fetch('http://localhost:8000/api/geofences/');
-      const data = await response.json();
-      setGeofences(data);
-      setError(null);
-    } catch (err) {
-      console.error('Error fetching geofences:', err);
-      setError('Failed to load geofences. Please try again.');
-    } finally {
-      setLoading(false);
-    }
-  };
+  const [deleteId, setDeleteId] = useState<string | null>(null);
+  const [showDeleteDialog, setShowDeleteDialog] = useState<boolean>(false);
 
   const handleToggleActive = async (id: string) => {
     try {
-      const geofence = geofences.find(g => g.id === id);
-      if (!geofence) return;
-
-      // Send the complete geofence object with the toggled active status
-      const response = await fetch(`http://localhost:8000/api/geofences/${id}/update/`, {
-        method: 'PUT',
-        headers: {
-          'Content-Type': 'application/json',
-        },
-        body: JSON.stringify({
-          ...geofence,
-          active: !geofence.active
-        }),
-      });
-
-      if (!response.ok) {
-        throw new Error('Failed to update geofence status');
+      // Get user type and ID from localStorage using the correct keys
+      const userType = localStorage.getItem('userType');
+      const userId = localStorage.getItem('userId');
+      
+      if (!userType || !userId) {
+        showNotification('User information not available. Please log in again.', 'error');
+        return;
       }
-
-      await fetchGeofences();
-      showNotification(`Geofence ${geofence.active ? 'deactivated' : 'activated'} successfully`, 'success');
+      
+      console.log(`Toggling geofence active status with userType: ${userType}, userId: ${userId}`);
+      onToggleActive(id);
+      showNotification('Geofence status updated successfully', 'success');
     } catch (err) {
       console.error('Error toggling geofence status:', err);
       showNotification('Failed to update geofence status', 'error');
     }
   };
 
-  const handleDeleteGeofence = async (id: string) => {
+  const handleDeleteClick = (id: string) => {
+    setDeleteId(id);
+    setShowDeleteDialog(true);
+  };
+
+  const handleDeleteCancel = () => {
+    setDeleteId(null);
+    setShowDeleteDialog(false);
+  };
+
+  const handleDeleteConfirm = () => {
+    if (!deleteId) return;
+    
     try {
-      const response = await fetch(`http://localhost:8000/api/geofences/${id}/delete/`, {
-        method: 'DELETE',
-      });
-
-      if (!response.ok) {
-        throw new Error('Failed to delete geofence');
+      // Get user type and ID from localStorage using the correct keys
+      const userType = localStorage.getItem('userType');
+      const userId = localStorage.getItem('userId');
+      
+      if (!userType || !userId) {
+        showNotification('User information not available. Please log in again.', 'error');
+        return;
       }
-
-      await fetchGeofences();
+      
+      console.log(`Deleting geofence with userType: ${userType}, userId: ${userId}`);
+      
+      // Call the delete function with the necessary parameters
+      onDelete(deleteId);
       showNotification('Geofence deleted successfully', 'success');
     } catch (err) {
       console.error('Error deleting geofence:', err);
       showNotification('Failed to delete geofence', 'error');
     }
+    
+    setDeleteId(null);
+    setShowDeleteDialog(false);
   };
 
   const showNotification = (message: string, type: 'success' | 'error') => {
@@ -122,123 +124,96 @@ export function GeofencesList({
   };
 
   const handleCloseNotification = () => {
-    setNotification({
-      ...notification,
-      open: false
-    });
+    setNotification(prev => ({ ...prev, open: false }));
   };
 
+  // Get user type for customizing the UI
+  const userType = localStorage.getItem('userType');
+  const isCompany = userType === 'company';
+
   return (
-    <Paper 
-      sx={{ 
-        height: '100%', 
-        display: 'flex', 
-        flexDirection: 'column',
-        overflow: 'hidden'
-      }}
-    >
-      <Box sx={{ p: 2, borderBottom: '1px solid', borderColor: 'divider' }}>
+    <Box sx={{ height: '100%', display: 'flex', flexDirection: 'column' }}>
+      <Box sx={{ p: 2, borderBottom: 1, borderColor: 'divider' }}>
         <Stack direction="row" alignItems="center" justifyContent="space-between">
-          <Typography variant="h6">Geofences</Typography>
+          <Typography variant="h6">
+            {isCompany ? 'Company Geofences' : 'My Geofences'}
+          </Typography>
           <Button
-            variant="contained" 
-            color="primary"
+            variant="contained"
             startIcon={<AddIcon />}
             onClick={onCreate}
             size="small"
           >
-            New
+            Add New
           </Button>
         </Stack>
       </Box>
-      
-      <Box sx={{ overflow: 'auto', flexGrow: 1 }}>
+
+      <Box sx={{ flexGrow: 1, overflow: 'auto' }}>
         {loading ? (
-          <Box sx={{ display: 'flex', justifyContent: 'center', alignItems: 'center', height: '100%' }}>
+          <Box sx={{ display: 'flex', justifyContent: 'center', p: 3 }}>
             <CircularProgress />
-          </Box>
-        ) : error ? (
-          <Box sx={{ p: 3, textAlign: 'center' }}>
-            <Typography color="error">{error}</Typography>
           </Box>
         ) : geofences.length === 0 ? (
           <Box sx={{ p: 3, textAlign: 'center' }}>
             <Typography color="text.secondary">
-              No geofences defined yet
+              No geofences defined yet. Create your first geofence to start monitoring.
             </Typography>
           </Box>
         ) : (
-          <List sx={{ p: 0 }}>
+          <List disablePadding>
             {geofences.map((geofence) => (
               <React.Fragment key={geofence.id}>
-                <ListItem 
+                <ListItem
                   button
                   selected={selectedGeofenceId === geofence.id}
                   onClick={() => onSelect(geofence.id)}
-                  sx={{ 
-                    pl: 2, 
-                    pr: 6, 
+                  sx={{
+                    pl: 2,
+                    pr: 6,
                     py: 1.5,
                     opacity: geofence.active ? 1 : 0.7
                   }}
                 >
-                  <Box 
-                    sx={{ 
-                      mr: 1.5, 
-                      color: geofence.color,
-                      display: 'flex',
-                      alignItems: 'center',
-                      justifyContent: 'center'
-                    }}
-                  >
-                    {geofence.type === 'circle' ? 
-                      <CircleIcon fontSize="small" /> : 
+                  <Box sx={{ mr: 1.5, color: geofence.color }}>
+                    {geofence.type === 'circle' ? (
+                      <CircleIcon fontSize="small" />
+                    ) : (
                       <PolygonIcon fontSize="small" />
-                    }
+                    )}
                   </Box>
-                  
-                  <ListItemText 
-                    primary={
-                      <Typography 
-                        variant="subtitle2" 
-                        noWrap
-                        sx={{ fontWeight: selectedGeofenceId === geofence.id ? 600 : 500 }}
-                      >
-                        {geofence.name}
-                      </Typography>
-                    }
+
+                  <ListItemText
+                    primary={geofence.name}
                     secondary={
-                      <Typography variant="caption" color="text.secondary" noWrap>
-                        {geofence.description || 
-                          (geofence.type === 'circle' ? 
-                            `Radius: ${geofence.radius}m` : 
-                            `${(geofence.coordinates as [number, number][]).length} points`)
-                        }
+                      <Typography variant="caption" color="text.secondary">
+                        {geofence.type === 'circle' 
+                          ? `Radius: ${geofence.radius}m`
+                          : `${(geofence.coordinates as [number, number][]).length} points`}
                       </Typography>
                     }
                   />
-                  
+
                   <ListItemSecondaryAction>
-                    <Tooltip title={geofence.active ? "Deactivate" : "Activate"}>
+                    <Tooltip title={geofence.active ? "Disable" : "Enable"}>
                       <Switch
                         edge="end"
                         size="small"
                         checked={geofence.active}
-                        onClick={(e) => {
+                        onChange={(e) => {
                           e.stopPropagation();
                           handleToggleActive(geofence.id);
                         }}
                       />
                     </Tooltip>
                     <Tooltip title="Delete">
-                      <IconButton 
-                        edge="end" 
-                        size="small" 
+                      <IconButton
+                        edge="end"
+                        size="small"
                         onClick={(e) => {
                           e.stopPropagation();
-                          handleDeleteGeofence(geofence.id);
+                          handleDeleteClick(geofence.id);
                         }}
-                        sx={{ ml: 0.5 }}
                       >
                         <DeleteIcon fontSize="small" />
                       </IconButton>
@@ -252,20 +227,42 @@ export function GeofencesList({
         )}
       </Box>
 
+      {/* Delete confirmation dialog */}
+      <Dialog
+        open={showDeleteDialog}
+        onClose={handleDeleteCancel}
+        aria-labelledby="delete-dialog-title"
+      >
+        <DialogTitle id="delete-dialog-title">Delete Geofence</DialogTitle>
+        <DialogContent>
+          <DialogContentText>
+            Are you sure you want to delete this geofence? This action cannot be undone.
+          </DialogContentText>
+        </DialogContent>
+        <DialogActions>
+          <Button onClick={handleDeleteCancel} color="primary">
+            Cancel
+          </Button>
+          <Button onClick={handleDeleteConfirm} color="error" autoFocus>
+            Delete
+          </Button>
+        </DialogActions>
+      </Dialog>
+
       <Snackbar
         open={notification.open}
         autoHideDuration={6000}
         onClose={handleCloseNotification}
-        anchorOrigin={{ vertical: 'bottom', horizontal: 'right' }}
+        anchorOrigin={{ vertical: 'top', horizontal: 'right' }}
       >
-        <Alert 
-          onClose={handleCloseNotification} 
-          severity={notification.type} 
+        <Alert
+          onClose={handleCloseNotification}
+          severity={notification.type}
           sx={{ width: '100%' }}
         >
           {notification.message}
         </Alert>
       </Snackbar>
-    </Paper>
+    </Box>
   );
 }

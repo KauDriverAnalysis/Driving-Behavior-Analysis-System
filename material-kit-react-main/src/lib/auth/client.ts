@@ -86,6 +86,14 @@ class AuthClient {
         localStorage.setItem('auth-token', data.token);
       }
       
+      // Store the user type and user ID directly from the response
+      if (data.userType && data.userId) {
+        localStorage.setItem('userType', data.userType);
+        localStorage.setItem('userId', data.userId.toString());
+        
+        console.log(`Saved auth data to localStorage - userType: ${data.userType}, userId: ${data.userId}`);
+      }
+      
       // Determine user role from response
       const userRole = data.role || accountType;
       const userId = data.id?.toString() || '';
@@ -105,8 +113,8 @@ class AuthClient {
       console.log(`User logged in - ID: ${userId}, Type: ${userRole}`);
       
       return { 
-        userId: userId,
-        userType: userRole, 
+        userId: data.userId?.toString() || data.id?.toString() || '',
+        userType: data.userType || data.role || '', 
         error: null 
       };
     } catch (error) {
@@ -114,7 +122,6 @@ class AuthClient {
       return { error: 'Connection error. Please try again later.' };
     }
   }
-
  
   async resetPassword(params: ResetPasswordParams): Promise<{ error?: string; success?: boolean }> {
     const { email } = params;
@@ -204,13 +211,18 @@ class AuthClient {
 
   async signOut(): Promise<{ error?: string }> {
     // Make sure to clear all auth related items
-    localStorage.removeItem('auth-token');
-    localStorage.removeItem('user-type');
-    localStorage.removeItem('user-id');
-    localStorage.removeItem('company-id');
-    localStorage.removeItem('company-name');
-    localStorage.removeItem('customer-id');
-    localStorage.removeItem('customer-name');
+      // Clear all auth related items
+      localStorage.removeItem('auth-token');
+      localStorage.removeItem('user-type');
+      localStorage.removeItem('user-id');
+      localStorage.removeItem('userType');
+      localStorage.removeItem('userId');
+      localStorage.removeItem('company-id');
+      localStorage.removeItem('company-name');
+      localStorage.removeItem('customer-id');
+      localStorage.removeItem('customer-name');
+      localStorage.removeItem('employee-id');
+      localStorage.removeItem('is-admin');
     return {};
   }
 }

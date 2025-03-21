@@ -65,6 +65,7 @@ class Employee(models.Model):
     Admin = models.BooleanField(default=False)  # `New Admin field``
     reset_token = models.CharField(max_length=100, null=True, blank=True)
     reset_token_expires = models.DateTimeField(null=True, blank=True)
+    company_id = models.ForeignKey(Company, on_delete=models.CASCADE, null=True, blank=True)
 
 
 class Geofence(models.Model):

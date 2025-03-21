@@ -78,8 +78,41 @@ export function GeofenceCreate({
       return;
     }
     
-    // Get userId from localStorage or your auth context
-    const userId = localStorage.getItem('userId');
+    // Get user type and ID from localStorage - using the WORKING keys
+    console.log("Getting user info for geofence creation...");
+    
+    // First, try the direct userType and userId keys
+    let userType = localStorage.getItem('userType');
+    let userId = localStorage.getItem('userId');
+    
+    if (userType && userId) {
+      console.log(`✅ Using direct keys for geofence: Type: ${userType}, ID: ${userId}`);
+    } else {
+      // Fall back to company or customer specific IDs
+      const companyId = localStorage.getItem('company-id');
+      if (companyId) {
+        console.log("✅ Using company ID for geofence:", companyId);
+        userType = 'company';
+        userId = companyId;
+      } else {
+        // Check for customer login
+        const customerId = localStorage.getItem('customer-id');
+        if (customerId) {
+          console.log("✅ Using customer ID for geofence:", customerId);
+          userType = 'customer';
+          userId = customerId;
+        }
+      }
+    }
+    
+    if (!userType || !userId) {
+      console.log("❌ No user information found for geofence creation");
+      setFormErrors(prev => ({
+        ...prev,
+        geometry: 'User information not available. Please log in again.'
+      }));
+      return;
+    }
     
     const geofenceData = {
       name,
@@ -91,22 +124,31 @@ export function GeofenceCreate({
       radius: geometry.type === 'circle' ? geometry.data.radius : undefined,
       color,
       active: true,
-      userId // Add userId to the request
+      userType, // Add user type to the request
+      userId    // Add user ID to the request
     };
+
+    console.log("Submitting geofence data:", geofenceData);
 
     try {
       let response;
       let resultGeofence;
 
       if (editGeofence) {
+        console.log(`Updating geofence ${editGeofence.id} with userType: ${userType}, userId: ${userId}`);
         response = await fetch(`http://localhost:8000/api/geofences/${editGeofence.id}/update/`, {
           method: 'PUT',
           headers: {
             'Content-Type': 'application/json',
           },
-          body: JSON.stringify(geofenceData),
+          body: JSON.stringify({
+            ...geofenceData,
+            userType: userType,
+            userId: userId
+          }),
         });
       } else {
+        console.log(`Creating new geofence with userType: ${userType}, userId: ${userId}`);
         response = await fetch('http://localhost:8000/api/geofences/create/', {
           method: 'POST',
           headers: {

@@ -517,11 +517,13 @@ def employee_list(request):
             'phone_number': employee.phone_number,
             'address': employee.address,
             'Email': employee.Email,
-            'Password': employee.Password  
+            'Password': employee.Password,
+            'company_id': employee.company_id_id if hasattr(employee, 'company_id') else None
         }
         for employee in employees
     ]
     return JsonResponse(employee_data, safe=False)
+
 @csrf_exempt
 def create_employee(request):
     if request.method == 'POST':
@@ -535,18 +537,46 @@ def create_employee(request):
                 # Make sure gender is lowercase
                 data['gender'] = data['gender'].lower()
                 
-            # Create form with JSON data
-            form = EmployeeForm(data)
-            if form.is_valid():
-                employee = form.save()
-                return JsonResponse({
-                    'success': True, 
-                    'id': employee.id,
-                    'message': 'Employee created successfully'
-                }, status=201)
+            # Process company_id if provided
+            if 'company_id' in data and data['company_id']:
+                try:
+                    company_id = int(data['company_id'])
+                    company = Company.objects.get(id=company_id)
+                    # Remove company_id from form data to handle separately
+                    data.pop('company_id')
+                    
+                    # Create form with JSON data
+                    form = EmployeeForm(data)
+                    if form.is_valid():
+                        employee = form.save()
+                        # Set company_id after saving
+                        employee.company_id = company
+                        employee.save()
+                        
+                        return JsonResponse({
+                            'success': True, 
+                            'id': employee.id,
+                            'message': 'Employee created successfully',
+                            'company_id': employee.company_id_id
+                        }, status=201)
+                except (ValueError, Company.DoesNotExist) as e:
+                    return JsonResponse({'errors': {'company_id': 'Invalid company ID'}}, status=400)
             else:
+                # No company_id provided, normal flow
+                form = EmployeeForm(data)
+                if form.is_valid():
+                    employee = form.save()
+                    return JsonResponse({
+                        'success': True, 
+                        'id': employee.id,
+                        'message': 'Employee created successfully',
+                        'company_id': None
+                    }, status=201)
+                    
+            if not form.is_valid():
                 print(f"Form validation errors: {form.errors}")
                 return JsonResponse({'errors': form.errors}, status=400)
+                
         except Exception as e:
             print(f"Error creating employee: {str(e)}")
             return JsonResponse({'errors': {'server': str(e)}}, status=500)
@@ -570,19 +600,63 @@ def update_employee(request, employee_id):
             # If gender is provided, ensure lowercase
             if 'gender' in data:
                 data['gender'] = data['gender'].lower()
-            
-            # Update the instance with the form
-            form = EmployeeForm(data, instance=employee)
-            if form.is_valid():
-                updated_employee = form.save()
-                return JsonResponse({
-                    'success': True,
-                    'id': updated_employee.id,
-                    'message': 'Employee updated successfully'
-                }, status=200)
+                
+            # Handle company_id if provided
+            if 'company_id' in data:
+                if data['company_id']:
+                    try:
+                        company_id = int(data['company_id'])
+                        company = Company.objects.get(id=company_id)
+                        # Remove from data to handle separately
+                        data.pop('company_id')
+                        
+                        # Update with form
+                        form = EmployeeForm(data, instance=employee)
+                        if form.is_valid():
+                            updated_employee = form.save()
+                            # Set company_id after saving
+                            updated_employee.company_id = company
+                            updated_employee.save()
+                            
+                            return JsonResponse({
+                                'success': True,
+                                'id': updated_employee.id,
+                                'message': 'Employee updated successfully',
+                                'company_id': updated_employee.company_id_id
+                            }, status=200)
+                    except (ValueError, Company.DoesNotExist) as e:
+                        return JsonResponse({'errors': {'company_id': 'Invalid company ID'}}, status=400)
+                else:
+                    # Remove company association
+                    data.pop('company_id')
+                    form = EmployeeForm(data, instance=employee)
+                    if form.is_valid():
+                        updated_employee = form.save()
+                        updated_employee.company_id = None
+                        updated_employee.save()
+                        
+                        return JsonResponse({
+                            'success': True,
+                            'id': updated_employee.id,
+                            'message': 'Employee updated successfully',
+                            'company_id': None
+                        }, status=200)
             else:
+                # No company_id change, normal update
+                form = EmployeeForm(data, instance=employee)
+                if form.is_valid():
+                    updated_employee = form.save()
+                    return JsonResponse({
+                        'success': True,
+                        'id': updated_employee.id,
+                        'message': 'Employee updated successfully',
+                        'company_id': updated_employee.company_id_id if hasattr(updated_employee, 'company_id') else None
+                    }, status=200)
+            
+            if not form.is_valid():
                 print(f"Form validation errors: {form.errors}")
                 return JsonResponse({'errors': form.errors}, status=400)
+                
         except Exception as e:
             print(f"Error updating employee: {str(e)}")
             return JsonResponse({'errors': {'server': str(e)}}, status=500)
@@ -670,7 +744,9 @@ def company_login(request):
                         'token': token,
                         'id': employee.id,
                         'name': employee.Name,
-                        'role': role
+                        'role': role,
+                        'userType': 'employee',  # Add this for consistent authentication
+                        'userId': employee.id    # Add this for consistent authentication
                     }, status=200)
             except Employee.DoesNotExist:
                 try:
@@ -685,7 +761,9 @@ def company_login(request):
                             'token': token,
                             'id': company.id,
                             'Company_name': company.Company_name,
-                            'role': 'company'
+                            'role': 'company',
+                            'userType': 'company',  # Add this for consistent authentication
+                            'userId': company.id    # Add this for consistent authentication
                         }, status=200)
                 except Company.DoesNotExist:
                     print(f"No company or employee found with email: {email}")  # Debug print
@@ -722,7 +800,9 @@ def customer_login(request):
                         'token': token,
                         'id': customer.id,
                         'Name': customer.Name,
-                        'role': 'customer'
+                        'role': 'customer',
+                        'userType': 'customer',  # Add this for consistent authentication
+                        'userId': customer.id    # Add this for consistent authentication
                     }, status=200)
                 else:
                     print(f"Invalid password for customer: {customer.Name}")  # Debug print
@@ -1042,6 +1122,9 @@ def geofence_list(request):
 @csrf_exempt
 def update_geofence(request, geofence_id):
     """Update a specific geofence"""
+    if request.method != 'PUT' and request.method != 'PATCH' and request.method != 'POST':
+        return JsonResponse({'error': 'Method not allowed'}, status=405)
+        
     try:
         geofence = Geofence.objects.get(id=geofence_id)
     except Geofence.DoesNotExist:
@@ -1052,14 +1135,24 @@ def update_geofence(request, geofence_id):
         user_type = data.pop('userType', None)
         user_id = data.pop('userId', None)
 
+        # Convert user_id to integer for consistent comparison
+        try:
+            user_id = int(user_id)
+        except (ValueError, TypeError):
+            return JsonResponse({'error': 'Invalid userId format'}, status=400)
+
+        print(f"Updating geofence {geofence_id} - User type: {user_type}, User ID: {user_id}")
+        print(f"Geofence belongs to customer_id: {geofence.customer_id_id}, company_id: {geofence.company_id_id}")
+
         # Check ownership
         if user_type == 'customer' and geofence.customer_id_id != user_id:
-            return JsonResponse({'error': 'Permission denied'}, status=403)
+            return JsonResponse({'error': 'Permission denied - customer mismatch'}, status=403)
         elif user_type == 'company' and geofence.company_id_id != user_id:
-            return JsonResponse({'error': 'Permission denied'}, status=403)
+            return JsonResponse({'error': 'Permission denied - company mismatch'}, status=403)
         
         # Handle partial update for just 'active' field
         if 'active' in data and len(data.keys()) == 1:
+            print(f"Updating active status to: {data['active']}")
             geofence.active = data['active']
             geofence.save()
             
@@ -1077,34 +1170,49 @@ def update_geofence(request, geofence_id):
                 'company_id': geofence.company_id_id
             })
         
-        # Handle full update
+        # Handle full update - directly update object like in create function
+        print(f"Performing full update with data: {data}")
+        
+        # Extract coordinates
         coordinates = data.pop('coordinates', None)
         if coordinates:
-            data['coordinates_json'] = json.dumps(coordinates)
-            
-        form = GeofenceForm(data, instance=geofence)
-        if form.is_valid():
-            updated_geofence = form.save()
-            
-            response_data = {
-                'id': updated_geofence.id,
-                'name': updated_geofence.name,
-                'description': updated_geofence.description,
-                'type': updated_geofence.type,
-                'coordinates': updated_geofence.get_coordinates(),
-                'radius': updated_geofence.radius,
-                'color': updated_geofence.color,
-                'active': updated_geofence.active,
-                'createdAt': updated_geofence.created_at.isoformat(),
-                'customer_id': updated_geofence.customer_id_id,
-                'company_id': updated_geofence.company_id_id
-            }
-            
-            return JsonResponse(response_data)
-        else:
-            return JsonResponse({'errors': form.errors}, status=400)
+            geofence.coordinates_json = json.dumps(coordinates)
+        
+        # Update other fields directly
+        if 'name' in data:
+            geofence.name = data['name']
+        if 'description' in data:
+            geofence.description = data['description']
+        if 'type' in data:
+            geofence.type = data['type']
+        if 'radius' in data and data['type'] == 'circle':
+            geofence.radius = float(data['radius'])
+        if 'color' in data:
+            geofence.color = data['color']
+        
+        # Save the updated geofence
+        geofence.save()
+        
+        response_data = {
+            'id': geofence.id,
+            'name': geofence.name,
+            'description': geofence.description,
+            'type': geofence.type,
+            'coordinates': geofence.get_coordinates(),
+            'radius': geofence.radius,
+            'color': geofence.color,
+            'active': geofence.active,
+            'createdAt': geofence.created_at.isoformat(),
+            'customer_id': geofence.customer_id_id,
+            'company_id': geofence.company_id_id
+        }
+        
+        return JsonResponse(response_data)
             
     except Exception as e:
+        print(f"Error updating geofence {geofence_id}: {str(e)}")
+        import traceback
+        traceback.print_exc()
         return JsonResponse({'error': str(e)}, status=500)
 
 @csrf_exempt
@@ -1145,53 +1253,86 @@ def create_geofence(request):
         if not user_type or not user_id:
             return JsonResponse({'error': 'userType and userId are required'}, status=400)
 
+        # Convert userId to integer
+        try:
+            user_id = int(user_id)
+        except ValueError:
+            return JsonResponse({'error': 'Invalid userId format'}, status=400)
+
         # Extract coordinates and convert to JSON string
         coordinates = data.pop('coordinates', None)
+        coordinates_json = None
         if coordinates:
-            data['coordinates_json'] = json.dumps(coordinates)
+            coordinates_json = json.dumps(coordinates)
         
-        # Add radius if it's a circle type geofence
-        if data.get('type') == 'circle' and 'radius' in data:
-            data['radius'] = float(data['radius'])
-
-        # Set the appropriate foreign key based on user type
+        # Validate the data
+        name = data.get('name')
+        description = data.get('description', '')
+        geofence_type = data.get('type')
+        radius = data.get('radius')
+        color = data.get('color', '#ff4444')
+        
+        if not name or not geofence_type or not coordinates_json:
+            return JsonResponse({'error': 'Name, type and coordinates are required'}, status=400)
+            
+        # Set the customer or company
+        customer_id = None
+        company_id = None
+        
         if user_type == 'customer':
-            data['customer_id'] = user_id
-            data['company_id'] = None
-        elif user_type == 'company':
-            data['company_id'] = user_id
-            data['customer_id'] = None
+            try:
+                customer = Customer.objects.get(id=user_id)
+                customer_id = customer
+            except Customer.DoesNotExist:
+                return JsonResponse({'error': 'Customer not found'}, status=404)
+        elif user_type == 'company' or user_type == 'employee':
+            try:
+                company = Company.objects.get(id=user_id)
+                print(f"Found company: {company.id} - {company.Company_name}")
+                company_id = company
+            except Company.DoesNotExist:
+                print(f"❌ Company with ID {user_id} not found in database!")
+                return JsonResponse({'error': f'Company with ID {user_id} not found'}, status=404)
         else:
             return JsonResponse({'error': 'Invalid user type'}, status=400)
         
-        # Create form with JSON data
-        form = GeofenceForm(data)
+        # Create the geofence directly without using the form
+        geofence = Geofence(
+            name=name,
+            description=description,
+            type=geofence_type,
+            coordinates_json=coordinates_json,
+            radius=float(radius) if radius and geofence_type == 'circle' else None,
+            color=color,
+            active=True,
+            customer_id=customer_id,
+            company_id=company_id
+        )
         
-        if form.is_valid():
-            geofence = form.save(commit=False)
-            geofence.active = True
-            geofence.save()
-            
-            response_data = {
-                'id': geofence.id,
-                'name': geofence.name,
-                'description': geofence.description,
-                'type': geofence.type,
-                'coordinates': geofence.get_coordinates(),
-                'radius': geofence.radius,
-                'color': geofence.color,
-                'active': geofence.active,
-                'createdAt': geofence.created_at.isoformat(),
-                'customer_id': geofence.customer_id_id,
-                'company_id': geofence.company_id_id
-            }
-            
-            return JsonResponse(response_data, status=201)
-        else:
-            return JsonResponse({'errors': form.errors}, status=400)
+        # Save the geofence
+        geofence.save()
+        
+        # Return the created geofence data
+        response_data = {
+            'id': geofence.id,
+            'name': geofence.name,
+            'description': geofence.description,
+            'type': geofence.type,
+            'coordinates': geofence.get_coordinates(),
+            'radius': geofence.radius,
+            'color': geofence.color,
+            'active': geofence.active,
+            'createdAt': geofence.created_at.isoformat(),
+            'customer_id': geofence.customer_id_id if geofence.customer_id else None,
+            'company_id': geofence.company_id_id if geofence.company_id else None
+        }
+        
+        return JsonResponse(response_data, status=201)
             
     except Exception as e:
         print(f"Error creating geofence: {str(e)}")
+        import traceback
+        traceback.print_exc()
         return JsonResponse({'error': str(e)}, status=500)
 
 @csrf_exempt
