@@ -16,7 +16,8 @@ import {
   DialogContentText,
   DialogTitle,
   MenuItem,
-  CircularProgress
+  CircularProgress,
+  Paper
 } from '@mui/material';
 import SearchIcon from '@mui/icons-material/Search';
 import AddIcon from '@mui/icons-material/Add';
@@ -41,7 +42,7 @@ export default function CarsPage(): React.JSX.Element {
   const [cars, setCars] = useState<Car[]>([]);
   const [searchTerm, setSearchTerm] = useState('');
   const [page, setPage] = useState(0);
-  const [rowsPerPage, setRowsPerPage] = useState(5);
+  const [rowsPerPage, setRowsPerPage] = useState(10);
   const [openAddDialog, setOpenAddDialog] = useState(false);
   const [deleteConfirmOpen, setDeleteConfirmOpen] = useState(false);
   const [carToDelete, setCarToDelete] = useState<Car | null>(null);
@@ -51,20 +52,31 @@ export default function CarsPage(): React.JSX.Element {
   const [refreshTrigger, setRefreshTrigger] = useState(0);
   const [statusFilter, setStatusFilter] = useState('all');
 
+  // Get user info from local storage - fixed to match client.ts implementation
+  const userType = localStorage.getItem('userType') || localStorage.getItem('user-type');
+  const userId = localStorage.getItem('userId') || localStorage.getItem('user-id');
+  
+  // Debug
+  console.log('Cars page - userType:', userType, 'userId:', userId);
+
   // Fetch cars data
   useEffect(() => {
-    setLoading(true);
-    fetch('http://localhost:8000/api/cars/')
-      .then(response => response.json())
-      .then(data => {
+    async function fetchCars() {
+      setLoading(true);
+      try {
+        // Fetch cars with proper query parameters
+        const response = await fetch(`/api/cars/?userType=${userType || ''}&userId=${userId || ''}`);
+        const data = await response.json();
         setCars(data);
-        setLoading(false);
-      })
-      .catch(error => {
+      } catch (error) {
         console.error('Error fetching cars:', error);
+      } finally {
         setLoading(false);
-      });
-  }, [refreshTrigger]);
+      }
+    }
+
+    fetchCars();
+  }, [userId, userType, refreshTrigger]);
 
   const handleSearch = (event: React.ChangeEvent<HTMLInputElement>) => {
     setSearchTerm(event.target.value);
@@ -140,7 +152,7 @@ export default function CarsPage(): React.JSX.Element {
   const filteredCars = cars.filter(car => {
     const matchesSearch = 
             car.model.toLowerCase().includes(searchTerm.toLowerCase()) ||
-            car.plateNumber.toLowerCase().includes(searchTerm.toLowerCase()) ||
+            car.Plate_number.toLowerCase().includes(searchTerm.toLowerCase()) ||
             car.type.toLowerCase().includes(searchTerm.toLowerCase());
     
     // This is the issue - statusFilter needs to match the field name in your data
@@ -212,21 +224,56 @@ export default function CarsPage(): React.JSX.Element {
             <CircularProgress />
           </Box>
         ) : (
-          <CarsTable
-            items={paginatedCars}
-            count={filteredCars.length}
-            page={page}
-            rowsPerPage={rowsPerPage}
-            onPageChange={setPage}
-            onRowsPerPageChange={(newRowsPerPage) => {
-              setRowsPerPage(newRowsPerPage);
-              setPage(0);
-            }}
-            onDelete={handleDeleteCar}
-            onEdit={handleEditCar}
-            onStatusChange={handleStatusChange}
-            loading={loading}
-          />
+          <>
+            {cars.length === 0 && !loading && (
+              <Paper 
+                sx={{ 
+                  p: 4, 
+                  mt: 2, 
+                  textAlign: 'center', 
+                  borderRadius: 2,
+                  bgcolor: 'background.paper',
+                  boxShadow: 2
+                }}
+              >
+                <Box sx={{ mb: 2 }}>
+                  <Typography variant="h6" color="text.secondary">
+                    No cars for company
+                  </Typography>
+                  <Typography variant="body2" color="text.secondary" sx={{ mb: 3 }}>
+                    Start managing your fleet by adding your first car.
+                  </Typography>
+                </Box>
+                
+                <Button
+                  variant="contained"
+                  color="primary"
+                  startIcon={<AddIcon />}
+                  onClick={() => setOpenAddDialog(true)}
+                  size="large"
+                >
+                  Add First Car
+                </Button>
+              </Paper>
+            )}
+            <CarsTable
+              items={paginatedCars}
+              count={filteredCars.length}
+              page={page}
+              rowsPerPage={rowsPerPage}
+              onPageChange={setPage}
+              onRowsPerPageChange={(newRowsPerPage) => {
+                setRowsPerPage(newRowsPerPage);
+                setPage(0);
+              }}
+              onDelete={handleDeleteCar}
+              onEdit={handleEditCar}
+              onStatusChange={handleStatusChange}
+              loading={loading}
+              userId={userId || ''}
+              userType={userType || ''}
+            />
+          </>
         )}
       </Card>
 

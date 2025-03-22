@@ -73,11 +73,57 @@ def get_latest_data(request):
     return response
 
 
+@csrf_exempt
 def customer_list(request):
-    customers = Customer.objects.all()
-    return render(request, 'customer_list.html', {'customers': customers})
+    try:
+        # Get query parameters
+        user_type = request.GET.get('userType')
+        user_id = request.GET.get('userId')
+        
+        if not user_type or not user_id:
+            # If no parameters provided, return all customers (for backward compatibility)
+            customers = Customer.objects.all()
+        elif user_type == 'customer':
+            # If customer_id provided, return only that customer
+            customers = Customer.objects.filter(id=user_id)
+        elif user_type == 'company':
+            # If company_id provided, return customers with cars associated with this company
+            cars = Car.objects.filter(company_id=user_id)
+            customer_ids = cars.values_list('customer_id', flat=True).distinct()
+            customers = Customer.objects.filter(id__in=customer_ids)
+        elif user_type == 'employee' or user_type == 'admin':
+            # Get the employee's company and return all its customers
+            try:
+                employee = Employee.objects.get(id=user_id)
+                if employee.company_id:
+                    cars = Car.objects.filter(company_id=employee.company_id)
+                    customer_ids = cars.values_list('customer_id', flat=True).distinct()
+                    customers = Customer.objects.filter(id__in=customer_ids)
+                else:
+                    # If employee has no company, return empty list
+                    customers = Customer.objects.none()
+            except Employee.DoesNotExist:
+                return JsonResponse({'error': 'Employee not found'}, status=404)
+        else:
+            return JsonResponse({'error': 'Invalid user type'}, status=400)
+        
+        customer_data = [
+            {
+                'id': customer.id,
+                'Name': customer.Name,
+                'Email': customer.Email,
+                'phone_number': customer.phone_number,
+                'gender': customer.gender,
+                'address': customer.address
+            }
+            for customer in customers
+        ]
+        
+        return JsonResponse(customer_data, safe=False)
+    except Exception as e:
+        print(f"Error retrieving customers: {str(e)}")
+        return JsonResponse({'error': str(e)}, status=500)
 
-# customer views
 @csrf_exempt
 def create_customer(request):
     if request.method == 'POST':
@@ -88,6 +134,10 @@ def create_customer(request):
                 data = json.loads(request.body)
                 print(f"Received customer data: {data}")  # Debug print
                 
+                # Get user information
+                user_type = data.pop('userType', None)
+                user_id = data.pop('userId', None)
+                
                 # Ensure gender is lowercase
                 if 'gender' in data:
                     data['gender'] = data['gender'].lower()
@@ -96,6 +146,32 @@ def create_customer(request):
                 form = CustomerForm(data)
                 if form.is_valid():
                     customer = form.save()
+                    
+                    # If company or employee creates a customer, create an associated car
+                    if (user_type == 'company' or user_type == 'employee' or user_type == 'admin') and 'car' in data:
+                        car_data = data['car']
+                        company_id = None
+                        
+                        if user_type == 'company':
+                            company_id = user_id
+                        elif user_type == 'employee' or user_type == 'admin':
+                            try:
+                                employee = Employee.objects.get(id=user_id)
+                                if employee.company_id:
+                                    company_id = employee.company_id.id
+                            except Employee.DoesNotExist:
+                                pass
+                        
+                        if company_id:
+                            try:
+                                car_data['customer_id'] = customer
+                                car_data['company_id'] = Company.objects.get(id=company_id)
+                                car_form = CarForm(car_data)
+                                if car_form.is_valid():
+                                    car_form.save()
+                            except Exception as car_error:
+                                print(f"Error creating associated car: {str(car_error)}")
+                    
                     return JsonResponse({
                         'success': True, 
                         'id': customer.id,
@@ -126,6 +202,31 @@ def update_customer(request, customer_id):
             # Parse JSON data from request body
             data = json.loads(request.body)
             print(f"Received update data for customer {customer_id}: {data}")
+            
+            # Get user information for permission check
+            user_type = data.pop('userType', None)
+            user_id = data.pop('userId', None)
+            
+            # Permission check
+            if user_type == 'customer' and int(user_id) != customer.id:
+                return JsonResponse({'error': 'Permission denied'}, status=403)
+            elif user_type == 'company':
+                # Check if customer has a car associated with this company
+                car_exists = Car.objects.filter(customer_id=customer.id, company_id=user_id).exists()
+                if not car_exists:
+                    return JsonResponse({'error': 'Permission denied'}, status=403)
+            elif user_type == 'employee' or user_type == 'admin':
+                # Check if customer has a car associated with employee's company
+                try:
+                    employee = Employee.objects.get(id=user_id)
+                    if employee.company_id:
+                        car_exists = Car.objects.filter(customer_id=customer.id, company_id=employee.company_id.id).exists()
+                        if not car_exists:
+                            return JsonResponse({'error': 'Permission denied'}, status=403)
+                    else:
+                        return JsonResponse({'error': 'Employee not associated with any company'}, status=403)
+                except Employee.DoesNotExist:
+                    return JsonResponse({'error': 'Employee not found'}, status=404)
             
             # If Password is not provided or empty, remove it from validation
             if 'Password' in data and not data['Password']:
@@ -163,12 +264,60 @@ def update_customer(request, customer_id):
     
     return JsonResponse({'error': 'Method not allowed'}, status=405)
 
+@csrf_exempt
 def delete_customer(request, customer_id):
+    """Delete a specific customer with permission checks"""
     customer = get_object_or_404(Customer, pk=customer_id)
-    if request.method == 'POST':
-        customer.delete()
-        return redirect('customer_list')
-    return render(request, 'delete_customer.html', {'customer': customer})
+    
+    if request.method == 'POST' or request.method == 'DELETE':
+        try:
+            # Get user information from query parameters or body
+            user_type = None
+            user_id = None
+            
+            if request.content_type == 'application/json':
+                # Get from JSON body
+                data = json.loads(request.body)
+                user_type = data.get('userType')
+                user_id = data.get('userId')
+            else:
+                # Get from query parameters
+                user_type = request.GET.get('userType') 
+                user_id = request.GET.get('userId')
+            
+            if not user_type or not user_id:
+                return JsonResponse({'error': 'userType and userId are required'}, status=400)
+            
+            # Permission check
+            if user_type == 'customer' and int(user_id) != customer.id:
+                return JsonResponse({'error': 'Permission denied'}, status=403)
+            elif user_type == 'company':
+                # Check if customer has a car associated with this company
+                car_exists = Car.objects.filter(customer_id=customer.id, company_id=user_id).exists()
+                if not car_exists:
+                    return JsonResponse({'error': 'Permission denied'}, status=403)
+            elif user_type == 'employee' or user_type == 'admin':
+                # Check if customer has a car associated with employee's company
+                try:
+                    employee = Employee.objects.get(id=user_id)
+                    if employee.company_id:
+                        car_exists = Car.objects.filter(customer_id=customer.id, company_id=employee.company_id.id).exists()
+                        if not car_exists:
+                            return JsonResponse({'error': 'Permission denied'}, status=403)
+                    else:
+                        return JsonResponse({'error': 'Employee not associated with any company'}, status=403)
+                except Employee.DoesNotExist:
+                    return JsonResponse({'error': 'Employee not found'}, status=404)
+            
+            # If permission check passes, delete the customer
+            customer.delete()
+            return JsonResponse({'success': True, 'message': 'Customer deleted successfully'}, status=200)
+            
+        except Exception as e:
+            print(f"Error deleting customer: {str(e)}")
+            return JsonResponse({'error': str(e)}, status=500)
+    
+    return JsonResponse({'error': 'Method not allowed'}, status=405)
 
 # Company views
 @csrf_exempt
@@ -268,27 +417,57 @@ def delete_company(request, company_id):
 
 # Car views
 
-def car_list(request):
-    cars = Car.objects.all()
-    car_data = [
-        {
-            'id': car.id,
-            'model': car.Model_of_car,
-            'type': car.TypeOfCar,
-            'plateNumber': car.Plate_number,
-            'releaseYear': car.Release_Year_car,
-            'state': car.State_of_car,
-            'deviceId': car.device_id,
-            'customerId': car.customer_id_id,
-            'companyId': car.company_id_id,
-        }
-        for car in cars
-    ]
-    return JsonResponse(car_data, safe=False)
 @csrf_exempt
-def customer_cars(request, customer_id):
+def car_list(request):
     try:
-        cars = Car.objects.filter(customer_id=customer_id)
+        # Get query parameters
+        user_type = request.GET.get('userType')
+        user_id = request.GET.get('userId')
+        
+        print(f"DEBUG - car_list received: userType={user_type}, userId={user_id}")
+        
+        # Initialize queryset with all cars (for admin with no filters)
+        cars_queryset = Car.objects.all()
+        
+        # Apply filtering based on user type and ID
+        if user_type and user_id:
+            if user_type == 'customer':
+                # Filter cars by customer_id
+                cars_queryset = Car.objects.filter(customer_id=user_id)
+                print(f"Filtering cars for customer ID: {user_id}, found {cars_queryset.count()} cars")
+                
+                # Debug: Check if there are any cars with this customer_id
+                all_customer_ids = set(Car.objects.values_list('customer_id', flat=True).distinct())
+                print(f"Available customer IDs in database: {all_customer_ids}")
+                
+            elif user_type == 'company':
+                # Filter cars by company_id
+                cars_queryset = Car.objects.filter(company_id=user_id)
+                print(f"Filtering cars for company ID: {user_id}, found {cars_queryset.count()} cars")
+                
+                # Debug: Check if there are any cars with this company_id
+                all_company_ids = set(Car.objects.values_list('company_id', flat=True).distinct())
+                print(f"Available company IDs in database: {all_company_ids}")
+                
+            elif user_type == 'employee' or user_type == 'admin':
+                # Get the employee's company and filter cars by that company
+                try:
+                    employee = Employee.objects.get(id=user_id)
+                    if employee.company_id:
+                        cars_queryset = Car.objects.filter(company_id=employee.company_id.id)
+                        print(f"Filtering cars for employee ID: {user_id}, company ID: {employee.company_id.id}, found {cars_queryset.count()} cars")
+                    else:
+                        # If employee has no company, return empty list
+                        cars_queryset = Car.objects.none()
+                        print(f"Employee ID: {user_id} has no company association")
+                except Employee.DoesNotExist:
+                    return JsonResponse({'error': 'Employee not found'}, status=404)
+            else:
+                print(f"Unknown user type: {user_type}")
+        else:
+            print(f"No filtering applied - returning all {cars_queryset.count()} cars")
+        
+        # Format the data
         car_data = [
             {
                 'id': car.id,
@@ -301,10 +480,12 @@ def customer_cars(request, customer_id):
                 'customerId': car.customer_id_id,
                 'companyId': car.company_id_id,
             }
-            for car in cars
+            for car in cars_queryset
         ]
+        
         return JsonResponse(car_data, safe=False)
     except Exception as e:
+        print(f"Error retrieving cars: {str(e)}")
         return JsonResponse({'error': str(e)}, status=500)
 
 @csrf_exempt
@@ -326,7 +507,7 @@ def create_car(request):
             if data.get('customer_id'):
                 try:
                     # Fixed the syntax error here - was using id() function incorrectly
-                    customer = Customer.objects.get(id(data['customer_id']))
+                    customer = Customer.objects.get(id=data['customer_id'])
                     data['customer_id'] = customer
                 except Customer.DoesNotExist:
                     return JsonResponse({'errors': {'customer_id': 'Invalid customer ID'}}, status=400)
@@ -922,28 +1103,49 @@ def customer_login(request):
             email = data.get('Email')
             password = data.get('Password')
             
-            print(f"Customer login attempt for email: {email}")  # Debug print
+            print(f"Customer login attempt for email: {email}")
             
             try:
                 customer = Customer.objects.get(Email=email)
-                print(f"Customer found: {customer.Name} (ID: {customer.id})")  # Debug print
+                print(f"Customer found: {customer.Name} (ID: {customer.id})")
                 
+                # Add more detailed debugging info about password
+                print(f"Provided password: {password}")
+                print(f"Full stored password hash: {customer.Password}")
+                print(f"Password hash components:")
+                
+                # Check if the password appears to be a Django hash
+                if customer.Password.startswith('pbkdf2_sha'):
+                    parts = customer.Password.split('$')
+                    if len(parts) >= 4:
+                        print(f"  Algorithm: {parts[0]}")
+                        print(f"  Iterations: {parts[1]}")
+                        print(f"  Salt: {parts[2]}")
+                        print(f"  Hash: {parts[3][:10]}...")
+                    
+                    # Test with raw check_password
+                    print(f"check_password result: {check_password(password, customer.Password)}")
+                else:
+                    print("Password doesn't appear to be in Django's hashed format")
+                    print(f"Direct comparison result: {password == customer.Password}")
+                
+                # Use the same login logic as in company_login
                 if check_password(password, customer.Password) or password == customer.Password:
                     token = f"{customer.id}_{int(time.time())}"
                     return JsonResponse({
                         'success': True,
                         'token': token,
-                        'id': customer.id,  # This is important!
+                        'id': customer.id,
                         'Name': customer.Name,
                         'role': 'customer',
                         'userType': 'customer',
-                        'userId': customer.id  # This is also important!
+                        'userId': customer.id
                     }, status=200)
                 else:
-                    print(f"Invalid password for customer: {customer.Name}")  # Debug print
+                    print(f"Invalid password for customer: {customer.Name}")
                     return JsonResponse({'error': 'Invalid credentials'}, status=401)
             except Customer.DoesNotExist:
-                print(f"No customer found with email: {email}")  # Debug print
+                print(f"No customer found with email: {email}")
                 return JsonResponse({'error': 'Invalid email or password'}, status=401)
         except Exception as e:
             print(f"Exception in customer_login: {str(e)}")
@@ -1623,6 +1825,38 @@ def get_company(request, company_id):
         return JsonResponse(data, status=200)
     except Exception as e:
         print(f"Error retrieving company data: {str(e)}")
+        return JsonResponse({'error': str(e)}, status=500)
+@csrf_exempt
+def company_list(request):
+    try:
+        # Get query parameters
+        user_type = request.GET.get('userType')
+        user_id = request.GET.get('userId')
+        
+        # Default to all companies
+        companies = Company.objects.all()
+        
+        # Filter based on user type if needed
+        if user_type == 'employee' and user_id:
+            try:
+                employee = Employee.objects.get(id=user_id)
+                if employee.company_id:
+                    companies = Company.objects.filter(id=employee.company_id.id)
+            except Employee.DoesNotExist:
+                pass
+        
+        company_data = [
+            {
+                'id': company.id,
+                'Name': company.Company_name,  # Changed from company.Name to company.Company_name
+                # Add other fields as needed
+            }
+            for company in companies
+        ]
+        
+        return JsonResponse(company_data, safe=False)
+    except Exception as e:
+        print(f"Error retrieving companies: {str(e)}")
         return JsonResponse({'error': str(e)}, status=500)
 
 @csrf_exempt

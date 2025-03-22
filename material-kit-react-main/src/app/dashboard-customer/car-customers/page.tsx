@@ -40,20 +40,19 @@ const CarCustomersPage = () => {
   // Fetch cars data
   useEffect(() => {
     setLoading(true);
-    // Only show cars that belong to the current logged-in customer
-    // We'll need to get the customer ID from the session/auth context
-    fetch('http://localhost:8000/api/cars/')
+    
+    // Get customer ID from localStorage
+    const customerId = localStorage.getItem('customer-id');
+    
+    // Create URL with query parameters
+    const url = customerId 
+      ? `http://localhost:8000/api/cars/?userType=customer&userId=${customerId}`
+      : 'http://localhost:8000/api/cars/';
+    
+    fetch(url)
       .then(response => response.json())
       .then(data => {
-        // Filter cars to only show those assigned to the current customer
-        // The backend might do this filtering for us based on auth token
-        const customerCars = data.filter((car: any) => {
-          // In a real implementation, you'd get the customer ID from auth context
-          // For now, just show all cars or adjust this filter as needed
-          return true; // or: return car.customerId === currentCustomerId;
-        });
-        
-        setCars(customerCars);
+        setCars(data);
         setLoading(false);
       })
       .catch(error => {
@@ -94,31 +93,55 @@ const CarCustomersPage = () => {
   };
 
   const handleSaveEdit = (updatedCar: Car) => {
+    // Get customer ID from localStorage with fallbacks
+    const customerId = localStorage.getItem('customer-id') || 
+                       localStorage.getItem('customerId') || 
+                       localStorage.getItem('customer_id');
+    
+    if (!customerId) {
+      console.error('No customer ID found in localStorage');
+      // Consider showing an error message to the user
+      return;
+    }
+    
+    // Create request data
+    const requestData = {
+      Model_of_car: updatedCar.model,
+      TypeOfCar: updatedCar.type,
+      Plate_number: updatedCar.plateNumber,
+      Release_Year_car: updatedCar.releaseYear,
+      State_of_car: updatedCar.state,
+      device_id: updatedCar.deviceId,
+      customer_id: customerId // Add customer ID to the update request
+    };
+    
+    console.log('Updating car with data:', requestData);
+    
     // Call API to update car
     fetch(`http://localhost:8000/api/update_car/${updatedCar.id}/`, {
       method: 'POST',
       headers: {
         'Content-Type': 'application/json',
       },
-      body: JSON.stringify({
-        Model_of_car: updatedCar.model,
-        TypeOfCar: updatedCar.type,
-        Plate_number: updatedCar.plateNumber,
-        Release_Year_car: updatedCar.releaseYear,
-        State_of_car: updatedCar.state,
-        device_id: updatedCar.deviceId
-      }),
+      body: JSON.stringify(requestData),
     })
       .then(response => {
         if (!response.ok) {
-          throw new Error('Failed to update car');
+          return response.json().then(data => {
+            throw new Error(data.error || 'Failed to update car');
+          });
         }
+        return response.json();
+      })
+      .then(data => {
+        console.log('Car updated successfully:', data);
         setRefreshTrigger(prev => prev + 1);
         setEditDialogOpen(false);
         setSelectedCar(null);
       })
       .catch(error => {
         console.error('Error updating car:', error);
+        // Consider showing an error message to the user
       });
   };
 
@@ -165,36 +188,10 @@ const CarCustomersPage = () => {
     setCarToDelete(null);
   };
 
-  const handleAddCar = (carData: Omit<Car, 'id'>) => {
-    // Add API call to create a new car
-    fetch('http://localhost:8000/api/create_car/', {
-      method: 'POST',
-      headers: {
-        'Content-Type': 'application/json',
-      },
-      body: JSON.stringify({
-        Model_of_car: carData.model,
-        TypeOfCar: carData.type,
-        Plate_number: carData.plateNumber,
-        Release_Year_car: carData.releaseYear,
-        State_of_car: carData.state,
-        device_id: carData.deviceId || ''
-        // customer_id will be set by the backend based on token
-      }),
-    })
-      .then(response => {
-        if (!response.ok) {
-          throw new Error('Failed to create car');
-        }
-        return response.json();
-      })
-      .then(() => {
-        setRefreshTrigger(prev => prev + 1);
-        setOpenDialog(false);
-      })
-      .catch(error => {
-        console.error('Error creating car:', error);
-      });
+  const handleAddCar = () => {
+    // Just refresh the cars list after the dialog component handles the API call
+    setRefreshTrigger(prev => prev + 1);
+    setOpenDialog(false);
   };
 
   // Filter logic for the table
@@ -272,17 +269,46 @@ const CarCustomersPage = () => {
             </TextField>
           </Stack>
 
-          <CarCustomersTable
-            count={filteredCars.length}
-            items={paginatedCars}
-            onPageChange={setPage}
-            onRowsPerPageChange={setRowsPerPage}
-            page={page}
-            rowsPerPage={rowsPerPage}
-            onEdit={handleEdit}
-            onDelete={handleDelete}
-            loading={loading}
-          />
+          {cars.length === 0 && !loading ? (
+            <Box
+              sx={{
+                display: 'flex',
+                flexDirection: 'column',
+                alignItems: 'center',
+                justifyContent: 'center',
+                py: 6,
+                borderRadius: 1,
+                bgcolor: 'background.paper',
+                boxShadow: 1
+              }}
+            >
+              <Typography variant="h6" color="text.secondary" gutterBottom>
+                No cars found for your account
+              </Typography>
+              <Typography variant="body2" color="text.secondary" sx={{ mb: 3 }}>
+                Add your first car to start tracking and managing it
+              </Typography>
+              <Button
+                startIcon={<AddIcon />}
+                variant="contained"
+                onClick={handleOpenDialog}
+              >
+                Add Your First Car
+              </Button>
+            </Box>
+          ) : (
+            <CarCustomersTable
+              count={filteredCars.length}
+              items={paginatedCars}
+              onPageChange={setPage}
+              onRowsPerPageChange={setRowsPerPage}
+              page={page}
+              rowsPerPage={rowsPerPage}
+              onEdit={handleEdit}
+              onDelete={handleDelete}
+              loading={loading}
+            />
+          )}
         </Stack>
       </Container>
 
@@ -290,7 +316,7 @@ const CarCustomersPage = () => {
       <AddCarCustomerDialog
         open={openDialog}
         onClose={handleCloseDialog}
-        onSubmit={handleAddCar}
+        onSuccess={handleAddCar} // Rename onSubmit to onSuccess for consistency
       />
 
       {/* Edit Car Dialog */}

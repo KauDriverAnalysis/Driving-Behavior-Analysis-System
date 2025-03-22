@@ -24,7 +24,7 @@ type NewCar = Omit<Car, 'id'>;
 interface AddCarCustomerDialogProps {
   open: boolean;
   onClose: () => void;
-  onSubmit: (car: NewCar) => void;
+  onSuccess: () => void; // Change from onSubmit to onSuccess
 }
 
 interface ValidationErrors {
@@ -36,7 +36,7 @@ interface ValidationErrors {
 export default function AddCarCustomerDialog({ 
   open, 
   onClose,
-  onSubmit 
+  onSuccess 
 }: AddCarCustomerDialogProps): React.JSX.Element {
   const theme = useTheme();
   const [error, setError] = React.useState<string | null>(null);
@@ -101,6 +101,17 @@ export default function AddCarCustomerDialog({
     return regex.test(plateNumber);
   };
 
+  // Add this function to format plate number properly
+  const formatPlateNumber = (plateNumber: string): string => {
+    // Convert to uppercase
+    let formatted = plateNumber.toUpperCase();
+    // Add space if missing (between letters and numbers)
+    if (formatted.length === 7 && !formatted.includes(' ')) {
+      formatted = formatted.substring(0, 3) + ' ' + formatted.substring(3);
+    }
+    return formatted;
+  };
+
   const handleSubmit = async (event: React.FormEvent) => {
     event.preventDefault();
     setError(null);
@@ -123,17 +134,59 @@ export default function AddCarCustomerDialog({
     }
     
     try {
+      // First check what type of user is logged in
+      const userType = localStorage.getItem('userType') || localStorage.getItem('user-type');
+      console.log('User type detected:', userType);
+
+      let customerId = null;
+      let companyId = null;
+
+      if (userType === 'employee' || userType === 'admin') {
+        // For employees, get company ID
+        companyId = localStorage.getItem('company_id') || 
+                    localStorage.getItem('employee-company-id') || 
+                    localStorage.getItem('companyId');
+        
+        console.log('Company ID retrieved:', companyId);
+        
+        if (!companyId) {
+          setError('No company ID found. Please log in again.');
+          return;
+        }
+      } else {
+        // For customers, get customer ID with multiple fallbacks
+        customerId = localStorage.getItem('customer-id') || 
+                     localStorage.getItem('customerId') || 
+                     localStorage.getItem('customer_id');
+        
+        console.log('Customer ID retrieved:', customerId);
+        
+        if (!customerId) {
+          setError('No customer ID found. Please log in again.');
+          return;
+        }
+      }
+      
       // Format the data to match the backend API expectations
       const apiData = {
         Model_of_car: formData.model,
         TypeOfCar: formData.type,
-        Plate_number: formData.plateNumber,
+        Plate_number: formatPlateNumber(formData.plateNumber), // Format plate number
         Release_Year_car: formData.releaseYear,
         State_of_car: formData.state,
         device_id: formData.deviceId
       };
       
-      // Direct API call instead of passing to parent
+      // Only add customer_id if it exists
+      if (customerId) {
+        apiData.customer_id = customerId;
+      }
+
+      // Only add company_id if it exists
+      if (companyId) {
+        apiData.company_id = companyId;
+      }
+      
       const response = await fetch('http://localhost:8000/api/create_car/', {
         method: 'POST',
         headers: {
@@ -145,15 +198,18 @@ export default function AddCarCustomerDialog({
       const data = await response.json();
       
       if (!response.ok) {
+        console.log('Response error:', data);
+        
         if (data.errors) {
           setValidationErrors(data.errors);
           return;
         }
-        throw new Error(data.message || 'Failed to add car');
+        
+        throw new Error(data.error || data.message || 'Failed to create car');
       }
 
-      // Success! Reset form and notify parent
-      onSubmit(formData);
+      // Success! Call the success callback
+      onSuccess();
       
       // Reset form
       setFormData({

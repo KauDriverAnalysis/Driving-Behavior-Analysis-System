@@ -100,22 +100,70 @@ export default function AddCarDialog({ open, onClose, onSuccess }: AddCarDialogP
     setValidationErrors({});
     
     try {
+      // First check what type of user is logged in
+      const userType = localStorage.getItem('userType') || localStorage.getItem('user-type');
+      let customerId = null;
+      let companyId = null;
+      
+      if (userType === 'employee' || userType === 'admin') {
+        // For employees, get company ID
+        companyId = localStorage.getItem('company_id') || 
+                   localStorage.getItem('employee-company-id') || 
+                   localStorage.getItem('companyId');
+        
+        if (!companyId) {
+          setError('No company ID found. Please log in again.');
+          return;
+        }
+      } else {
+        // For customers, get customer ID
+        customerId = localStorage.getItem('customer-id');
+        
+        if (!customerId) {
+          setError('No customer ID found. Please log in again.');
+          return;
+        }
+      }
+      
+      // Only include the IDs that are not null
+      const apiData = {
+        Model_of_car: formData.Model_of_car,
+        TypeOfCar: formData.TypeOfCar,
+        Plate_number: formData.Plate_number,
+        Release_Year_car: formData.Release_Year_car,
+        State_of_car: formData.State_of_car,
+        device_id: formData.device_id
+      };
+
+      // Only add customer_id if it exists
+      if (customerId) {
+        apiData.customer_id = customerId;
+      }
+
+      // Only add company_id if it exists
+      if (companyId) {
+        apiData.company_id = companyId;
+      }
+      
       const response = await fetch('http://localhost:8000/api/create_car/', {
         method: 'POST',
         headers: {
           'Content-Type': 'application/json',
         },
-        body: JSON.stringify(formData),
+        body: JSON.stringify(apiData),
       });
       
       const data = await response.json();
       
       if (!response.ok) {
+        console.log('Response error:', data);
+        
         if (data.errors) {
           setValidationErrors(data.errors);
           return;
         }
-        throw new Error(data.error || 'Failed to create car');
+        
+        throw new Error(data.error || data.message || 'Failed to create car');
       }
       
       onSuccess();
@@ -133,8 +181,7 @@ export default function AddCarDialog({ open, onClose, onSuccess }: AddCarDialogP
       formData.TypeOfCar.trim() !== '' &&
       formData.Plate_number.trim() !== '' &&
       formData.Release_Year_car > 0 &&
-      formData.device_id.trim() !== '' &&
-      formData.company_id.trim() !== '' // Company ID is required
+      formData.device_id.trim() !== ''
     );
   };
 
@@ -261,27 +308,7 @@ export default function AddCarDialog({ open, onClose, onSuccess }: AddCarDialogP
               </FormControl>
             </Grid>
             
-            {/* Changed Company field from dropdown to input */}
-            <Grid item xs={12}>
-              <FormControl fullWidth required error={!!validationErrors.company_id}>
-                <InputLabel>Company ID</InputLabel>
-                <OutlinedInput
-                  label="Company ID"
-                  type="text"
-                  value={formData.company_id}
-                  onChange={handleChange('company_id')}
-                  placeholder="Enter company ID number"
-                />
-                {validationErrors.company_id && (
-                  <FormHelperText error>{validationErrors.company_id[0]}</FormHelperText>
-                )}
-                {!validationErrors.company_id && (
-                  <FormHelperText>
-                    Enter the ID of the company
-                  </FormHelperText>
-                )}
-              </FormControl>
-            </Grid>
+            {/* Company field removed - will be auto-filled from login info */}
             
             {/* Display validation info */}
             <Grid item xs={12}>
@@ -290,7 +317,6 @@ export default function AddCarDialog({ open, onClose, onSuccess }: AddCarDialogP
                 <ul style={{ margin: '5px 0 5px 20px', padding: 0 }}>
                   <li>Plate Number: 3 letters followed by 4 digits (e.g., "ABC 1234")</li>
                   <li>Device ID: Required and must be unique</li>
-                  <li>Company ID must be provided</li>
                 </ul>
               </Alert>
             </Grid>
