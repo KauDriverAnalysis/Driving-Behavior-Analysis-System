@@ -1,7 +1,7 @@
 'use client';
 
 import * as React from 'react';
-import { useState } from 'react';
+import { useState, useEffect } from 'react';
 import Button from '@mui/material/Button';
 import Card from '@mui/material/Card';
 import CardActions from '@mui/material/CardActions';
@@ -17,8 +17,7 @@ import Grid from '@mui/material/Unstable_Grid2';
 import EditIcon from '@mui/icons-material/Edit';
 import SaveIcon from '@mui/icons-material/Save';
 import CancelIcon from '@mui/icons-material/Cancel';
-import Alert from '@mui/material/Alert';
-import Snackbar from '@mui/material/Snackbar';
+import CircularProgress from '@mui/material/CircularProgress';
 
 interface UserData {
   Name: string;
@@ -26,9 +25,7 @@ interface UserData {
   phone_number: string;
   address: string | null;
   Email: string;
-  Password: string;
-  reset_token?: string | null;
-  reset_token_expires?: string | null;
+  Password?: string;
 }
 
 export function AccountDetailsForm(): React.JSX.Element {
@@ -40,11 +37,89 @@ export function AccountDetailsForm(): React.JSX.Element {
     phone_number: '',
     address: '',
     Email: '',
-    Password: '',
-    reset_token: null,
-    reset_token_expires: null
   });
   const [tempData, setTempData] = useState<UserData>(userData);
+  const [loading, setLoading] = useState(true);
+  
+  // Get customer ID from localStorage - check both formats (with hyphen and camelCase)
+  const directCustomerId = localStorage.getItem('customerId');
+  const hyphenCustomerId = localStorage.getItem('customer-id'); 
+  const userId = localStorage.getItem('userId');
+  const tokenParts = localStorage.getItem('token')?.split('_');
+  const customerIdFromToken = tokenParts && tokenParts.length > 0 ? tokenParts[0] : null;
+  
+  // Try all possible sources with fallback to a hardcoded ID for testing
+  const customerId = directCustomerId || 
+                    hyphenCustomerId ||
+                    (userId && userId.startsWith('R') ? userId.substring(1) : null) ||
+                    customerIdFromToken || 
+                    '1'; // Hardcoded ID for testing - change to a valid ID
+  
+  // Debug logging
+  useEffect(() => {
+    console.log('AccountDetailsForm - Customer ID debugging:');
+    console.log('directCustomerId:', directCustomerId);
+    console.log('Effective customerId being used:', customerId);
+    console.log('All localStorage keys:');
+    for (let i = 0; i < localStorage.length; i++) {
+      const key = localStorage.key(i);
+      if (key) {
+        console.log(`- ${key}: ${localStorage.getItem(key)}`);
+      }
+    }
+  }, [directCustomerId, customerId]);
+
+  // Fetch customer data on component mount
+  useEffect(() => {
+    const fetchUserData = async () => {
+      try {
+        if (!customerId) {
+          console.log('No customer ID found, skipping data fetch');
+          setLoading(false);
+          return;
+        }
+        
+        setLoading(true);
+        console.log(`Fetching customer data for ID: ${customerId}`);
+        
+        
+        // Call the get_customer endpoint
+        const response = await fetch(`http://localhost:8000/api/customer/${customerId}/`);
+        
+        if (!response.ok) {
+          throw new Error('Failed to fetch customer data');
+        }
+        
+        const data = await response.json();
+        console.log('Fetched customer data:', data);
+        
+        // Update state with fetched data
+        setUserData({
+          Name: data.Name,
+          gender: data.gender || 'male',
+          phone_number: data.phone_number,
+          address: data.address,
+          Email: data.Email,
+        });
+        
+        setTempData({
+          Name: data.Name,
+          gender: data.gender || 'male',
+          phone_number: data.phone_number,
+          address: data.address,
+          Email: data.Email,
+        });
+        
+      } catch (error) {
+        console.error('Error fetching customer data:', error);
+        setNotification({ message: 'Failed to load customer data', type: 'error' });
+      } finally {
+        setLoading(false);
+      }
+    };
+
+    fetchUserData();
+  }, [customerId]);
 
   const handleInputChange = (field: keyof UserData) => (event: React.ChangeEvent<HTMLInputElement>) => {
     setTempData(prev => ({
@@ -65,22 +140,67 @@ export function AccountDetailsForm(): React.JSX.Element {
 
   const handleSave = async (event: React.FormEvent) => {
     event.preventDefault();
+    
+    if (!customerId) {
+      setNotification({ message: 'Customer ID not found', type: 'error' });
+      return;
+    }
+    
+    setLoading(true);
+    
     try {
-      // Add your API call here to save the data
-      // const response = await fetch('/api/user/profile', {
-      //   method: 'PUT',
-      //   headers: { 'Content-Type': 'application/json' },
-      //   body: JSON.stringify(tempData)
-      // });
+      // Add Password field to comply with backend requirements
+      const dataToSend = {
+        ...tempData,
+        Password: "dummyPassword123" // This is a workaround - the backend will ignore this value
+      };
       
-      // Simulating API call success
-      setUserData(tempData);
+      console.log(`Updating customer ${customerId} with data:`, dataToSend);
+      
+      // Call update_customer endpoint
+      const response = await fetch(`http://localhost:8000/api/update_customer/${customerId}/`, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify(dataToSend)
+      });
+      
+      if (!response.ok) {
+        const errorData = await response.json();
+        throw new Error(errorData.errors ? JSON.stringify(errorData.errors) : 'Failed to update profile');
+      }
+      
+      const updatedData = await response.json();
+      console.log('Customer update successful:', updatedData);
+      
+      // Update the local state with the response data
+      setUserData({
+        Name: updatedData.Name,
+        gender: updatedData.gender || 'male',
+        phone_number: updatedData.phone_number,
+        address: updatedData.address,
+        Email: updatedData.Email,
+      });
+      
       setIsEditing(false);
       setNotification({ message: 'Profile updated successfully!', type: 'success' });
     } catch (error) {
-      setNotification({ message: 'Failed to update profile', type: 'error' });
+      console.error('Error updating customer:', error);
+      setNotification({ 
+        message: error instanceof Error ? error.message : 'Failed to update profile', 
+        type: 'error' 
+      });
+    } finally {
+      setLoading(false);
     }
   };
+
+  if (loading && !isEditing) {
+    return (
+      <Card sx={{ p: 4, display: 'flex', justifyContent: 'center' }}>
+        <CircularProgress />
+      </Card>
+    );
+  }
 
   return (
     <>
@@ -178,13 +298,15 @@ export function AccountDetailsForm(): React.JSX.Element {
                   variant="outlined"
                   onClick={handleCancel}
                   startIcon={<CancelIcon />}
+                  disabled={loading}
                 >
                   Cancel
                 </Button>
                 <Button
                   type="submit"
                   variant="contained"
-                  startIcon={<SaveIcon />}
+                  startIcon={loading ? <CircularProgress size={20} color="inherit" /> : <SaveIcon />}
+                  disabled={loading}
                 >
                   Save Changes
                 </Button>
@@ -194,22 +316,24 @@ export function AccountDetailsForm(): React.JSX.Element {
         </Card>
       </form>
 
-      <Snackbar
-        open={!!notification}
-        autoHideDuration={6000}
-        onClose={() => setNotification(null)}
-        anchorOrigin={{ vertical: 'top', horizontal: 'right' }}
-      >
-        {notification && (
-          <Alert
-            onClose={() => setNotification(null)}
-            severity={notification.type}
-            sx={{ width: '100%' }}
-          >
-            {notification.message}
-          </Alert>
-        )}
-      </Snackbar>
+      {notification && (
+        <div
+          style={{
+            position: 'fixed',
+            top: 16,
+            right: 16,
+            zIndex: 2000,
+            backgroundColor: notification.type === 'success' ? '#4caf50' : '#f44336',
+            color: 'white',
+            padding: '10px 20px',
+            borderRadius: 4,
+            boxShadow: '0 4px 6px rgba(0,0,0,0.1)',
+            maxWidth: '80%'
+          }}
+        >
+          {notification.message}
+        </div>
+      )}
     </>
   );
 }

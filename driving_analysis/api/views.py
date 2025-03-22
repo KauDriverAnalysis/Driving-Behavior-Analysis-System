@@ -117,16 +117,51 @@ def create_customer(request):
         form = CustomerForm()
     return render(request, 'create_customer.html', {'form': form})
 
+@csrf_exempt
 def update_customer(request, customer_id):
+    """Update details for a specific customer"""
     customer = get_object_or_404(Customer, pk=customer_id)
     if request.method == 'POST':
-        form = CustomerForm(request.POST, instance=customer)
-        if form.is_valid():
-            form.save()
-            return redirect('customer_list')
-    else:
-        form = CustomerForm(instance=customer)
-    return render(request, 'update_customer.html', {'form': form})
+        try:
+            # Parse JSON data from request body
+            data = json.loads(request.body)
+            print(f"Received update data for customer {customer_id}: {data}")
+            
+            # If Password is not provided or empty, remove it from validation
+            if 'Password' in data and not data['Password']:
+                mutable_data = dict(data)
+                del mutable_data['Password']
+                form = CustomerForm(mutable_data, instance=customer)
+            else:
+                form = CustomerForm(data, instance=customer)
+                
+            if form.is_valid():
+                # If using an empty password, keep the original
+                if 'Password' in data and not data['Password']:
+                    updated_customer = form.save(commit=False)
+                    updated_customer.Password = customer.Password
+                    updated_customer.save()
+                else:
+                    updated_customer = form.save()
+                
+                return JsonResponse({
+                    'success': True,
+                    'id': updated_customer.id,
+                    'Name': updated_customer.Name,
+                    'Email': updated_customer.Email,
+                    'phone_number': updated_customer.phone_number,
+                    'gender': updated_customer.gender,
+                    'address': updated_customer.address,
+                    'message': 'Customer updated successfully'
+                }, status=200)
+            else:
+                print(f"Form validation errors: {form.errors}")
+                return JsonResponse({'errors': form.errors}, status=400)
+        except Exception as e:
+            print(f"Error updating customer: {str(e)}")
+            return JsonResponse({'errors': {'server': str(e)}}, status=500)
+    
+    return JsonResponse({'error': 'Method not allowed'}, status=405)
 
 def delete_customer(request, customer_id):
     customer = get_object_or_404(Customer, pk=customer_id)
@@ -162,16 +197,67 @@ def create_company(request):
     
     return JsonResponse({'error': 'Method not allowed'}, status=405)
 
+@csrf_exempt
 def update_company(request, company_id):
     company = get_object_or_404(Company, pk=company_id)
     if request.method == 'POST':
-        form = CompanyForm(request.POST, instance=company)
-        if form.is_valid():
-            form.save()
-            return JsonResponse({'message': 'Company updated successfully'}, status=200)
-    else:
-        form = CompanyForm(instance=company)
-    return JsonResponse({'errors': form.errors}, status=400)
+        try:
+            # Parse JSON data from request body
+            data = json.loads(request.body)
+            print(f"Received update data for company {company_id}: {data}")  # Debug print
+            
+            # If Password is not provided or empty, use the existing password
+            if 'Password' not in data or not data['Password']:
+                # Create a mutable copy of the data
+                mutable_data = dict(data)
+                # Remove the Password field if it exists but is empty
+                if 'Password' in mutable_data:
+                    del mutable_data['Password']
+                # Use the existing form but without validating Password
+                form = CompanyForm(mutable_data, instance=company)
+                
+                # Save without committing to database yet
+                if form.is_valid():
+                    updated_company = form.save(commit=False)
+                    # Keep the original password
+                    updated_company.Password = company.Password
+                    updated_company.save()
+                    
+                    return JsonResponse({
+                        'success': True,
+                        'id': updated_company.id,
+                        'Company_name': updated_company.Company_name,
+                        'Contact_number': updated_company.Contact_number,
+                        'Email': updated_company.Email,
+                        'location': updated_company.location,
+                        'message': 'Company updated successfully'
+                    }, status=200)
+                else:
+                    print(f"Form validation errors: {form.errors}")
+                    return JsonResponse({'errors': form.errors}, status=400)
+            else:
+                # If Password is provided, use it (this is the normal flow)
+                form = CompanyForm(data, instance=company)
+                if form.is_valid():
+                    updated_company = form.save()
+                    return JsonResponse({
+                        'success': True,
+                        'id': updated_company.id,
+                        'Company_name': updated_company.Company_name,
+                        'Contact_number': updated_company.Contact_number,
+                        'Email': updated_company.Email,
+                        'location': updated_company.location,
+                        'message': 'Company updated successfully'
+                    }, status=200)
+                else:
+                    print(f"Form validation errors: {form.errors}")
+                    return JsonResponse({'errors': form.errors}, status=400)
+        except Exception as e:
+            print(f"Error updating company: {str(e)}")
+            return JsonResponse({'errors': {'server': str(e)}}, status=500)
+    
+    return JsonResponse({'error': 'Method not allowed'}, status=405)
+
 
 def delete_company(request, company_id):
     company = get_object_or_404(Company, pk=company_id)
@@ -779,6 +865,7 @@ def company_login(request):
             try:
                 employee = Employee.objects.get(Email=email)
                 print(f"Employee found: {employee.Name} (ID: {employee.id})")  # Debug print
+                print(f"Employee's company ID: {employee.company_id_id}")  # Added debug print for company ID
                 
                 # Check password
                 if check_password(password, employee.Password) or password == employee.Password:
@@ -791,16 +878,17 @@ def company_login(request):
                         'token': token,
                         'id': employee.id,
                         'name': employee.Name,
-                        'role': role,  # This should be 'admin' for admins
-                        'userType': role,  # Make these consistent
+                        'role': role,
+                        'userType': role,
                         'userId': employee.id,
-                        'Admin': is_admin,  # Add explicit Admin flag
+                        'Admin': is_admin,
                         'company_id': employee.company_id_id if hasattr(employee, 'company_id') else None
                     }, status=200)
             except Employee.DoesNotExist:
                 try:
                     company = Company.objects.get(Email=email)
                     print(f"Company found: {company.Company_name} (ID: {company.id})")  # Debug print
+                    print(f"Company ID that will be used for updates: {company.id}")  # Added explicit company ID debug print
                     
                     if check_password(password, company.Password) or password == company.Password:
                         print(f"Company login successful")  # Debug print
@@ -811,8 +899,8 @@ def company_login(request):
                             'id': company.id,
                             'Company_name': company.Company_name,
                             'role': 'company',
-                            'userType': 'company',  # Add this for consistent authentication
-                            'userId': company.id    # Add this for consistent authentication
+                            'userType': 'company',
+                            'userId': company.id
                         }, status=200)
                 except Company.DoesNotExist:
                     print(f"No company or employee found with email: {email}")  # Debug print
@@ -842,16 +930,14 @@ def customer_login(request):
                 
                 if check_password(password, customer.Password) or password == customer.Password:
                     token = f"{customer.id}_{int(time.time())}"
-                    print(f"Customer login successful")  # Debug print
-                    
                     return JsonResponse({
                         'success': True,
                         'token': token,
-                        'id': customer.id,
+                        'id': customer.id,  # This is important!
                         'Name': customer.Name,
                         'role': 'customer',
-                        'userType': 'customer',  # Add this for consistent authentication
-                        'userId': customer.id    # Add this for consistent authentication
+                        'userType': 'customer',
+                        'userId': customer.id  # This is also important!
                     }, status=200)
                 else:
                     print(f"Invalid password for customer: {customer.Name}")  # Debug print
@@ -1515,3 +1601,48 @@ def get_car_location(request, car_id=None):
     except Exception as e:
         print(f"Error in get_car_location: {str(e)}")
         return JsonResponse({'error': str(e)}, status=500)
+
+# Add these functions to your views.py file
+
+@csrf_exempt
+def get_company(request, company_id):
+    """Get details for a specific company"""
+    try:
+        company = get_object_or_404(Company, pk=company_id)
+        
+        # Return company details
+        data = {
+            'id': company.id,
+            'Company_name': company.Company_name,
+            'Contact_number': company.Contact_number,
+            'Email': company.Email,
+            'location': company.location,
+            # Don't include Password for security reasons
+        }
+        
+        return JsonResponse(data, status=200)
+    except Exception as e:
+        print(f"Error retrieving company data: {str(e)}")
+        return JsonResponse({'error': str(e)}, status=500)
+
+@csrf_exempt
+def get_customer(request, customer_id):
+    if request.method == 'GET':
+        try:
+            customer = get_object_or_404(Customer, pk=customer_id)
+            
+            # Return customer details
+            data = {
+                'id': customer.id,
+                'Name': customer.Name,
+                'Email': customer.Email,
+                'phone_number': customer.phone_number,
+                'gender': customer.gender,
+                'address': customer.address,
+                # Don't include Password for security reasons
+            }
+            
+            return JsonResponse(data, status=200)
+        except Exception as e:
+            print(f"Error retrieving customer data: {str(e)}")
+            return JsonResponse({'error': str(e)}, status=500)

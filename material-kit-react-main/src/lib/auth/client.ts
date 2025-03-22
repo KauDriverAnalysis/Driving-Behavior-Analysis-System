@@ -137,6 +137,21 @@ class AuthClient {
       } else if (accountType === 'employee') {
         localStorage.setItem('employee-id', userId);
         localStorage.setItem('employee-name', data.name || '');
+        
+        // Store the company ID if available
+        if (data.company_id) {
+          localStorage.setItem('employee-company-id', data.company_id.toString());
+          console.log('Employee\'s company ID stored:', data.company_id);
+        }
+      }
+      
+      // In your login success handler:
+      if (data.company_id) {
+        localStorage.setItem('employee-company-id', data.company_id.toString());
+        // Also store it under a few alternative keys to be safe
+        localStorage.setItem('companyId', data.company_id.toString());
+        localStorage.setItem('company_id', data.company_id.toString());
+        console.log('Stored company ID in multiple keys:', data.company_id);
       }
       
       console.log(`User logged in - ID: ${userId}, Type: ${userRole}, Admin: ${isAdmin}`);

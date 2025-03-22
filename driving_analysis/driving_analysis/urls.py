@@ -24,9 +24,8 @@ urlpatterns = [
     path('', driver_map, name='home'),  # Redirect root URL to driver_map
     path('driver-map/', driver_map, name='driver_map'),  # Fixed typo with double backticks
     path('get-latest-data/', get_latest_data, name='get_latest_data'),  # Ensure this line is correct
-    path('customers/', views.customer_list, name='customer_list'),
     path('create/', views.create_customer, name='create_customer'),
-    path('update/<int:customer_id>/', views.update_customer, name='update_customer'),
+    path('api/update_customer/<int:customer_id>/', views.update_customer, name='update_customer_api'),
     path('delete/<int:customer_id>/', views.delete_customer, name='delete_customer'),
     path('cleanse-buffer/', views.cleanse_buffer_view, name='cleanse_buffer'),
     path('get-cleansed-data/', views.get_cleansed_data, name='get_cleansed_data'),
@@ -46,7 +45,8 @@ urlpatterns = [
     path('api/delete_car/<int:car_id>/', views.delete_car, name='delete_car'),
     path('api/update_driver/<int:driver_id>/', views.update_driver, name='update_driver'),
     path('api/delete_driver/<int:driver_id>/', views.delete_driver, name='delete_driver'),
-    path('api/create_company/', views.create_company, name='create_company'),  
+    path('api/create_company/', views.create_company, name='create_company'),
+    path('api/update_company/<int:company_id>/', views.update_company, name='update_company'),  
     path('api/company_login/', views.company_login, name='company_login'),
     path('api/create_customer/', views.create_customer, name='api_create_customer'),
     path('api/customer_login/', views.customer_login, name='customer_login'),
@@ -58,4 +58,8 @@ urlpatterns = [
     path('api/geofences/<int:geofence_id>/delete/', views.delete_geofence, name='delete_geofence'),
     path('api/get-car-location/<int:car_id>/', views.get_car_location, name='get_car_location'),
     path('api/get-car-location/', views.get_car_location, name='get_all_car_locations'),
+    path('api/company/<int:company_id>/', views.get_company, name='get_company'),
+    path('api/customer/<int:customer_id>/', views.get_customer, name='get_customer'),   
+    
+   
 ]
