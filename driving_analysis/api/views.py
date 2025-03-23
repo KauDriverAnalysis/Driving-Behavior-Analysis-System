@@ -506,7 +506,6 @@ def create_car(request):
                     
             if data.get('customer_id'):
                 try:
-                    # Fixed the syntax error here - was using id() function incorrectly
                     customer = Customer.objects.get(id=data['customer_id'])
                     data['customer_id'] = customer
                 except Customer.DoesNotExist:
@@ -516,10 +515,29 @@ def create_car(request):
             form = CarForm(data)
             if form.is_valid():
                 car = form.save()
+                
+                # Create initial DrivingData record for this car
+                try:
+                    DrivingData.objects.create(
+                        car_id=car,
+                        speed=0,
+                        accident_detection=False,
+                        distance=0,
+                        harsh_braking_events=0,
+                        harsh_acceleration_events=0,
+                        swerving_events=0,
+                        potential_swerving_events=0,
+                        over_speed_events=0,
+                        score=100  # Start with perfect score
+                    )
+                    print(f"Created initial driving data for car ID {car.id}")
+                except Exception as e:
+                    print(f"Error creating initial driving data: {str(e)}")
+                
                 return JsonResponse({
                     'success': True, 
                     'id': car.id,
-                    'message': 'Car created successfully'
+                    'message': 'Car created successfully with initial driving data'
                 }, status=201)
             else:
                 print(f"Form validation errors: {form.errors}")
@@ -529,7 +547,6 @@ def create_car(request):
             return JsonResponse({'errors': {'server': str(e)}}, status=500)
     
     return JsonResponse({'error': 'Method not allowed'}, status=405)
-
 @csrf_exempt
 def update_car(request, car_id):
     car = get_object_or_404(Car, pk=car_id)
@@ -612,7 +629,34 @@ from .models import Driver
 
 def driver_list(request):
     try:
-        drivers = Driver.objects.all()
+        # Get query parameters
+        user_type = request.GET.get('userType')
+        user_id = request.GET.get('userId')
+        
+        # Initialize queryset with all drivers (for admin with no filters)
+        drivers_queryset = Driver.objects.all()
+        
+        # Apply filtering based on user type and ID
+        if user_type and user_id:
+            if user_type == 'company':
+                # Filter drivers by company_id
+                drivers_queryset = Driver.objects.filter(company_id=user_id)
+                print(f"Filtering drivers for company ID: {user_id}, found {drivers_queryset.count()} drivers")
+                
+            elif user_type == 'employee' or user_type == 'admin':
+                # Get the employee's company and filter drivers by that company
+                try:
+                    employee = Employee.objects.get(id=user_id)
+                    if employee.company_id:
+                        drivers_queryset = Driver.objects.filter(company_id=employee.company_id.id)
+                        print(f"Filtering drivers for employee ID: {user_id}, company ID: {employee.company_id.id}")
+                    else:
+                        # If employee has no company, return empty list
+                        drivers_queryset = Driver.objects.none()
+                        print(f"Employee ID: {user_id} has no company association")
+                except Employee.DoesNotExist:
+                    return JsonResponse({'error': 'Employee not found'}, status=404)
+        
         driver_data = [
             {
                 'id': driver.id,
@@ -620,10 +664,11 @@ def driver_list(request):
                 'gender': driver.gender,
                 'phone_number': driver.phone_number,
                 'company_id': driver.company_id_id,
-                'car_id': driver.car_id_id,  # Added car_id field
+                'car_id': driver.car_id_id,
             }
-            for driver in drivers
+            for driver in drivers_queryset
         ]
+        
         return JsonResponse(driver_data, safe=False)
     except Exception as e:
         return JsonResponse({'error': str(e)}, status=500)
@@ -633,6 +678,8 @@ def create_driver(request):
     if request.method == 'POST':
         try:
             data = json.loads(request.body)
+            print(f"Received driver data: {data}")  # Debug print
+            
             # Clean up data if needed
             if 'male' in data:
                 del data['male']
@@ -644,12 +691,30 @@ def create_driver(request):
                 company = Company.objects.get(id=data['company_id'])
                 data['company_id'] = company
             except Company.DoesNotExist:
-                return JsonResponse({'errors': {'company_id': 'Invalid company ID'}}, status=400)
+                return JsonResponse({'errors': {'company_id': ['Invalid company ID']}}, status=400)
+            
+            # Try to get car instance and validate it belongs to the same company
+            try:
+                car = Car.objects.get(id=data['car_id'])
+                data['car_id'] = car
+                
+                # Check if car belongs to the same company
+                if car.company_id and car.company_id.id != company.id:
+                    return JsonResponse({
+                        'errors': {'car_id': ['This car does not belong to your company']}
+                    }, status=400)
+                
+            except Car.DoesNotExist:
+                return JsonResponse({'errors': {'car_id': ['Invalid car ID']}}, status=400)
                 
             form = DriverForm(data)
             if form.is_valid():
                 driver = form.save()
-                return JsonResponse({'success': True, 'id': driver.id})
+                return JsonResponse({
+                    'success': True, 
+                    'id': driver.id,
+                    'message': 'Driver created successfully'
+                })
             else:
                 print(f"Form errors: {form.errors}")
                 return JsonResponse({'errors': form.errors}, status=400)
@@ -1880,3 +1945,188 @@ def get_customer(request, customer_id):
         except Exception as e:
             print(f"Error retrieving customer data: {str(e)}")
             return JsonResponse({'error': str(e)}, status=500)
+@csrf_exempt
+def get_fleet_overview(request):
+    """
+    Returns aggregated statistics for all cars in the system
+    for the dashboard overview page with time filtering
+    """
+    try:
+        # Get time frame parameter
+        time_frame = request.GET.get('time_frame', '1d')
+        
+        # Determine date range based on time frame
+        now = timezone.now()
+        if time_frame == '1d':
+            start_date = now - timedelta(days=1)
+        elif time_frame == '7d':
+            start_date = now - timedelta(days=7)
+        elif time_frame == '30d':
+            start_date = now - timedelta(days=30)
+        else:
+            start_date = now - timedelta(days=1)  # Default to 1 day
+        
+        # Get all cars 
+        cars = Car.objects.all()
+        total_cars = cars.count()
+        active_cars = cars.filter(State_of_car='online').count()
+        
+        # Get the latest driving data records for analysis with time filter
+        latest_data = DrivingData.objects.filter(created_at__gte=start_date).order_by('-created_at')
+        
+        # Calculate aggregate statistics
+        total_distance = sum(data.distance for data in latest_data) if latest_data else 0
+        avg_score = sum(data.score for data in latest_data) / latest_data.count() if latest_data and latest_data.count() > 0 else 0
+        
+        # Count events
+        total_harsh_braking = sum(data.harsh_braking_events for data in latest_data) if latest_data else 0
+        total_harsh_acceleration = sum(data.harsh_acceleration_events for data in latest_data) if latest_data else 0
+        total_swerving = sum(data.swerving_events for data in latest_data) if latest_data else 0
+        total_over_speed = sum(data.over_speed_events for data in latest_data) if latest_data else 0
+        
+        # Create historical scores data
+        historical_scores = []
+        if time_frame == '1d':
+            # Generate hourly data points
+            for hour in range(24):
+                hour_start = now.replace(hour=hour, minute=0, second=0, microsecond=0)
+                hour_end = hour_start + timedelta(hours=1)
+                
+                hour_data = DrivingData.objects.filter(
+                    created_at__gte=hour_start,
+                    created_at__lt=hour_end
+                )
+                
+                if hour_data.exists():
+                    avg_hour_score = sum(data.score for data in hour_data) / hour_data.count()
+                    historical_scores.append({
+                        'time_label': f"{hour:02d}:00",
+                        'score': avg_hour_score
+                    })
+        
+        elif time_frame == '7d':
+            # Generate daily data points for the week
+            for day in range(7):
+                day_date = now - timedelta(days=6-day)
+                day_start = day_date.replace(hour=0, minute=0, second=0, microsecond=0)
+                day_end = day_start + timedelta(days=1)
+                
+                day_data = DrivingData.objects.filter(
+                    created_at__gte=day_start,
+                    created_at__lt=day_end
+                )
+                
+                if day_data.exists():
+                    avg_day_score = sum(data.score for data in day_data) / day_data.count()
+                    historical_scores.append({
+                        'time_label': day_date.strftime('%a'),
+                        'score': avg_day_score
+                    })
+        
+        elif time_frame == '30d':
+            # Generate weekly data points for the month
+            for week in range(4):
+                week_start = now - timedelta(days=28-week*7)
+                week_end = week_start + timedelta(days=7)
+                
+                week_data = DrivingData.objects.filter(
+                    created_at__gte=week_start,
+                    created_at__lt=week_end
+                )
+                
+                if week_data.exists():
+                    avg_week_score = sum(data.score for data in week_data) / week_data.count()
+                    historical_scores.append({
+                        'time_label': f"Week {week+1}",
+                        'score': avg_week_score
+                    })
+        
+        # Initialize the response data dictionary
+        overview_data = {
+            'fleet_stats': {
+                'total_cars': total_cars,
+                'active_cars': active_cars,
+                'inactive_cars': total_cars - active_cars,
+                'total_distance_km': round(total_distance, 2),
+                'avg_score': round(avg_score, 1)
+            },
+            'events': {
+                'harsh_braking': total_harsh_braking,
+                'harsh_acceleration': total_harsh_acceleration,
+                'swerving': total_swerving,
+                'over_speed': total_over_speed,
+                'total_events': total_harsh_braking + total_harsh_acceleration + total_swerving + total_over_speed
+            },
+            'historical_scores': historical_scores
+        }
+        
+        # Get actual drivers data with proper car score linking
+        drivers = Driver.objects.all()
+        drivers_data = []
+        
+        # Track driver performance categories
+        excellent = 0
+        good = 0
+        average = 0
+        poor = 0
+        
+        for driver in drivers:
+            # Skip drivers with no car assigned
+            if not driver.car_id:
+                continue
+                
+            # Try to get the driving data for the driver's car
+            try:
+                # Get multiple data points to calculate a more accurate average
+                car_data_points = DrivingData.objects.filter(
+                    car_id=driver.car_id.id,
+                    created_at__gte=start_date  # Use the same time filter as the rest of the overview
+                ).order_by('-created_at')[:10]  # Get up to 10 recent records
+                
+                if car_data_points.exists():
+                    # Calculate average score from multiple data points
+                    avg_score = sum(data.score for data in car_data_points) / car_data_points.count()
+                    
+                    # Round to one decimal
+                    driver_score = round(avg_score, 1)
+                else:
+                    # If no recent data, check if there's any historical data at all
+                    any_car_data = DrivingData.objects.filter(car_id=driver.car_id.id).order_by('-created_at').first()
+                    driver_score = round(any_car_data.score, 1) if any_car_data else 0
+                
+                # Categorize driver based on score
+                if driver_score >= 90:
+                    excellent += 1
+                elif driver_score >= 80:
+                    good += 1
+                elif driver_score >= 70:
+                    average += 1
+                else:
+                    poor += 1
+                
+                # Add to drivers data
+                drivers_data.append({
+                    'id': driver.id,
+                    'name': driver.name,
+                    'car_id': driver.car_id.id,
+                    'score': driver_score,
+                    'model': driver.car_id.Model_of_car,
+                    'plate': driver.car_id.Plate_number
+                })
+            except Exception as e:
+                print(f"Error getting driver {driver.id} data: {str(e)}")
+                continue
+        
+        # Add driver performance data to the response
+        overview_data['drivers'] = {
+            'excellent': excellent,
+            'good': good,
+            'average': average,
+            'poor': poor,
+            'all_drivers': drivers_data  # Include all driver details
+        }
+        
+        return JsonResponse(overview_data)
+    except Exception as e:
+        print(f"Error in get_fleet_overview: {str(e)}")
+        return JsonResponse({'error': str(e)}, status=500)

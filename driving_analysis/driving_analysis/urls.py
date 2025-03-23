@@ -62,4 +62,5 @@ urlpatterns = [
     path('api/company/<int:company_id>/', views.get_company, name='get_company'),
     path('api/customer/<int:customer_id>/', views.get_customer, name='get_customer'),   
     path('api/companies/', views.company_list, name='company_list'),
+    path('api/fleet-overview/', views.get_fleet_overview, name='get_fleet_overview'),
 ]

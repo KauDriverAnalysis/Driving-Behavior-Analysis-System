@@ -1,19 +1,22 @@
 import * as React from 'react';
 import {
   Dialog,
-  DialogActions,
-  DialogContent,
   DialogTitle,
+  DialogContent,
+  DialogActions,
   Button,
+  TextField,
+  Grid,
   FormControl,
   InputLabel,
   OutlinedInput,
-  Grid,
+  Typography,
+  CircularProgress,
   Select,
   MenuItem,
-  Typography,
+  FormHelperText,
   Alert,
-  CircularProgress
+  Box
 } from '@mui/material';
 import { useTheme } from '@mui/material/styles';
 import EditIcon from '@mui/icons-material/Edit';
@@ -25,6 +28,12 @@ interface Driver {
   phone_number: string;
   company_id: string;
   car_id: string;
+}
+
+interface Car {
+  id: string;
+  model: string;
+  plateNumber: string;
 }
 
 interface EditDriverDialogProps {
@@ -41,26 +50,80 @@ export default function EditDriverDialog({
   driver
 }: EditDriverDialogProps) {
   const theme = useTheme();
-  const [formData, setFormData] = React.useState<Driver | null>(null);
+  const [formData, setFormData] = React.useState<Driver>({
+    id: '',
+    name: '',
+    gender: '',
+    phone_number: '',
+    company_id: '',
+    car_id: ''
+  });
   const [loading, setLoading] = React.useState(false);
   const [error, setError] = React.useState<string | null>(null);
+  const [availableCars, setAvailableCars] = React.useState<Car[]>([]);
+  const [loadingCars, setLoadingCars] = React.useState(false);
+  const [companyId, setCompanyId] = React.useState<string | null>(null);
 
+  // Initialize form data when driver props change
   React.useEffect(() => {
     if (driver) {
       setFormData(driver);
-      setError(null);
     }
   }, [driver]);
 
-  if (!formData || !driver) return null;
+  // Fetch available cars when dialog opens
+  React.useEffect(() => {
+    if (open && driver) {
+      // Get company ID from localStorage
+      const company_id = localStorage.getItem('company_id') || 
+                         localStorage.getItem('companyId') || 
+                         localStorage.getItem('employee-company-id');
+      
+      setCompanyId(company_id);
+      setFormData(prev => ({
+        ...prev,
+        company_id: company_id || prev.company_id // Keep the existing value if no company_id in localStorage
+      }));
+      
+      if (company_id) {
+        fetchAvailableCars(company_id);
+      } else {
+        setError('No company ID found. Please log in again.');
+      }
+    }
+  }, [open, driver]);
+
+  const fetchAvailableCars = (company_id: string) => {
+    setLoadingCars(true);
+    
+    // Fetch cars that belong to this company
+    fetch(`http://localhost:8000/api/cars/?userType=company&userId=${company_id}`)
+      .then(response => response.json())
+      .then(data => {
+        // Format cars for dropdown
+        const cars = data.map((car: any) => ({
+          id: car.id,
+          model: car.model || car.Model_of_car,
+          plateNumber: car.plateNumber || car.Plate_number
+        }));
+        
+        setAvailableCars(cars);
+        setLoadingCars(false);
+      })
+      .catch(error => {
+        console.error('Error fetching available cars:', error);
+        setError('Failed to load available cars');
+        setLoadingCars(false);
+      });
+  };
 
   const handleChange = (field: keyof Driver) => (
     event: React.ChangeEvent<HTMLInputElement | { value: unknown }>
   ) => {
-    setFormData(prev => ({
-      ...prev!,
+    setFormData({
+      ...formData,
       [field]: event.target.value
-    }));
+    });
   };
 
   const handleSubmit = async (event: React.FormEvent) => {
@@ -69,6 +132,11 @@ export default function EditDriverDialog({
     setError(null);
     
     try {
+      // Ensure we're using the company ID from localStorage
+      if (!companyId) {
+        throw new Error('No company ID available. Please log in again.');
+      }
+      
       // Call API directly from dialog
       const response = await fetch(`http://localhost:8000/api/update_driver/${formData.id}/`, {
         method: 'POST',
@@ -79,17 +147,29 @@ export default function EditDriverDialog({
           name: formData.name,
           gender: formData.gender.toLowerCase(), // Ensure lowercase gender is sent to backend
           phone_number: formData.phone_number,
-          company_id: formData.company_id,
+          company_id: companyId, // Use company ID from localStorage
           car_id: formData.car_id
         }),
       });
       
+      const data = await response.json();
+      
       if (!response.ok) {
-        const errorData = await response.json();
-        throw new Error(errorData.error || 'Failed to update driver');
+        if (data.errors) {
+          // Format error message from backend
+          const errorMessages = [];
+          for (const field in data.errors) {
+            errorMessages.push(`${field}: ${data.errors[field].join(', ')}`);
+          }
+          throw new Error(errorMessages.join('\n'));
+        }
+        throw new Error(data.error || 'Failed to update driver');
       }
       
-      onSubmit(formData);
+      onSubmit({
+        ...formData,
+        company_id: companyId // Ensure the company ID is updated in the local state too
+      });
     } catch (err) {
       console.error('Error updating driver:', err);
       setError(err instanceof Error ? err.message : 'An unknown error occurred');
@@ -161,24 +241,32 @@ export default function EditDriverDialog({
                 />
               </FormControl>
             </Grid>
-            <Grid item xs={12} sm={6}>
+            <Grid item xs={12}>
               <FormControl fullWidth required>
-                <InputLabel>Company ID</InputLabel>
-                <OutlinedInput
-                  label="Company ID"
-                  value={formData.company_id}
-                  onChange={handleChange('company_id')}
-                />
-              </FormControl>
-            </Grid>
-            <Grid item xs={12} sm={6}>
-              <FormControl fullWidth required>
-                <InputLabel>Car ID</InputLabel>
-                <OutlinedInput
-                  label="Car ID"
+                <InputLabel>Car</InputLabel>
+                <Select
                   value={formData.car_id}
+                  label="Car"
                   onChange={handleChange('car_id')}
-                />
+                  disabled={loadingCars}
+                >
+                  {availableCars.map(car => (
+                    <MenuItem key={car.id} value={car.id}>
+                      {car.model} - {car.plateNumber}
+                    </MenuItem>
+                  ))}
+                </Select>
+                {loadingCars && (
+                  <Box sx={{ display: 'flex', alignItems: 'center', mt: 1 }}>
+                    <CircularProgress size={20} sx={{ mr: 1 }} />
+                    <Typography variant="caption">Loading available cars...</Typography>
+                  </Box>
+                )}
+                {!loadingCars && availableCars.length === 0 && !error && (
+                  <FormHelperText error>
+                    No cars available for your company. Please add a car first.
+                  </FormHelperText>
+                )}
               </FormControl>
             </Grid>
           </Grid>
