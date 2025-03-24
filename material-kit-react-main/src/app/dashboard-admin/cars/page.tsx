@@ -159,12 +159,12 @@ export default function CarsPage(): React.JSX.Element {
     return cars.filter(car => {
       const searchTermLower = searchTerm.toLowerCase();
       const matchesSearch = searchTerm === '' || (
-        car.Model_of_car.toLowerCase().includes(searchTermLower) ||
-        car.Plate_number.toLowerCase().includes(searchTermLower) ||
-        car.TypeOfCar.toLowerCase().includes(searchTermLower)
+        car.model.toLowerCase().includes(searchTermLower) ||
+        car.plateNumber.toLowerCase().includes(searchTermLower) ||
+        car.type.toLowerCase().includes(searchTermLower)
       );
       
-      const matchesStatus = statusFilter === 'all' || car.State_of_car === statusFilter;
+      const matchesStatus = statusFilter === 'all' || car.state === statusFilter;
       
       return matchesSearch && matchesStatus;
     });
