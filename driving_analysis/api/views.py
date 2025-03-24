@@ -632,28 +632,7 @@ def driver_list(request):
         user_id = request.GET.get('userId')
         
         # Initialize queryset with all drivers (for admin with no filters)
-        drivers_queryset = Driver.objects.all()
-        
-        # Apply filtering based on user type and ID
-        if user_type and user_id:
-            if user_type == 'company':
-                # Filter drivers by company_id
-                drivers_queryset = Driver.objects.filter(company_id=user_id)
-                print(f"Filtering drivers for company ID: {user_id}, found {drivers_queryset.count()} drivers")
-                
-            elif user_type == 'employee' or user_type == 'admin':
-                # Get the employee's company and filter drivers by that company
-                try:
-                    employee = Employee.objects.get(id=user_id)
-                    if employee.company_id:
-                        drivers_queryset = Driver.objects.filter(company_id=employee.company_id.id)
-                        print(f"Filtering drivers for employee ID: {user_id}, company ID: {employee.company_id.id}")
-                    else:
-                        # If employee has no company, return empty list
-                        drivers_queryset = Driver.objects.none()
-                        print(f"Employee ID: {user_id} has no company association")
-                except Employee.DoesNotExist:
-                    return JsonResponse({'error': 'Employee not found'}, status=404)
+        drivers_queryset = Driver.objects.select_related('car_id').all()
         
         driver_data = [
             {
@@ -661,8 +640,11 @@ def driver_list(request):
                 'name': driver.name,
                 'gender': driver.gender,
                 'phone_number': driver.phone_number,
-                'company_id': driver.company_id_id,
-                'car_id': driver.car_id_id,
+                'car': {
+                    'id': driver.car_id.id,
+                    'Model_of_car': driver.car_id.Model_of_car,
+                    'Plate_number': driver.car_id.Plate_number,
+                } if driver.car_id else None
             }
             for driver in drivers_queryset
         ]
@@ -727,40 +709,42 @@ def update_driver(request, driver_id):
     driver = get_object_or_404(Driver, pk=driver_id)
     if request.method == 'POST':
         try:
-            # Parse JSON data from request body
             data = json.loads(request.body)
-            print(f"Received update data for driver {driver_id}: {data}")  # Debug print
-            
-            # Handle foreign key fields if present
-            if data.get('company_id'):
+            print(f"Received update data for driver {driver_id}: {data}")
+
+            # Check if this is only a car assignment update
+            if len(data.keys()) == 1 and 'car_id' in data:
                 try:
-                    company = Company.objects.get(id=data['company_id'])
-                    data['company_id'] = company
-                except Company.DoesNotExist:
-                    return JsonResponse({'errors': {'company_id': 'Invalid company ID'}}, status=400)
-            
-            if data.get('car_id'):
-                try:
-                    car = Car.objects.get(id=data['car_id'])
-                    data['car_id'] = car
+                    car = Car.objects.get(pk=data['car_id'])
+                    driver.car_id = car
+                    driver.save()
+                    return JsonResponse({
+                        'success': True,
+                        'message': 'Car assigned successfully'
+                    })
                 except Car.DoesNotExist:
-                    return JsonResponse({'errors': {'car_id': 'Invalid car ID'}}, status=400)
-            
-            # Update the instance with the form
+                    return JsonResponse({
+                        'error': 'Car not found'
+                    }, status=404)
+
+            # For full updates, use the form
             form = DriverForm(data, instance=driver)
             if form.is_valid():
-                updated_driver = form.save()
+                form.save()
                 return JsonResponse({
                     'success': True,
-                    'id': updated_driver.id,
                     'message': 'Driver updated successfully'
-                }, status=200)
+                })
             else:
-                print(f"Form validation errors: {form.errors}")
-                return JsonResponse({'errors': form.errors}, status=400)
+                return JsonResponse({
+                    'errors': form.errors
+                }, status=400)
+
         except Exception as e:
             print(f"Error updating driver: {str(e)}")
-            return JsonResponse({'errors': {'server': str(e)}}, status=500)
+            return JsonResponse({
+                'error': str(e)
+            }, status=500)
     
     return JsonResponse({'error': 'Method not allowed'}, status=405)
 

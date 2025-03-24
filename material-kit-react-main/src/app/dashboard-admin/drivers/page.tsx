@@ -33,6 +33,12 @@ interface Driver {
   car_id: string;
 }
 
+interface Car {
+  id: string;
+  model: string;
+  plateNumber: string;
+}
+
 export default function DriversPage(): React.JSX.Element {
   const [searchTerm, setSearchTerm] = useState('');
   const [page, setPage] = useState(0);
@@ -45,6 +51,7 @@ export default function DriversPage(): React.JSX.Element {
   const [refreshTrigger, setRefreshTrigger] = useState(0);
   const [drivers, setDrivers] = useState<Driver[]>([]);
   const [loading, setLoading] = useState(true);
+  const [availableCars, setAvailableCars] = useState<Car[]>([]);
 
   // Fetch drivers data
   useEffect(() => {
@@ -60,6 +67,27 @@ export default function DriversPage(): React.JSX.Element {
         setLoading(false);
       });
   }, [refreshTrigger]);
+
+  // Fetch available cars
+  useEffect(() => {
+    const company_id = localStorage.getItem('company_id') || 
+                     localStorage.getItem('companyId') || 
+                     localStorage.getItem('employee-company-id');
+                     
+  if (company_id) {
+    fetch(`http://localhost:8000/api/cars/?userType=company&userId=${company_id}`)
+      .then(response => response.json())
+      .then(data => {
+        const cars = data.map((car: any) => ({
+          id: car.id,
+          model: car.model || car.Model_of_car,
+          plateNumber: car.plateNumber || car.Plate_number
+        }));
+        setAvailableCars(cars);
+      })
+      .catch(error => console.error('Error fetching cars:', error));
+  }
+}, [refreshTrigger]);
 
   const handleSearchChange = (event: React.ChangeEvent<HTMLInputElement>) => {
     setSearchTerm(event.target.value);
@@ -104,6 +132,31 @@ export default function DriversPage(): React.JSX.Element {
   const handleEditDriver = (driver: Driver) => {
     setSelectedDriver(driver);
     setEditDialogOpen(true);
+  };
+
+  const handleCarAssign = async (driverId: string, carId: string) => {
+    try {
+      const response = await fetch(`http://localhost:8000/api/update_driver/${driverId}/`, {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+        },
+        body: JSON.stringify({
+          car_id: carId
+        }),
+      });
+  
+      if (!response.ok) {
+        const errorData = await response.json();
+        throw new Error(errorData.error || 'Failed to assign car');
+      }
+  
+      // Refresh the drivers list
+      setRefreshTrigger(prev => prev + 1);
+    } catch (error) {
+      console.error('Error assigning car:', error);
+      throw error;
+    }
   };
 
   // Filter drivers based on search term only (no status filter)
@@ -227,6 +280,8 @@ export default function DriversPage(): React.JSX.Element {
                 }}
                 onDelete={handleDeleteDriver}
                 onEdit={handleEditDriver}
+                onCarAssign={handleCarAssign}
+                availableCars={availableCars}
               />
             )}
           </>
