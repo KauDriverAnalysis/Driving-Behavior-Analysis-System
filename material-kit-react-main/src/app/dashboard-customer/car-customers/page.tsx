@@ -14,7 +14,9 @@ import {
   DialogContent,
   DialogActions,
   DialogContentText,
-  CircularProgress
+  CircularProgress,
+  Card,
+  Paper
 } from '@mui/material';
 import SearchIcon from '@mui/icons-material/Search';
 import InputAdornment from '@mui/material/InputAdornment';
@@ -194,6 +196,39 @@ const CarCustomersPage = () => {
     setOpenDialog(false);
   };
 
+  const handleStatusChange = async (car: Car, newStatus: 'online' | 'offline') => {
+    try {
+      const customerId = localStorage.getItem('customer-id');
+      
+      if (!customerId) {
+        console.error('No customer ID found');
+        return;
+      }
+
+      const response = await fetch(`http://localhost:8000/api/update_car/${car.id}/`, {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+        },
+        body: JSON.stringify({
+          State_of_car: newStatus,
+          customer_id: customerId
+        }),
+      });
+
+      if (!response.ok) {
+        const errorData = await response.json();
+        throw new Error(errorData.error || 'Failed to update car status');
+      }
+      
+      // Refresh the cars list after successful update
+      setRefreshTrigger(prev => prev + 1);
+    } catch (error) {
+      console.error('Error updating car status:', error);
+      // You might want to show an error message to the user here
+    }
+  };
+
   // Filter logic for the table
   const filteredCars = cars.filter(car => {
     const matchesSearch = 
@@ -213,90 +248,94 @@ const CarCustomersPage = () => {
   );
 
   return (
-    <Box
-      component="main"
-      sx={{
-        flexGrow: 1,
-        py: 8
-      }}
-    >
-      <Container maxWidth="xl">
-        <Stack spacing={3}>
-          <Stack
-            direction="row"
-            justifyContent="space-between"
-            spacing={4}
-          >
-            <Typography variant="h4">
-              My Cars
-            </Typography>
-            <Button
-              startIcon={<AddIcon />}
-              variant="contained"
-              onClick={handleOpenDialog}
-            >
-              Add
-            </Button>
-          </Stack>
+    <Box sx={{ p: 3 }}>
+      <Typography variant="h4" sx={{ mb: 3 }}>
+        My Cars
+      </Typography>
 
-          <Stack
-            direction={{ xs: 'column', sm: 'row' }}
-            spacing={2}
+      {/* Filters */}
+      <Card sx={{ p: 2, mb: 3 }}>
+        <Stack
+          direction={{ xs: 'column', sm: 'row' }}
+          spacing={2}
+          alignItems={{ xs: 'stretch', sm: 'center' }}
+        >
+          <TextField
+            size="small"
+            placeholder="Search cars..."
+            value={searchTerm}
+            onChange={handleSearchChange}
+            InputProps={{
+              startAdornment: (
+                <InputAdornment position="start">
+                  <SearchIcon />
+                </InputAdornment>
+              ),
+            }}
+            sx={{ minWidth: 300 }}
+          />
+          <TextField
+            select
+            size="small"
+            value={statusFilter}
+            onChange={handleStatusFilterChange}
+            sx={{ minWidth: 150 }}
+            label="Status Filter"
           >
-            <TextField
-              fullWidth
-              label="Search"
-              value={searchTerm}
-              onChange={handleSearchChange}
-              InputProps={{
-                startAdornment: (
-                  <InputAdornment position="start">
-                    <SearchIcon />
-                  </InputAdornment>
-                ),
-              }}
-            />
-            <TextField
-              select
-              label="Status"
-              value={statusFilter}
-              onChange={handleStatusFilterChange}
-              sx={{ minWidth: 120 }}
-            >
-              <MenuItem value="all">All</MenuItem>
-              <MenuItem value="online">Online</MenuItem>
-              <MenuItem value="offline">Offline</MenuItem>
-            </TextField>
-          </Stack>
+            <MenuItem value="all">All Status</MenuItem>
+            <MenuItem value="online">Online</MenuItem>
+            <MenuItem value="offline">Offline</MenuItem>
+          </TextField>
+          <Button 
+            variant="contained" 
+            startIcon={<AddIcon />}
+            onClick={handleOpenDialog}
+            sx={{ ml: 'auto' }}
+          >
+            Add Car
+          </Button>
+        </Stack>
+      </Card>
 
-          {cars.length === 0 && !loading ? (
-            <Box
-              sx={{
-                display: 'flex',
-                flexDirection: 'column',
-                alignItems: 'center',
-                justifyContent: 'center',
-                py: 6,
-                borderRadius: 1,
-                bgcolor: 'background.paper',
-                boxShadow: 1
-              }}
-            >
-              <Typography variant="h6" color="text.secondary" gutterBottom>
-                No cars found for your account
-              </Typography>
-              <Typography variant="body2" color="text.secondary" sx={{ mb: 3 }}>
-                Add your first car to start tracking and managing it
-              </Typography>
-              <Button
-                startIcon={<AddIcon />}
-                variant="contained"
-                onClick={handleOpenDialog}
+      {/* Table */}
+      <Card>
+        {loading ? (
+          <Box sx={{ display: 'flex', justifyContent: 'center', p: 3 }}>
+            <CircularProgress />
+          </Box>
+        ) : (
+          <>
+            {cars.length === 0 && !loading && (
+              <Paper 
+                sx={{ 
+                  p: 4, 
+                  mt: 2, 
+                  textAlign: 'center', 
+                  borderRadius: 2,
+                  bgcolor: 'background.paper',
+                  boxShadow: 2
+                }}
               >
-                Add Your First Car
-              </Button>
-            </Box>
-          ) : (
+                <Box sx={{ mb: 2 }}>
+                  <Typography variant="h6" color="text.secondary">
+                    No cars found for your account
+                  </Typography>
+                  <Typography variant="body2" color="text.secondary" sx={{ mb: 3 }}>
+                    Start by adding your first car to track and manage it
+                  </Typography>
+                </Box>
+                
+                <Button
+                  variant="contained"
+                  color="primary"
+                  startIcon={<AddIcon />}
+                  onClick={handleOpenDialog}
+                  size="large"
+                >
+                  Add First Car
+                </Button>
+              </Paper>
+            )}
             <CarCustomersTable
               count={filteredCars.length}
               items={paginatedCars}
@@ -306,12 +345,14 @@ const CarCustomersPage = () => {
               rowsPerPage={rowsPerPage}
               onEdit={handleEdit}
               onDelete={handleDelete}
+              onStatusChange={handleStatusChange}
               loading={loading}
             />
-          )}
-        </Stack>
-      </Container>
+          </>
+        )}
+      </Card>
 
+      {/* Rest of your dialogs remain unchanged */}
       {/* Add Car Dialog */}
       <AddCarCustomerDialog
         open={openDialog}

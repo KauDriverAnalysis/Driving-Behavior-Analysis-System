@@ -554,53 +554,51 @@ def update_car(request, car_id):
         try:
             # Parse JSON data from request body
             data = json.loads(request.body)
-            print(f"Received update data for car {car_id}: {data}")  # Debug print
-            
-            # Handle partial updates - only update fields that are provided
-            if 'State_of_car' in data and len(data) == 1:
-                # This is just a status update
-                car.State_of_car = data['State_of_car']
-                car.save()
+            print(f"Received update data for car {car_id}: {data}")
+
+            # Check if this is a status-only update
+            if set(data.keys()).issubset({'State_of_car', 'customer_id'}):
+                print("Performing status-only update")
+                if 'State_of_car' in data:
+                    car.State_of_car = data['State_of_car']
+                car.save(update_fields=['State_of_car'])
+                
                 return JsonResponse({
-                    'success': True,
                     'id': car.id,
-                    'message': 'Car status updated successfully'
-                }, status=200)
-            
+                    'model': car.Model_of_car,
+                    'type': car.TypeOfCar,
+                    'plateNumber': car.Plate_number,
+                    'releaseYear': car.Release_Year_car,
+                    'state': car.State_of_car,
+                    'deviceId': car.device_id,
+                    'customerId': car.customer_id_id,
+                    'companyId': car.company_id_id
+                })
+
             # For full updates, continue with the normal form validation
-            # Handle foreign key fields if present
-            if data.get('company_id'):
-                try:
-                    company = Company.objects.get(id=data['company_id'])
-                    data['company_id'] = company
-                except Company.DoesNotExist:
-                    return JsonResponse({'errors': {'company_id': 'Invalid company ID'}}, status=400)
-                    
-            if data.get('customer_id'):
-                try:
-                    customer = Customer.objects.get(id=data['customer_id'])
-                    data['customer_id'] = customer
-                except Customer.DoesNotExist:
-                    return JsonResponse({'errors': {'customer_id': 'Invalid customer ID'}}, status=400)
-            
-            # Update the instance with the form
             form = CarForm(data, instance=car)
             if form.is_valid():
                 updated_car = form.save()
                 return JsonResponse({
-                    'success': True,
                     'id': updated_car.id,
-                    'message': 'Car updated successfully'
-                }, status=200)
+                    'model': updated_car.Model_of_car,
+                    'type': updated_car.TypeOfCar,
+                    'plateNumber': updated_car.Plate_number,
+                    'releaseYear': updated_car.Release_Year_car,
+                    'state': updated_car.State_of_car,
+                    'deviceId': updated_car.device_id,
+                    'customerId': updated_car.customer_id_id,
+                    'companyId': updated_car.company_id_id
+                })
             else:
-                print(f"Form validation errors: {form.errors}")
+                print(f"Form validation errors: {form.errors.as_ul()}")
                 return JsonResponse({'errors': form.errors}, status=400)
+
         except Exception as e:
             print(f"Error updating car: {str(e)}")
-            return JsonResponse({'errors': {'server': str(e)}}, status=500)
+            return JsonResponse({'error': str(e)}, status=500)
     
-    return JsonResponse({'error': 'Method not allowed'}, status=405)
-
+    return JsonResponse({'error': 'Method not allowed'}, status=405)    
 @csrf_exempt
 def delete_car(request, car_id):
     try:
@@ -864,36 +862,51 @@ def create_employee(request):
             data = json.loads(request.body)
             print(f"Received employee data: {data}")  # Debug print
             
-            # Handle company_id if present
-            if data.get('company_id'):
-                try:
-                    company = Company.objects.get(id=data['company_id'])
-                    data['company_id'] = company
-                except Company.DoesNotExist:
-                    return JsonResponse({'errors': {'company_id': 'Invalid company ID'}}, status=400)
-            
-            # Hash the password if provided
-            if 'Password' in data and data['Password']:
-                data['Password'] = make_password(data['Password'])
-            
-            # Ensure Admin field is properly set if not provided
-            if 'Admin' not in data:
-                data['Admin'] = False
+            # Process gender field if needed
+            if 'gender' in data:
+                # Make sure gender is lowercase
+                data['gender'] = data['gender'].lower()
                 
-            # Create form with JSON data
-            form = EmployeeForm(data)
-            if form.is_valid():
-                employee = form.save()
-                return JsonResponse({
-                    'success': True, 
-                    'id': employee.id,
-                    'name': employee.Name,
-                    'email': employee.Email,
-                    'message': 'Employee created successfully'
-                }, status=201)
+            # Process company_id if provided
+            if 'company_id' in data and data['company_id']:
+                try:
+                    company_id = int(data['company_id'])
+                    company = Company.objects.get(id=company_id)
+                    # Remove company_id from form data to handle separately
+                    data.pop('company_id')
+                    
+                    # Create form with JSON data
+                    form = EmployeeForm(data)
+                    if form.is_valid():
+                        employee = form.save()
+                        # Set company_id after saving
+                        employee.company_id = company
+                        employee.save()
+                        
+                        return JsonResponse({
+                            'success': True, 
+                            'id': employee.id,
+                            'message': 'Employee created successfully',
+                            'company_id': employee.company_id_id
+                        }, status=201)
+                except (ValueError, Company.DoesNotExist) as e:
+                    return JsonResponse({'errors': {'company_id': 'Invalid company ID'}}, status=400)
             else:
+                # No company_id provided, normal flow
+                form = EmployeeForm(data)
+                if form.is_valid():
+                    employee = form.save()
+                    return JsonResponse({
+                        'success': True, 
+                        'id': employee.id,
+                        'message': 'Employee created successfully',
+                        'company_id': None
+                    }, status=201)
+                    
+            if not form.is_valid():
                 print(f"Form validation errors: {form.errors}")
                 return JsonResponse({'errors': form.errors}, status=400)
+                
         except Exception as e:
             print(f"Error creating employee: {str(e)}")
             return JsonResponse({'errors': {'server': str(e)}}, status=500)
@@ -909,40 +922,77 @@ def update_employee(request, employee_id):
             data = json.loads(request.body)
             print(f"Received update data for employee {employee_id}: {data}")  # Debug print
             
-            # Handle company_id if present
-            if data.get('company_id'):
-                try:
-                    company = Company.objects.get(id=data['company_id'])
-                    data['company_id'] = company
-                except Company.DoesNotExist:
-                    return JsonResponse({'errors': {'company_id': 'Invalid company ID'}}, status=400)
+            # Handle empty password case - don't update password if not provided
+            if 'Password' in data and not data['Password']:
+                # If password is empty, remove it from the data to avoid updating with empty password
+                data.pop('Password')
             
-            # Hash the password if provided and not empty
-            if 'Password' in data and data['Password']:
-                data['Password'] = make_password(data['Password'])
-            elif 'Password' in data and not data['Password']:
-                # If empty password is provided, remove it to keep the old password
-                del data['Password']
-            
-            # Update the employee with form validation
-            form = EmployeeForm(data, instance=employee)
-            if form.is_valid():
-                updated_employee = form.save()
-                return JsonResponse({
-                    'success': True,
-                    'id': updated_employee.id,
-                    'name': updated_employee.Name,
-                    'email': updated_employee.Email,
-                    'message': 'Employee updated successfully'
-                }, status=200)
+            # If gender is provided, ensure lowercase
+            if 'gender' in data:
+                data['gender'] = data['gender'].lower()
+                
+            # Handle company_id if provided
+            if 'company_id' in data:
+                if data['company_id']:
+                    try:
+                        company_id = int(data['company_id'])
+                        company = Company.objects.get(id=company_id)
+                        # Remove from data to handle separately
+                        data.pop('company_id')
+                        
+                        # Update with form
+                        form = EmployeeForm(data, instance=employee)
+                        if form.is_valid():
+                            updated_employee = form.save()
+                            # Set company_id after saving
+                            updated_employee.company_id = company
+                            updated_employee.save()
+                            
+                            return JsonResponse({
+                                'success': True,
+                                'id': updated_employee.id,
+                                'message': 'Employee updated successfully',
+                                'company_id': updated_employee.company_id_id
+                            }, status=200)
+                    except (ValueError, Company.DoesNotExist) as e:
+                        return JsonResponse({'errors': {'company_id': 'Invalid company ID'}}, status=400)
+                else:
+                    # Remove company association
+                    data.pop('company_id')
+                    form = EmployeeForm(data, instance=employee)
+                    if form.is_valid():
+                        updated_employee = form.save()
+                        updated_employee.company_id = None
+                        updated_employee.save()
+                        
+                        return JsonResponse({
+                            'success': True,
+                            'id': updated_employee.id,
+                            'message': 'Employee updated successfully',
+                            'company_id': None
+                        }, status=200)
             else:
+                # No company_id change, normal update
+                form = EmployeeForm(data, instance=employee)
+                if form.is_valid():
+                    updated_employee = form.save()
+                    return JsonResponse({
+                        'success': True,
+                        'id': updated_employee.id,
+                        'message': 'Employee updated successfully',
+                        'company_id': updated_employee.company_id_id if hasattr(updated_employee, 'company_id') else None
+                    }, status=200)
+            
+            if not form.is_valid():
                 print(f"Form validation errors: {form.errors}")
                 return JsonResponse({'errors': form.errors}, status=400)
+                
         except Exception as e:
             print(f"Error updating employee: {str(e)}")
             return JsonResponse({'errors': {'server': str(e)}}, status=500)
     
     return JsonResponse({'error': 'Method not allowed'}, status=405)
+
 @csrf_exempt
 def delete_employee(request, employee_id):
     try:

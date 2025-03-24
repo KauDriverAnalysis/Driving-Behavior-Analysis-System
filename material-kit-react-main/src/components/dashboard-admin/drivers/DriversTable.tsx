@@ -50,46 +50,6 @@ export function DriversTable({
   onEdit,
   onDelete
 }: DriversTableProps) {
-  const [loading, setLoading] = React.useState(true);
-  const [drivers, setDrivers] = React.useState<Driver[]>([]);
-  
-  React.useEffect(() => {
-    if (items && items.length > 0) {
-      // If items are provided, use them
-      setDrivers(items);
-      setLoading(false);
-    } else {
-      // Otherwise fetch from API
-      const userType = localStorage.getItem('userType') || localStorage.getItem('user-type');
-      const userId = localStorage.getItem('userId') || localStorage.getItem('user-id');
-      
-      // Build URL with query parameters
-      let url = 'http://localhost:8000/api/drivers/';
-      if (userType && userId) {
-        url += `?userType=${userType}&userId=${userId}`;
-      }
-      
-      fetch(url)
-        .then((response) => response.json())
-        .then((data) => {
-          setDrivers(data);
-          setLoading(false);
-        })
-        .catch((error) => {
-          console.error('Error fetching driver data:', error);
-          setLoading(false);
-        });
-    }
-  }, [items]);
-
-  if (loading) {
-    return (
-      <Box sx={{ display: 'flex', justifyContent: 'center', p: 3 }}>
-        <CircularProgress />
-      </Box>
-    );
-  }
-
   return (
     <Card>
       <TableContainer>
@@ -105,7 +65,7 @@ export function DriversTable({
             </TableRow>
           </TableHead>
           <TableBody>
-            {drivers.map((driver) => (
+            {items.map((driver) => (
               <TableRow hover key={driver.id}>
                 <TableCell>{driver.name}</TableCell>
                 <TableCell>{driver.gender}</TableCell>

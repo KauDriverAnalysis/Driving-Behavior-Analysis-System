@@ -15,7 +15,8 @@ import {
   DialogContent,
   DialogContentText,
   DialogTitle,
-  CircularProgress
+  CircularProgress,
+  Paper
 } from '@mui/material';
 import SearchIcon from '@mui/icons-material/Search';
 import AddIcon from '@mui/icons-material/Add';
@@ -106,11 +107,18 @@ export default function DriversPage(): React.JSX.Element {
   };
 
   // Filter drivers based on search term only (no status filter)
-  const filteredDrivers = drivers.filter(driver => 
-    driver.name.toLowerCase().includes(searchTerm.toLowerCase()) ||
-    driver.phone_number.toLowerCase().includes(searchTerm.toLowerCase()) ||
-    driver.gender.toLowerCase().includes(searchTerm.toLowerCase())
-  );
+  const filteredDrivers = React.useMemo(() => {
+    return drivers.filter(driver => {
+      const searchTermLower = searchTerm.toLowerCase();
+      const matchesSearch = searchTerm === '' || (
+        (driver.name?.toLowerCase() || '').includes(searchTermLower) ||
+        (driver.phone_number?.toLowerCase() || '').includes(searchTermLower) ||
+        (driver.gender?.toLowerCase() || '').includes(searchTermLower)
+      );
+      
+      return matchesSearch;
+    });
+  }, [drivers, searchTerm]);
 
   // Paginate drivers
   const paginatedDrivers = filteredDrivers.slice(
@@ -163,19 +171,65 @@ export default function DriversPage(): React.JSX.Element {
             <CircularProgress />
           </Box>
         ) : (
-          <DriversTable
-            items={paginatedDrivers}
-            count={filteredDrivers.length}
-            page={page}
-            rowsPerPage={rowsPerPage}
-            onPageChange={setPage}
-            onRowsPerPageChange={(newRowsPerPage) => {
-              setRowsPerPage(newRowsPerPage);
-              setPage(0);
-            }}
-            onDelete={handleDeleteDriver}
-            onEdit={handleEditDriver}
-          />
+          <>
+            {filteredDrivers.length === 0 && (
+              <Paper 
+                sx={{ 
+                  p: 4, 
+                  mt: 2, 
+                  textAlign: 'center', 
+                  borderRadius: 2,
+                  bgcolor: 'background.paper',
+                  boxShadow: 2
+                }}
+              >
+                <Box sx={{ mb: 2 }}>
+                  <Typography variant="h6" color="text.secondary">
+                    {drivers.length === 0 
+                      ? "No drivers found" 
+                      : "No drivers match your search"}
+                  </Typography>
+                  <Typography variant="body2" color="text.secondary" sx={{ mb: 3 }}>
+                    {drivers.length === 0 
+                      ? "Start by adding your first driver."
+                      : "Try adjusting your search criteria"}
+                  </Typography>
+                </Box>
+                
+                {drivers.length === 0 && (
+                  <Button
+                    variant="contained"
+                    color="primary"
+                    startIcon={<AddIcon />}
+                    onClick={() => setOpenDialog(true)}
+                    size="large"
+                    sx={{
+                      minWidth: 200,
+                      py: 1
+                    }}
+                  >
+                    Add First Driver
+                  </Button>
+                )}
+              </Paper>
+            )}
+            
+            {filteredDrivers.length > 0 && (
+              <DriversTable
+                items={paginatedDrivers}
+                count={filteredDrivers.length}
+                page={page}
+                rowsPerPage={rowsPerPage}
+                onPageChange={setPage}
+                onRowsPerPageChange={(newRowsPerPage) => {
+                  setRowsPerPage(newRowsPerPage);
+                  setPage(0);
+                }}
+                onDelete={handleDeleteDriver}
+                onEdit={handleEditDriver}
+              />
+            )}
+          </>
         )}
       </Card>
 

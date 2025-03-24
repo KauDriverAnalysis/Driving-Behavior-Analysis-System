@@ -14,7 +14,8 @@ import {
   DialogContent,
   DialogContentText,
   DialogTitle,
-  CircularProgress
+  CircularProgress,
+  Paper
 } from '@mui/material';
 import SearchIcon from '@mui/icons-material/Search';
 import AddIcon from '@mui/icons-material/Add';
@@ -111,11 +112,19 @@ export default function EmployeesPage(): React.JSX.Element {
   };
 
   // Filter employees based on search term
-  const filteredEmployees = employees.filter(employee => 
-    employee.name.toLowerCase().includes(searchTerm.toLowerCase()) ||
-    employee.Email.toLowerCase().includes(searchTerm.toLowerCase()) ||
-    (employee.department?.toLowerCase() || '').includes(searchTerm.toLowerCase())
-  );
+  const filteredEmployees = React.useMemo(() => {
+    return employees.filter(employee => {
+      const searchTermLower = searchTerm.toLowerCase();
+      const matchesSearch = searchTerm === '' || (
+        (employee.name?.toLowerCase() || '').includes(searchTermLower) ||
+        (employee.Email?.toLowerCase() || '').includes(searchTermLower) ||
+        (employee.phone_number?.toLowerCase() || '').includes(searchTermLower) ||
+        (employee.address?.toLowerCase() || '').includes(searchTermLower)
+      );
+      
+      return matchesSearch;
+    });
+  }, [employees, searchTerm]);
 
   // Paginate employees
   const paginatedEmployees = filteredEmployees.slice(
@@ -168,19 +177,65 @@ export default function EmployeesPage(): React.JSX.Element {
             <CircularProgress />
           </Box>
         ) : (
-          <EmployeesTable
-            items={paginatedEmployees}
-            count={filteredEmployees.length}
-            page={page}
-            rowsPerPage={rowsPerPage}
-            onPageChange={setPage}
-            onRowsPerPageChange={(newRowsPerPage) => {
-              setRowsPerPage(newRowsPerPage);
-              setPage(0);
-            }}
-            onDelete={handleDeleteEmployee}
-            onEdit={handleEditEmployee}
-          />
+          <>
+            {filteredEmployees.length === 0 && (
+              <Paper 
+                sx={{ 
+                  p: 4, 
+                  mt: 2, 
+                  textAlign: 'center', 
+                  borderRadius: 2,
+                  bgcolor: 'background.paper',
+                  boxShadow: 2
+                }}
+              >
+                <Box sx={{ mb: 2 }}>
+                  <Typography variant="h6" color="text.secondary">
+                    {employees.length === 0 
+                      ? "No employees found" 
+                      : "No employees match your search"}
+                  </Typography>
+                  <Typography variant="body2" color="text.secondary" sx={{ mb: 3 }}>
+                    {employees.length === 0 
+                      ? "Start by adding your first employee."
+                      : "Try adjusting your search criteria"}
+                  </Typography>
+                </Box>
+                
+                {employees.length === 0 && (
+                  <Button
+                    variant="contained"
+                    color="primary"
+                    startIcon={<AddIcon />}
+                    onClick={() => setOpenDialog(true)}
+                    size="large"
+                    sx={{
+                      minWidth: 200,
+                      py: 1
+                    }}
+                  >
+                    Add First Employee
+                  </Button>
+                )}
+              </Paper>
+            )}
+            
+            {filteredEmployees.length > 0 && (
+              <EmployeesTable
+                items={paginatedEmployees}
+                count={filteredEmployees.length}
+                page={page}
+                rowsPerPage={rowsPerPage}
+                onPageChange={setPage}
+                onRowsPerPageChange={(newRowsPerPage) => {
+                  setRowsPerPage(newRowsPerPage);
+                  setPage(0);
+                }}
+                onDelete={handleDeleteEmployee}
+                onEdit={handleEditEmployee}
+              />
+            )}
+          </>
         )}
       </Card>
 

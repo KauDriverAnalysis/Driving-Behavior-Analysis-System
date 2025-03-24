@@ -38,6 +38,7 @@ interface CarCustomersTableProps {
   rowsPerPage: number;
   onEdit: (car: Car) => void;
   onDelete: (car: Car) => void;
+  onStatusChange: (car: Car, newStatus: 'online' | 'offline') => void; // Add this prop
   loading?: boolean;
 }
 
@@ -50,6 +51,7 @@ export const CarCustomersTable = ({
   rowsPerPage,
   onEdit,
   onDelete,
+  onStatusChange, // Add this prop
   loading = false
 }: CarCustomersTableProps) => {
   if (loading) {
@@ -82,11 +84,20 @@ export const CarCustomersTable = ({
               <TableCell>{car.plateNumber}</TableCell>
               <TableCell>{car.releaseYear}</TableCell>
               <TableCell>
-                <Chip
-                  label={car.state}
-                  color={car.state === 'online' ? 'success' : 'error'}
-                  size="small"
-                />
+                <Tooltip title="Click to change state">
+                  <Chip 
+                    label={car.state} 
+                    color={car.state === 'online' ? 'success' : 'error'}
+                    size="small"
+                    onClick={() => onStatusChange(car, car.state === 'online' ? 'offline' : 'online')}
+                    sx={{ 
+                      cursor: 'pointer',
+                      '&:hover': {
+                        opacity: 0.8
+                      }
+                    }}
+                  />
+                </Tooltip>
               </TableCell>
               <TableCell>{car.deviceId}</TableCell>
               <TableCell align="right">

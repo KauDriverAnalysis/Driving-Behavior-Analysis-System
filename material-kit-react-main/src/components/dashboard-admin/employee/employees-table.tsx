@@ -46,33 +46,6 @@ export function EmployeesTable({
   onDelete,
   onEdit
 }: EmployeesTableProps) {
-  const [employees, setEmployees] = React.useState<Employee[]>([]);
-  const [loading, setLoading] = React.useState(true);
-  const [refreshTrigger, setRefreshTrigger] = React.useState(0);
-
-  React.useEffect(() => {
-    setLoading(true);
-    fetch('http://localhost:8000/api/employees/')
-      .then((response) => response.json())
-      .then((data) => {
-        console.log('Received data:', data); // Debug log
-        setEmployees(data);
-        setLoading(false);
-      })
-      .catch((error) => {
-        console.error('Error fetching employee data:', error);
-        setLoading(false);
-      });
-  }, [refreshTrigger]);
-
-  if (loading) {
-    return (
-      <Box sx={{ display: 'flex', justifyContent: 'center', p: 3 }}>
-        <CircularProgress />
-      </Box>
-    );
-  }
-
   return (
     <Paper>
       <Table>
@@ -88,7 +61,7 @@ export function EmployeesTable({
           </TableRow>
         </TableHead>
         <TableBody>
-          {employees.map((employee) => (
+          {items.map((employee) => (
             <TableRow hover key={employee.id}>
               <TableCell>{employee.name}</TableCell>
               <TableCell>{employee.gender}</TableCell>
@@ -98,20 +71,12 @@ export function EmployeesTable({
               <TableCell>••••••••</TableCell>
               <TableCell align="right">
                 <Tooltip title="Edit">
-                  <IconButton
-                    size="small"
-                    color="primary"
-                    onClick={() => onEdit(employee)}
-                  >
+                  <IconButton size="small" color="primary" onClick={() => onEdit(employee)}>
                     <EditIcon fontSize="small" />
                   </IconButton>
                 </Tooltip>
                 <Tooltip title="Delete">
-                  <IconButton 
-                    size="small" 
-                    color="error"
-                    onClick={() => onDelete(employee)}
-                  >
+                  <IconButton size="small" color="error" onClick={() => onDelete(employee)}>
                     <DeleteIcon fontSize="small" />
                   </IconButton>
                 </Tooltip>
@@ -122,7 +87,7 @@ export function EmployeesTable({
       </Table>
       <TablePagination
         component="div"
-        count={employees.length}
+        count={count}
         page={page}
         rowsPerPage={rowsPerPage}
         onPageChange={(_, newPage) => onPageChange(newPage)}

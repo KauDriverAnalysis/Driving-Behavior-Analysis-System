@@ -25,7 +25,7 @@ import { CarsTable } from '@/components/dashboard-admin/cars/CarsTable';
 import EditCarDialog from './edit-car-dialog';
 import AddCarDialog from './add-car-dialog';
 
-// Updated interface to match Django model field names exactly
+// Update the Car interface
 interface Car {
   id: string;
   Model_of_car: string;
@@ -34,8 +34,8 @@ interface Car {
   Release_Year_car: number;
   State_of_car: 'online' | 'offline';
   device_id: string;
-  customer_id: any;
-  company_id: any;
+  customer_id: number | null;
+  company_id: number | null;
 }
 
 export default function CarsPage(): React.JSX.Element {
@@ -64,8 +64,13 @@ export default function CarsPage(): React.JSX.Element {
     async function fetchCars() {
       setLoading(true);
       try {
-        // Fetch cars with proper query parameters
-        const response = await fetch(`/api/cars/?userType=${userType || ''}&userId=${userId || ''}`);
+        // Update the URL to point to your Django backend
+        const response = await fetch(`http://localhost:8000/api/cars/?userType=${userType || ''}&userId=${userId || ''}`);
+        
+        if (!response.ok) {
+          throw new Error(`HTTP error! status: ${response.status}`);
+        }
+        
         const data = await response.json();
         setCars(data);
       } catch (error) {
@@ -128,7 +133,7 @@ export default function CarsPage(): React.JSX.Element {
         headers: {
           'Content-Type': 'application/json',
         },
-        body: JSON.stringify({ State_of_car: newStatus }),
+        body: JSON.stringify({ state: newStatus }),
       });
 
       if (!response.ok) {
@@ -148,17 +153,21 @@ export default function CarsPage(): React.JSX.Element {
     setPage(0);
   };
 
-
-  const filteredCars = cars.filter(car => {
-    const matchesSearch = 
-            car.Model_of_car.toLowerCase().includes(searchTerm.toLowerCase()) ||
-            car.Plate_number.toLowerCase().includes(searchTerm.toLowerCase()) ||
-            car.TypeOfCar.toLowerCase().includes(searchTerm.toLowerCase());
-    
-    const matchesStatus = statusFilter === 'all' || car.State_of_car === statusFilter;
-    
-    return matchesSearch && matchesStatus;
-  });
+  // Update the filteredCars logic with proper field names
+  const filteredCars = React.useMemo(() => {
+    return cars.filter(car => {
+      const searchTermLower = searchTerm.toLowerCase();
+      const matchesSearch = searchTerm === '' || (
+        car.model.toLowerCase().includes(searchTermLower) ||
+        car.plateNumber.toLowerCase().includes(searchTermLower) ||
+        car.type.toLowerCase().includes(searchTermLower)
+      );
+      
+      const matchesStatus = statusFilter === 'all' || car.state === statusFilter;
+      
+      return matchesSearch && matchesStatus;
+    });
+  }, [cars, searchTerm, statusFilter]);
 
   // Paginate cars
   const paginatedCars = filteredCars.slice(
@@ -224,7 +233,7 @@ export default function CarsPage(): React.JSX.Element {
           </Box>
         ) : (
           <>
-            {cars.length === 0 && !loading && (
+            {filteredCars.length === 0 && (
               <Paper 
                 sx={{ 
                   p: 4, 
@@ -237,41 +246,54 @@ export default function CarsPage(): React.JSX.Element {
               >
                 <Box sx={{ mb: 2 }}>
                   <Typography variant="h6" color="text.secondary">
-                    No cars for company
+                    {cars.length === 0 
+                      ? "No cars for company" 
+                      : "No cars match your search"}
                   </Typography>
                   <Typography variant="body2" color="text.secondary" sx={{ mb: 3 }}>
-                    Start managing your fleet by adding your first car.
+                    {cars.length === 0 
+                      ? "Start managing your fleet by adding your first car."
+                      : "Try adjusting your search or filter criteria"}
                   </Typography>
                 </Box>
                 
-                <Button
-                  variant="contained"
-                  color="primary"
-                  startIcon={<AddIcon />}
-                  onClick={() => setOpenAddDialog(true)}
-                  size="large"
-                >
-                  Add First Car
-                </Button>
+                {cars.length === 0 && (
+                  <Button
+                    variant="contained"
+                    color="primary"
+                    startIcon={<AddIcon />}
+                    onClick={() => setOpenAddDialog(true)}
+                    size="large"
+                    sx={{
+                      minWidth: 200,
+                      py: 1
+                    }}
+                  >
+                    Add First Car
+                  </Button>
+                )}
               </Paper>
             )}
-            <CarsTable
-              items={paginatedCars}
-              count={filteredCars.length}
-              page={page}
-              rowsPerPage={rowsPerPage}
-              onPageChange={setPage}
-              onRowsPerPageChange={(newRowsPerPage) => {
-                setRowsPerPage(newRowsPerPage);
-                setPage(0);
-              }}
-              onDelete={handleDeleteCar}
-              onEdit={handleEditCar}
-              onStatusChange={handleStatusChange}
-              loading={loading}
-              userId={userId || ''}
-              userType={userType || ''}
-            />
+            
+            {filteredCars.length > 0 && (
+              <CarsTable
+                items={paginatedCars}
+                count={filteredCars.length}
+                page={page}
+                rowsPerPage={rowsPerPage}
+                onPageChange={setPage}
+                onRowsPerPageChange={(newRowsPerPage) => {
+                  setRowsPerPage(newRowsPerPage);
+                  setPage(0);
+                }}
+                onDelete={handleDeleteCar}
+                onEdit={handleEditCar}
+                onStatusChange={handleStatusChange}
+                loading={loading}
+                userId={userId || ''}
+                userType={userType || ''}
+              />
+            )}
           </>
         )}
       </Card>
@@ -286,11 +308,11 @@ export default function CarsPage(): React.JSX.Element {
         onSubmit={(updatedCar) => {
           // Format data for API - convert from camelCase to the format backend expects
           const formattedCar = {
-            Model_of_car: updatedCar.model,
-            TypeOfCar: updatedCar.type,
-            Plate_number: updatedCar.plateNumber,
+            model: updatedCar.model,
+            type: updatedCar.type,
+            plateNumber: updatedCar.plateNumber,
             Release_Year_car: updatedCar.releaseYear,
-            State_of_car: updatedCar.state,
+            state: updatedCar.state,
             device_id: updatedCar.deviceId,
             company_id: updatedCar.companyId,
             customer_id: updatedCar.customerId
@@ -343,7 +365,7 @@ export default function CarsPage(): React.JSX.Element {
         <DialogTitle>Confirm Delete</DialogTitle>
         <DialogContent>
           <DialogContentText>
-            Are you sure you want to delete this car with plate number "{carToDelete?.Plate_number}"? This action cannot be undone.
+            Are you sure you want to delete this car with plate number "{carToDelete?.plateNumber}"? This action cannot be undone.
           </DialogContentText>
         </DialogContent>
         <DialogActions>
