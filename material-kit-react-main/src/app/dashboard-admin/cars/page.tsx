@@ -127,13 +127,14 @@ export default function CarsPage(): React.JSX.Element {
 
   const handleStatusChange = async (car: Car, newStatus: 'online' | 'offline') => {
     try {
-      // Simplified - only send the status field that needs to change
       const response = await fetch(`http://localhost:8000/api/update_car/${car.id}/`, {
         method: 'POST',
         headers: {
           'Content-Type': 'application/json',
         },
-        body: JSON.stringify({ state: newStatus }),
+        body: JSON.stringify({
+          State_of_car: newStatus  // Changed from 'state' to 'State_of_car'
+        }),
       });
 
       if (!response.ok) {
@@ -158,12 +159,12 @@ export default function CarsPage(): React.JSX.Element {
     return cars.filter(car => {
       const searchTermLower = searchTerm.toLowerCase();
       const matchesSearch = searchTerm === '' || (
-        car.model.toLowerCase().includes(searchTermLower) ||
-        car.plateNumber.toLowerCase().includes(searchTermLower) ||
-        car.type.toLowerCase().includes(searchTermLower)
+        car.Model_of_car.toLowerCase().includes(searchTermLower) ||
+        car.Plate_number.toLowerCase().includes(searchTermLower) ||
+        car.TypeOfCar.toLowerCase().includes(searchTermLower)
       );
       
-      const matchesStatus = statusFilter === 'all' || car.state === statusFilter;
+      const matchesStatus = statusFilter === 'all' || car.State_of_car === statusFilter;
       
       return matchesSearch && matchesStatus;
     });
