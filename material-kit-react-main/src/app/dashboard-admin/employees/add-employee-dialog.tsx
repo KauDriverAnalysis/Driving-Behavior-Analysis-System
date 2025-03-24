@@ -179,14 +179,30 @@ export default function AddEmployeeDialog({
       return; // Don't submit if form is invalid
     }
     
-    // Create payload directly from React state
+    // Get company ID from localStorage with multiple fallbacks
+    const companyId = localStorage.getItem('company_id') || 
+                     localStorage.getItem('employee-company-id') || 
+                     localStorage.getItem('companyId');
+    
+    if (!companyId) {
+      console.error('No company ID found in localStorage');
+      setAlertState({
+        open: true,
+        message: 'Error: Company ID not found. Please log in again.',
+        severity: 'error'
+      });
+      return;
+    }
+    
+    // Create payload directly from React state plus company ID
     const payload = {
       Name: formData.name,
       gender: gender,
       phone_number: formData.phone_number,
       address: formData.address,
       Email: formData.Email,
-      Password: formData.Password
+      Password: formData.Password,
+      company_id: companyId // Add company ID to payload
     };
     
     console.log('Payload being sent:', payload); // Debug log

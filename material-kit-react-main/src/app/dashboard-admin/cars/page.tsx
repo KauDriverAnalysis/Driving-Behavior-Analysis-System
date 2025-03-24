@@ -151,11 +151,10 @@ export default function CarsPage(): React.JSX.Element {
 
   const filteredCars = cars.filter(car => {
     const matchesSearch = 
-            car.model.toLowerCase().includes(searchTerm.toLowerCase()) ||
+            car.Model_of_car.toLowerCase().includes(searchTerm.toLowerCase()) ||
             car.Plate_number.toLowerCase().includes(searchTerm.toLowerCase()) ||
-            car.type.toLowerCase().includes(searchTerm.toLowerCase());
+            car.TypeOfCar.toLowerCase().includes(searchTerm.toLowerCase());
     
-    // This is the issue - statusFilter needs to match the field name in your data
     const matchesStatus = statusFilter === 'all' || car.State_of_car === statusFilter;
     
     return matchesSearch && matchesStatus;

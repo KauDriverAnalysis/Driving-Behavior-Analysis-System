@@ -131,15 +131,17 @@ class EmployeeForm(forms.ModelForm):
 
     def save(self, commit=True):
         employee = super(EmployeeForm, self).save(commit=False)
+        
+        # Hash the password
         employee.Password = make_password(self.cleaned_data['Password'])
+        
+        # Check if this is the first employee
+        if not Employee.objects.exists():
+            employee.Admin = True
+            
         if commit:
             employee.save()
         return employee
-    
-    def save(self, *args, **kwargs):
-        if not Employee.objects.exists():  # If no employee exists, set the first user as Admin
-            self.Admin = True
-        super().save(*args, **kwargs)  # Call the original save method
 
 class GeofenceForm(forms.ModelForm):
     class Meta:
