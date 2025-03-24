@@ -7,22 +7,26 @@ import { CarSimple } from '@phosphor-icons/react/dist/ssr/CarSimple';
 import { GearSix } from '@phosphor-icons/react/dist/ssr/GearSix';
 import { XSquare } from '@phosphor-icons/react/dist/ssr/XSquare';
 import { Polygon } from '@phosphor-icons/react/dist/ssr/Polygon';
-import { IdentificationBadge } from '@phosphor-icons/react/dist/ssr/IdentificationBadge'; // Add this import
-import { UserCircle } from '@phosphor-icons/react/dist/ssr/UserCircle'; // Add this import
+import { IdentificationBadge } from '@phosphor-icons/react/dist/ssr/IdentificationBadge';
+import { UserCircle } from '@phosphor-icons/react/dist/ssr/UserCircle';
+import { ChartLine } from '@phosphor-icons/react/dist/ssr/ChartLine';
+import { Shield } from '@phosphor-icons/react/dist/ssr/Shield'; // Add this import
 
 // Create a mapping of icon names to components
 export const navIcons = {
   'chart-pie': ChartPie,
-  'map': MapPin,          // This maps to your 'tracking' icon
-  'map-pin': MapPin,      // Alternative option 
+  'chart-line': ChartLine,
+  'shield': Shield,      // Add shield icon for Pattern Score
+  'map': MapPin,
+  'map-pin': MapPin,
   'user': User,
   'users': Users,
-  'car': CarSimple,       // This maps to your 'cars' icon
-  'car-simple': CarSimple, // Alternative option
-  'driver': IdentificationBadge, // Changed icon for 'drivers'
-  'user-focus': IdentificationBadge, // Alternative option for 'drivers'
+  'car': CarSimple,
+  'car-simple': CarSimple,
+  'driver': IdentificationBadge,
+  'user-focus': IdentificationBadge,
   'gear-six': GearSix,
   'x-square': XSquare,
-  'draw-polygon': Polygon, // Add this line to map the key to the icon
-  'user-circle': UserCircle, // Add this line to map the key to the icon for 'account'
+  'draw-polygon': Polygon,
+  'user-circle': UserCircle,
 };

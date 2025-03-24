@@ -46,10 +46,10 @@ export const getNavItems = (userType?: string): NavItemConfig[] => {
     });
     
     navItems.splice(trackingIndex + 3, 0, {
-      key: 'pattrenScore',
-      title: 'Pattren Score',
+      key: 'patternScore',  // Fixed typo from 'pattrenScore'
+      title: 'Pattern Score', // Fixed typo from 'Pattren Score'
       href: paths.dashboardAdmin.pattrenScore,
-      icon: 'chart-pie',
+      icon: 'shield', // Changed from 'chart-pie' to differentiate from Overview
     });
 
     // Add account at the end
