@@ -66,8 +66,13 @@ export default function Overview(): React.JSX.Element {
     setLoading(true);
     setError(null);
     
-    // Add time parameter to get data for specific time frame
-    fetch(`http://localhost:8000/api/fleet-overview/?time_frame=${timeFrame}`)
+    // Get company ID from localStorage
+    const companyId = localStorage.getItem('company_id') || 
+                     localStorage.getItem('companyId') || 
+                     localStorage.getItem('employee-company-id');
+    
+    // Add company_id parameter to filter cars for this company only
+    fetch(`http://localhost:8000/api/fleet-overview/?time_frame=${timeFrame}&company_id=${companyId || ''}`)
       .then(response => {
         if (!response.ok) {
           throw new Error(`HTTP error! status: ${response.status}`);
@@ -172,7 +177,7 @@ export default function Overview(): React.JSX.Element {
         setStatusData({
           active: data?.fleet_stats?.active_cars || 0,
           idle: data?.fleet_stats?.inactive_cars || 0,
-          maintenance: 0 // API doesn't provide maintenance data yet
+          maintenance: data?.fleet_stats?.maintenance_cars || 0
         });
         
         setLoading(false);

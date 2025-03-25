@@ -27,10 +27,11 @@ interface StatusBreakdownProps {
 export function StatusBreakdown({ data }: StatusBreakdownProps) {
   const totalCars = data.active + data.maintenance + data.idle;
   
+  // Modified bar chart options to emphasize actual counts
   const barChartOptions = {
     chart: {
       background: 'transparent',
-      stacked: true,
+      stacked: false, // Change to false to show separate bars
       toolbar: {
         show: false
       }
@@ -41,12 +42,28 @@ export function StatusBreakdown({ data }: StatusBreakdownProps) {
         borderRadius: 4,
         distributed: false,
         columnWidth: '70%',
-        barHeight: '70%'
+        barHeight: '70%',
+        dataLabels: {
+          position: 'top',
+          maxItems: 100,
+          hideOverflowingLabels: false,
+          orientation: 'horizontal'
+        }
       }
     },
     colors: ['#4CAF50', '#FF9800', '#9E9E9E'],
     dataLabels: {
-      enabled: false
+      enabled: true,
+      formatter: function(val: number) {
+        return val; // Show the actual number
+      },
+      position: 'right', // Change to 'right' for horizontal bars
+      offsetX: 0, // Reset the offset
+      textAnchor: 'start',
+      style: {
+        fontSize: '12px',
+        colors: ['#304758']
+      }
     },
     stroke: {
       width: 0
@@ -59,9 +76,15 @@ export function StatusBreakdown({ data }: StatusBreakdownProps) {
       }
     },
     xaxis: {
-      categories: ['Status'],
+      categories: ['Vehicle Count'],
       labels: {
-        formatter: (val: number) => `${val}%`
+        show: false
+      },
+      axisBorder: {
+        show: false
+      },
+      axisTicks: {
+        show: false
       }
     },
     yaxis: {
@@ -80,6 +103,7 @@ export function StatusBreakdown({ data }: StatusBreakdownProps) {
     }
   };
 
+  // Keep the same series data structure
   const series = [
     {
       name: 'Active',
@@ -104,14 +128,14 @@ export function StatusBreakdown({ data }: StatusBreakdownProps) {
               Car Status Breakdown
             </Typography>
             <Typography color="text.secondary" variant="body2">
-              Current status of all vehicles in fleet
+              Current status of all company vehicles ({totalCars} total)
             </Typography>
           </Box>
           
-          <Box sx={{ height: 120 }}>
+          <Box sx={{ height: 150 }}>
             {typeof window !== 'undefined' && (
               <Chart
-                height={120}
+                height={150}
                 options={barChartOptions}
                 series={series}
                 type="bar"
@@ -131,7 +155,7 @@ export function StatusBreakdown({ data }: StatusBreakdownProps) {
                 />
                 <Typography variant="h5">{data.active}</Typography>
                 <Typography variant="body2" color="text.secondary">
-                  {((data.active / totalCars) * 100).toFixed(1)}%
+                  {totalCars > 0 ? `${((data.active / totalCars) * 100).toFixed(0)}%` : '0%'}
                 </Typography>
               </Box>
             </Grid>
@@ -147,7 +171,7 @@ export function StatusBreakdown({ data }: StatusBreakdownProps) {
                 />
                 <Typography variant="h5">{data.maintenance}</Typography>
                 <Typography variant="body2" color="text.secondary">
-                  {((data.maintenance / totalCars) * 100).toFixed(1)}%
+                  {totalCars > 0 ? `${((data.maintenance / totalCars) * 100).toFixed(0)}%` : '0%'}
                 </Typography>
               </Box>
             </Grid>
@@ -163,7 +187,7 @@ export function StatusBreakdown({ data }: StatusBreakdownProps) {
                 />
                 <Typography variant="h5">{data.idle}</Typography>
                 <Typography variant="body2" color="text.secondary">
-                  {((data.idle / totalCars) * 100).toFixed(1)}%
+                  {totalCars > 0 ? `${((data.idle / totalCars) * 100).toFixed(0)}%` : '0%'}
                 </Typography>
               </Box>
             </Grid>

@@ -1,173 +1,112 @@
-// CustomerOverview.tsx
 'use client';
 
 import * as React from 'react';
+import { useState, useEffect } from 'react';
 import Grid from '@mui/material/Grid';
 import Card from '@mui/material/Card';
 import CardContent from '@mui/material/CardContent';
 import Typography from '@mui/material/Typography';
 import Box from '@mui/material/Box';
 import Stack from '@mui/material/Stack';
+import TextField from '@mui/material/TextField';
+import MenuItem from '@mui/material/MenuItem';
+import CircularProgress from '@mui/material/CircularProgress';
+import Alert from '@mui/material/Alert';
 import Divider from '@mui/material/Divider';
-import TrendingUpIcon from '@mui/icons-material/TrendingUp';
-import TrendingDownIcon from '@mui/icons-material/TrendingDown';
 import DirectionsCarIcon from '@mui/icons-material/DirectionsCar';
+import WarningIcon from '@mui/icons-material/Warning';
 import SpeedIcon from '@mui/icons-material/Speed';
 import LocationOnIcon from '@mui/icons-material/LocationOn';
+import TrendingUpIcon from '@mui/icons-material/TrendingUp';
+import TrendingDownIcon from '@mui/icons-material/TrendingDown';
 import { TimeFilter } from '@/components/dashboard-customer/overview/time-filter';
 import { DrivingMetrics } from '@/components/dashboard-customer/overview/driving-metrics';
 import { PerformanceTrend } from '@/components/dashboard-customer/overview/performance-trend';
 import { TripHistory } from '@/components/dashboard-customer/overview/trip-history';
-import { CarLocation } from '@/components/dashboard-customer/overview/car-location';
-import { TextField, MenuItem, CircularProgress } from '@mui/material';
+import dynamic from 'next/dynamic';
 
-// Enhanced fake data for different time frames
-const fakeStatsData = {
-  '1d': {
-    totalTrips: 3,
-    averageScore: 87,
-    milesDriven: 42,
-    trend: {
-      averageScore: +2,
-      milesDriven: +5
-    }
-  },
-  '7d': {
-    totalTrips: 12,
-    averageScore: 83,
-    milesDriven: 156,
-    trend: {
-      averageScore: -1,
-      milesDriven: +23
-    }
-  },
-  '30d': {
-    totalTrips: 45,
-    averageScore: 85,
-    milesDriven: 487,
-    trend: {
-      averageScore: +3,
-      milesDriven: +65
-    }
-  }
-};
-
-const fakeDrivingMetricsData = {
-  '1d': {
-    braking: 82,
-    acceleration: 75,
-    swerving: 90,
-    speeding: 78
-  },
-  '7d': {
-    braking: 78,
-    acceleration: 72,
-    swerving: 85,
-    speeding: 71
-  },
-  '30d': {
-    braking: 80,
-    acceleration: 74,
-    swerving: 87,
-    speeding: 76
-  }
-};
-
-const fakePerformanceTrendData = {
-  '1d': {
-    hours: ['08:00', '10:00', '12:00', '14:00', '16:00', '18:00'],
-    scores: [85, 88, 82, 86, 90, 87]
-  },
-  '7d': {
-    days: ['Mon', 'Tue', 'Wed', 'Thu', 'Fri', 'Sat', 'Sun'],
-    scores: [84, 86, 82, 89, 85, 83, 87]
-  },
-  '30d': {
-    weeks: ['Week 1', 'Week 2', 'Week 3', 'Week 4'],
-    scores: [85, 82, 86, 88]
-  }
-};
-
-const fakeTripHistoryData = {
-  '1d': [
-    { start: 'Home', destination: 'Office', time: '08:15 AM', score: 87, miles: 12 },
-    { start: 'Office', destination: 'Lunch', time: '12:30 PM', score: 90, miles: 5 },
-    { start: 'Lunch', destination: 'Office', time: '01:45 PM', score: 85, miles: 5 },
-    { start: 'Office', destination: 'Home', time: '05:30 PM', score: 86, miles: 12 }
-  ],
-  '7d': [
-    { start: 'Home', destination: 'Office', time: 'Mon 08:15 AM', score: 87, miles: 12 },
-    { start: 'Office', destination: 'Home', time: 'Mon 05:30 PM', score: 86, miles: 12 },
-    { start: 'Home', destination: 'Gym', time: 'Tue 07:00 AM', score: 89, miles: 8 },
-    { start: 'Gym', destination: 'Office', time: 'Tue 09:00 AM', score: 84, miles: 10 },
-    { start: 'Office', destination: 'Home', time: 'Tue 06:00 PM', score: 82, miles: 12 }
-  ],
-  '30d': [
-    { start: 'Home', destination: 'Office', time: 'Week 1', score: 87, miles: 60 },
-    { start: 'Office', destination: 'Home', time: 'Week 1', score: 86, miles: 60 },
-    { start: 'Home', destination: 'Grocery', time: 'Week 2', score: 89, miles: 15 },
-    { start: 'Home', destination: 'Office', time: 'Week 2', score: 84, miles: 60 },
-    { start: 'Office', destination: 'Home', time: 'Week 2', score: 82, miles: 60 }
-  ]
-};
-
-const fakeCarLocationData = {
-  latitude: 37.7749,
-  longitude: -122.4194,
-  lastUpdated: '5 minutes ago',
-  address: '123 Main Street, San Francisco, CA',
-  status: 'active'
-};
+// Import the map component dynamically to prevent SSR issues
+const LocationMapComponent = dynamic(
+  () => import('@/components/dashboard-admin/tracking/location-map').then(mod => mod.LocationMap),
+  { ssr: false }
+);
 
 interface Car {
   id: string;
   Model: string;
-  Type: string;
   plate_number: string;
+  model?: string;
+  type?: string;
+  Type?: string;
 }
 
 export default function CustomerOverview(): React.JSX.Element {
-  const [timeFrame, setTimeFrame] = React.useState<'1d' | '7d' | '30d'>('1d');
-  const [stats, setStats] = React.useState(fakeStatsData['1d']);
-  const [drivingMetrics, setDrivingMetrics] = React.useState(fakeDrivingMetricsData['1d']);
-  const [performanceTrend, setPerformanceTrend] = React.useState(fakePerformanceTrendData['1d']);
-  const [tripHistory, setTripHistory] = React.useState(fakeTripHistoryData['1d']);
-  const [cars, setCars] = React.useState<Car[]>([]);
-  const [selectedCar, setSelectedCar] = React.useState('all');
-  const [loading, setLoading] = React.useState(true);
+  const [timeFrame, setTimeFrame] = useState<'1d' | '7d' | '30d'>('1d');
+  const [stats, setStats] = useState({
+    totalTrips: 0,
+    averageScore: 0,
+    milesDriven: 0,
+    trend: {
+      totalTrips: 0,
+      averageScore: 0,
+      milesDriven: 0
+    }
+  });
+  const [drivingMetrics, setDrivingMetrics] = useState({
+    braking: 0,
+    acceleration: 0,
+    swerving: 0,
+    speeding: 0
+  });
+  const [performanceTrend, setPerformanceTrend] = useState({
+    hours: [],
+    days: [],
+    weeks: [],
+    scores: []
+  });
+  const [tripHistory, setTripHistory] = useState([]);
+  const [cars, setCars] = useState<Car[]>([]);
+  const [selectedCar, setSelectedCar] = useState('');
+  const [loading, setLoading] = useState(true);
+  const [error, setError] = useState<string | null>(null);
+  const [carLocation, setCarLocation] = useState<any>(null);
+  const [refreshInterval, setRefreshInterval] = useState<NodeJS.Timeout | null>(null);
 
-  // Update all data when timeFrame changes
-  React.useEffect(() => {
-    setStats(fakeStatsData[timeFrame]);
-    setDrivingMetrics(fakeDrivingMetricsData[timeFrame]);
-    setPerformanceTrend(fakePerformanceTrendData[timeFrame]);
-    setTripHistory(fakeTripHistoryData[timeFrame]);
-    
-    // TODO: Implement real API calls when backend is ready
-    // fetch(`http://localhost:8000/api/customer-stats?timeFrame=${timeFrame}`)
-    //   .then(response => response.json())
-    //   .then(data => {
-    //     setStats(data.stats);
-    //     setDrivingMetrics(data.drivingMetrics);
-    //     // etc.
-    //   })
-    //   .catch(error => console.error('Error fetching data:', error));
-  }, [timeFrame]);
-
-  // Fetch cars data
-  React.useEffect(() => {
+  // Fetch cars data when component mounts
+  useEffect(() => {
     setLoading(true);
-    fetch('http://localhost:8000/api/cars/')
-      .then((response) => response.json())
+    
+    // Get customer ID from localStorage with fallbacks
+    const customerId = localStorage.getItem('customer-id') || 
+                      localStorage.getItem('customerId') || 
+                      localStorage.getItem('customer_id') ||
+                      localStorage.getItem('userId');
+    
+    if (!customerId) {
+      setError('No customer ID found. Please log in again.');
+      setLoading(false);
+      return;
+    }
+    
+    // Fetch cars owned by this customer
+    fetch(`http://localhost:8000/api/cars/?userType=customer&userId=${customerId}`)
+      .then((response) => {
+        if (!response.ok) {
+          throw new Error(`HTTP error! status: ${response.status}`);
+        }
+        return response.json();
+      })
       .then((data) => {
         const mappedCars = Array.isArray(data) ? data.map((item) => ({
           id: item.id || '',
-          Model: item.Model || item.model || '',
-          Type: item.Type || item.type || '',
-          plate_number: item.plate_number || ''
+          Model: item.model || item.Model_of_car || '',
+          Type: item.type || item.TypeOfCar || '',
+          plate_number: item.plateNumber || item.Plate_number || ''
         })) : [];
         
+        console.log('Fetched cars for customer:', mappedCars);
         setCars(mappedCars);
+        
         if (mappedCars.length > 0) {
           setSelectedCar(mappedCars[0].id);
         }
@@ -175,9 +114,141 @@ export default function CustomerOverview(): React.JSX.Element {
       })
       .catch((error) => {
         console.error('Error fetching cars:', error);
+        setError('Failed to fetch cars. Please try again later.');
         setLoading(false);
       });
   }, []);
+
+  // Fetch data based on selected car and time frame
+  useEffect(() => {
+    if (!selectedCar) return;
+    
+    setLoading(true);
+    setError(null);
+    
+    // Fetch car driving data
+    fetch(`http://localhost:8000/api/car-driving-data/${selectedCar}/`)
+      .then(response => {
+        if (!response.ok) {
+          throw new Error(`HTTP error! status: ${response.status}`);
+        }
+        return response.json();
+      })
+      .then(data => {
+        console.log('Car driving data:', data);
+        
+        // Set statistics
+        setStats({
+          totalTrips: data.summary?.total_records || 0,
+          averageScore: data.summary?.avg_score || 100,
+          milesDriven: data.summary?.total_distance || 0,
+          trend: {
+            totalTrips: 0, // No trend data from API yet
+            averageScore: 0, // No trend data from API yet
+            milesDriven: 0 // No trend data from API yet
+          }
+        });
+        
+        // Set metrics
+        setDrivingMetrics({
+          braking: data.summary?.total_harsh_braking || 0,
+          acceleration: data.summary?.total_harsh_acceleration || 0,
+          swerving: data.summary?.total_swerving || 0,
+          speeding: data.summary?.total_over_speed || 0
+        });
+        
+        // Set performance trend - we'll need to build this from historical data
+        // For now, we'll create a simple trend based on the average score
+        const score = data.summary?.avg_score || 100;
+        let trendLabels;
+        if (timeFrame === '1d') {
+          trendLabels = ['00:00', '03:00', '06:00', '09:00', '12:00', '15:00', '18:00', '21:00'];
+        } else if (timeFrame === '7d') {
+          trendLabels = ['Mon', 'Tue', 'Wed', 'Thu', 'Fri', 'Sat', 'Sun'];
+        } else {
+          trendLabels = ['Week 1', 'Week 2', 'Week 3', 'Week 4'];
+        }
+        
+        const scores = trendLabels.map(() => {
+          // Simulate variation around the average score
+          return Math.max(0, Math.min(100, score + (Math.random() * 10 - 5)));
+        });
+        
+        setPerformanceTrend({
+          hours: timeFrame === '1d' ? trendLabels : [],
+          days: timeFrame === '7d' ? trendLabels : [],
+          weeks: timeFrame === '30d' ? trendLabels : [],
+          scores: scores
+        });
+        
+        // Set a simple trip history based on the time frame
+        // In a real implementation, this would come from the API
+        const trips = [];
+        const tripCount = timeFrame === '1d' ? 2 : (timeFrame === '7d' ? 5 : 8);
+        
+        for (let i = 0; i < tripCount; i++) {
+          trips.push({
+            start: 'Home',
+            destination: 'Office',
+            time: trendLabels[i % trendLabels.length],
+            score: Math.round(scores[i % scores.length]),
+            miles: Math.round(Math.random() * 20 + 5)
+          });
+        }
+        
+        setTripHistory(trips);
+        setLoading(false);
+      })
+      .catch(error => {
+        console.error('Error fetching car data:', error);
+        setError('Failed to fetch car data. Please try again later.');
+        setLoading(false);
+      });
+  }, [selectedCar, timeFrame]);
+  
+  // Set up real-time location tracking for the selected car
+  useEffect(() => {
+    // Clear any existing interval
+    if (refreshInterval) {
+      clearInterval(refreshInterval);
+    }
+    
+    if (!selectedCar) return;
+    
+    // Initial fetch
+    fetchCarLocation();
+    
+    // Set up polling every 5 seconds
+    const interval = setInterval(fetchCarLocation, 5000);
+    setRefreshInterval(interval);
+    
+    // Cleanup
+    return () => {
+      if (interval) {
+        clearInterval(interval);
+      }
+    };
+  }, [selectedCar]);
+  
+  const fetchCarLocation = () => {
+    if (!selectedCar) return;
+    
+    fetch(`http://localhost:8000/api/car-location/${selectedCar}/`)
+      .then(response => {
+        if (!response.ok) {
+          throw new Error(`HTTP error! status: ${response.status}`);
+        }
+        return response.json();
+      })
+      .then(data => {
+        console.log('Car location data:', data);
+        setCarLocation(data);
+      })
+      .catch(error => {
+        console.error('Error fetching car location:', error);
+        // Don't set error state here to avoid interfering with other components
+      });
+  };
 
   const handleCarChange = (event: React.ChangeEvent<HTMLInputElement>) => {
     setSelectedCar(event.target.value);
@@ -195,9 +266,10 @@ export default function CustomerOverview(): React.JSX.Element {
       }}>
         <Stack direction="row" spacing={2} alignItems="center">
           <Typography variant="h4" component="h1">My Driving Dashboard</Typography>
-          {loading ? (
-            <CircularProgress size={24} />
-          ) : (
+          {loading && <CircularProgress size={24} />}
+        </Stack>
+        <Stack direction="row" spacing={2} alignItems="center">
+          {cars.length > 0 && (
             <TextField
               select
               size="small"
@@ -206,7 +278,6 @@ export default function CustomerOverview(): React.JSX.Element {
               label="Select Car"
               sx={{ minWidth: 200 }}
             >
-              <MenuItem value="all">All Cars</MenuItem>
               {cars.map((car) => (
                 <MenuItem key={car.id} value={car.id}>
                   {car.Model} - {car.plate_number}
@@ -214,14 +285,44 @@ export default function CustomerOverview(): React.JSX.Element {
               ))}
             </TextField>
           )}
+          <TimeFilter onFilterChange={setTimeFrame} selectedFilter={timeFrame} />
         </Stack>
-        <TimeFilter onFilterChange={setTimeFrame} selectedFilter={timeFrame} />
       </Box>
 
+      {error && (
+        <Alert severity="error" sx={{ mb: 3 }}>
+          {error}
+        </Alert>
+      )}
+
       <Grid container spacing={3}>
-        {/* Car Location Card */}
+        {/* Car Tracking Map */}
         <Grid item xs={12}>
-          <CarLocation data={fakeCarLocationData} />
+          <Card>
+            <CardContent sx={{ p: 0 }}>
+              <Box sx={{ p: 2, display: 'flex', alignItems: 'center' }}>
+                <LocationOnIcon sx={{ color: 'primary.main', mr: 1 }} />
+                <Typography variant="h6">Live Car Location</Typography>
+              </Box>
+              <Divider />
+              <Box sx={{ height: '400px', width: '100%', position: 'relative' }}>
+                {selectedCar ? (
+                  <LocationMapComponent selectedCar={selectedCar} />
+                ) : (
+                  <Box sx={{ 
+                    display: 'flex', 
+                    alignItems: 'center', 
+                    justifyContent: 'center', 
+                    height: '100%' 
+                  }}>
+                    <Typography color="text.secondary">
+                      Select a car to view its location
+                    </Typography>
+                  </Box>
+                )}
+              </Box>
+            </CardContent>
+          </Card>
         </Grid>
         
         {/* Key Stats Cards */}
@@ -251,19 +352,15 @@ export default function CustomerOverview(): React.JSX.Element {
                   Average Score
                 </Typography>
               </Box>
-              <Typography variant="h4">{stats.averageScore}/100</Typography>
+              <Typography variant="h4">{stats.averageScore.toFixed(1)}/100</Typography>
               <Box sx={{ 
                 display: 'flex', 
                 alignItems: 'center', 
                 mt: 1, 
                 color: stats.trend.averageScore >= 0 ? 'success.main' : 'error.main' 
               }}>
-                {stats.trend.averageScore >= 0 ? 
-                  <TrendingUpIcon fontSize="small" sx={{ mr: 0.5 }} /> : 
-                  <TrendingDownIcon fontSize="small" sx={{ mr: 0.5 }} />
-                }
                 <Typography variant="body2">
-                  {stats.trend.averageScore >= 0 ? '+' : ''}{stats.trend.averageScore} points from previous {timeFrame}
+                  Driving performance score
                 </Typography>
               </Box>
             </CardContent>
@@ -279,17 +376,10 @@ export default function CustomerOverview(): React.JSX.Element {
                   Miles Driven
                 </Typography>
               </Box>
-              <Typography variant="h4">{stats.milesDriven}</Typography>
-              <Box sx={{ 
-                display: 'flex', 
-                alignItems: 'center', 
-                mt: 1,
-                color: 'text.secondary'
-              }}>
-                <Typography variant="body2">
-                  {stats.trend.milesDriven >= 0 ? '+' : ''}{stats.trend.milesDriven} miles from previous {timeFrame}
-                </Typography>
-              </Box>
+              <Typography variant="h4">{stats.milesDriven.toFixed(1)}</Typography>
+              <Typography variant="body2" color="text.secondary" sx={{ mt: 1 }}>
+                Distance traveled in kilometers
+              </Typography>
             </CardContent>
           </Card>
         </Grid>

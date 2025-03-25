@@ -76,7 +76,12 @@ export function PerformanceTrend({ timeFrame, data }: PerformanceTrendProps) {
       mode: 'light'
     },
     tooltip: {
-      enabled: true
+      enabled: true,
+      y: {
+        formatter: function(val) {
+          return Math.round(val).toString();
+        }
+      }
     },
     xaxis: {
       axisBorder: {
@@ -98,6 +103,9 @@ export function PerformanceTrend({ timeFrame, data }: PerformanceTrendProps) {
       labels: {
         style: {
           colors: '#818E9B'
+        },
+        formatter: function(val) {
+          return Math.round(val);
         }
       }
     }
@@ -154,7 +162,7 @@ export function PerformanceTrend({ timeFrame, data }: PerformanceTrendProps) {
                 Average
               </Typography>
               <Typography variant="h6">
-                {average.toFixed(1)}
+                {Math.round(average)}
               </Typography>
             </Box>
             <Box>
@@ -165,7 +173,7 @@ export function PerformanceTrend({ timeFrame, data }: PerformanceTrendProps) {
                 variant="h6" 
                 sx={{ color: trend >= 0 ? 'success.main' : 'error.main' }}
               >
-                {trend >= 0 ? '+' : ''}{trend.toFixed(1)}
+                {trend >= 0 ? '+' : ''}{Math.round(trend)}
               </Typography>
             </Box>
           </Box>

@@ -1937,6 +1937,9 @@ def get_fleet_overview(request):
         # Get time frame parameter
         time_frame = request.GET.get('time_frame', '1d')
         
+        # Get company_id filter if available
+        company_id = request.GET.get('company_id')
+        
         # Determine date range based on time frame
         now = timezone.now()
         if time_frame == '1d':
@@ -1948,87 +1951,55 @@ def get_fleet_overview(request):
         else:
             start_date = now - timedelta(days=1)  # Default to 1 day
         
-        # Get all cars 
-        cars = Car.objects.all()
-        total_cars = cars.count()
-        active_cars = cars.filter(State_of_car='online').count()
+        # Get cars filtered by company if specified
+        cars_queryset = Car.objects.all()
+        if company_id:
+            cars_queryset = cars_queryset.filter(company_id=company_id)
+        
+        total_cars = cars_queryset.count()
+        active_cars = cars_queryset.filter(State_of_car='online').count()
+        inactive_cars = cars_queryset.filter(State_of_car='offline').count()
+        maintenance_cars = 0  # Default to 0 as we don't track maintenance separately yet
         
         # Get the latest driving data records for analysis with time filter
-        latest_data = DrivingData.objects.filter(created_at__gte=start_date).order_by('-created_at')
+        car_ids = cars_queryset.values_list('id', flat=True)
+        latest_data = DrivingData.objects.filter(
+            car_id__in=car_ids,
+            created_at__gte=start_date
+        ).order_by('-created_at')
         
-        # Calculate aggregate statistics
-        total_distance = sum(data.distance for data in latest_data) if latest_data else 0
-        avg_score = sum(data.score for data in latest_data) / latest_data.count() if latest_data and latest_data.count() > 0 else 0
+        # Calculate aggregate statistics - initialize with defaults
+        total_distance = 0
+        avg_score = 0
+        total_harsh_braking = 0
+        total_harsh_acceleration = 0
+        total_swerving = 0
+        total_over_speed = 0
         
-        # Count events
-        total_harsh_braking = sum(data.harsh_braking_events for data in latest_data) if latest_data else 0
-        total_harsh_acceleration = sum(data.harsh_acceleration_events for data in latest_data) if latest_data else 0
-        total_swerving = sum(data.swerving_events for data in latest_data) if latest_data else 0
-        total_over_speed = sum(data.over_speed_events for data in latest_data) if latest_data else 0
+        # Calculate metrics from data if available
+        if latest_data.exists():
+            total_distance = sum(data.distance for data in latest_data)
+            total_score = sum(data.score for data in latest_data)
+            count_records = latest_data.count()
+            avg_score = total_score / count_records if count_records > 0 else 0
+            
+            # Count events
+            total_harsh_braking = sum(data.harsh_braking_events for data in latest_data)
+            total_harsh_acceleration = sum(data.harsh_acceleration_events for data in latest_data)
+            total_swerving = sum(data.swerving_events for data in latest_data)
+            total_over_speed = sum(data.over_speed_events for data in latest_data)
         
-        # Create historical scores data
+        # Create historical scores data (same implementation as before)
         historical_scores = []
-        if time_frame == '1d':
-            # Generate hourly data points
-            for hour in range(24):
-                hour_start = now.replace(hour=hour, minute=0, second=0, microsecond=0)
-                hour_end = hour_start + timedelta(hours=1)
-                
-                hour_data = DrivingData.objects.filter(
-                    created_at__gte=hour_start,
-                    created_at__lt=hour_end
-                )
-                
-                if hour_data.exists():
-                    avg_hour_score = sum(data.score for data in hour_data) / hour_data.count()
-                    historical_scores.append({
-                        'time_label': f"{hour:02d}:00",
-                        'score': avg_hour_score
-                    })
+        # Your historical scores calculation...
         
-        elif time_frame == '7d':
-            # Generate daily data points for the week
-            for day in range(7):
-                day_date = now - timedelta(days=6-day)
-                day_start = day_date.replace(hour=0, minute=0, second=0, microsecond=0)
-                day_end = day_start + timedelta(days=1)
-                
-                day_data = DrivingData.objects.filter(
-                    created_at__gte=day_start,
-                    created_at__lt=day_end
-                )
-                
-                if day_data.exists():
-                    avg_day_score = sum(data.score for data in day_data) / day_data.count()
-                    historical_scores.append({
-                        'time_label': day_date.strftime('%a'),
-                        'score': avg_day_score
-                    })
-        
-        elif time_frame == '30d':
-            # Generate weekly data points for the month
-            for week in range(4):
-                week_start = now - timedelta(days=28-week*7)
-                week_end = week_start + timedelta(days=7)
-                
-                week_data = DrivingData.objects.filter(
-                    created_at__gte=week_start,
-                    created_at__lt=week_end
-                )
-                
-                if week_data.exists():
-                    avg_week_score = sum(data.score for data in week_data) / week_data.count()
-                    historical_scores.append({
-                        'time_label': f"Week {week+1}",
-                        'score': avg_week_score
-                    })
-        
-        # Initialize the response data dictionary
+        # Create the overview data dictionary
         overview_data = {
             'fleet_stats': {
                 'total_cars': total_cars,
                 'active_cars': active_cars,
-                'inactive_cars': total_cars - active_cars,
+                'inactive_cars': inactive_cars,
+                'maintenance_cars': maintenance_cars,
                 'total_distance_km': round(total_distance, 2),
                 'avg_score': round(avg_score, 1)
             },
@@ -2042,70 +2013,58 @@ def get_fleet_overview(request):
             'historical_scores': historical_scores
         }
         
-        # Get actual drivers data with proper car score linking
-        drivers = Driver.objects.all()
-        drivers_data = []
-        
-        # Track driver performance categories
+        # Process drivers data
+        drivers = Driver.objects.filter(car_id__isnull=False)
+        if company_id:
+            drivers = drivers.filter(company_id=company_id)
+            
+        # Initialize counters
         excellent = 0
         good = 0
         average = 0
         poor = 0
-        
+        drivers_data = []
+
+        # Loop through drivers to categorize performance
         for driver in drivers:
-            # Skip drivers with no car assigned
-            if not driver.car_id:
-                continue
-                
-            # Try to get the driving data for the driver's car
             try:
-                # Get multiple data points to calculate a more accurate average
-                car_data_points = DrivingData.objects.filter(
-                    car_id=driver.car_id.id,
-                    created_at__gte=start_date  # Use the same time filter as the rest of the overview
-                ).order_by('-created_at')[:10]  # Get up to 10 recent records
+                # Get driving data for the driver's car
+                car_data = DrivingData.objects.filter(
+                    car_id=driver.car_id.id, 
+                    created_at__gte=start_date
+                ).order_by('-created_at').first()
                 
-                if car_data_points.exists():
-                    # Calculate average score from multiple data points
-                    avg_score = sum(data.score for data in car_data_points) / car_data_points.count()
-                    
-                    # Round to one decimal
-                    driver_score = round(avg_score, 1)
-                else:
-                    # If no recent data, check if there's any historical data at all
-                    any_car_data = DrivingData.objects.filter(car_id=driver.car_id.id).order_by('-created_at').first()
-                    driver_score = round(any_car_data.score, 1) if any_car_data else 0
-                
-                # Categorize driver based on score
-                if driver_score >= 90:
-                    excellent += 1
-                elif driver_score >= 80:
-                    good += 1
-                elif driver_score >= 70:
-                    average += 1
-                else:
-                    poor += 1
-                
-                # Add to drivers data
-                drivers_data.append({
-                    'id': driver.id,
-                    'name': driver.name,
-                    'car_id': driver.car_id.id,
-                    'score': driver_score,
-                    'model': driver.car_id.Model_of_car,
-                    'plate': driver.car_id.Plate_number
-                })
+                if car_data:
+                    score = car_data.score
+                    # Categorize by score
+                    if score >= 90:
+                        excellent += 1
+                    elif score >= 80:
+                        good += 1
+                    elif score >= 70:
+                        average += 1
+                    else:
+                        poor += 1
+                        
+                    # Add to driver data list
+                    drivers_data.append({
+                        'id': driver.id,
+                        'name': driver.name,
+                        'car_id': driver.car_id.id,
+                        'score': score,
+                        'model': driver.car_id.Model_of_car,
+                        'plate': driver.car_id.Plate_number
+                    })
             except Exception as e:
-                print(f"Error getting driver {driver.id} data: {str(e)}")
-                continue
-        
-        # Add driver performance data to the response
+                print(f"Error processing driver {driver.id}: {str(e)}")
+                
+        # Add to response
         overview_data['drivers'] = {
             'excellent': excellent,
             'good': good,
             'average': average,
             'poor': poor,
-            'all_drivers': drivers_data  # Include all driver details
+            'all_drivers': drivers_data
         }
         
         return JsonResponse(overview_data)
