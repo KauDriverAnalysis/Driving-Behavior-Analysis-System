@@ -20,7 +20,8 @@ import {
   useMediaQuery,
   Fade,
   Slide,
-  Zoom
+  Zoom,
+  IconButton
 } from '@mui/material';
 import { styled } from '@mui/material/styles';
 import { motion } from 'framer-motion';
@@ -33,6 +34,9 @@ import BusinessIcon from '@mui/icons-material/Business';
 import PersonIcon from '@mui/icons-material/Person';
 import CheckCircleIcon from '@mui/icons-material/CheckCircle';
 import KeyboardArrowDownIcon from '@mui/icons-material/KeyboardArrowDown';
+import LinkedInIcon from '@mui/icons-material/LinkedIn';
+import TwitterIcon from '@mui/icons-material/Twitter';
+import EmailIcon from '@mui/icons-material/Email';
 import { paths } from '@/paths';
 import { useRouter } from 'next/navigation';
 
@@ -787,22 +791,34 @@ export default function HomePage() {
       name: "Eyad Al-sayed",
       role: "Electrical and Computer Engineer",
       photo: "/assets/eyad.png",
-      initial: "E", // Keep initial as fallback
-      bio: "Computer science graduate with expertise in IoT solutions and machine learning algorithms for pattern recognition."
+      initial: "E",
+      bio: "Electrical and Computer Engineer passionate about embedded systems, IoT, robotics, and AI. Focused on leveraging these technologies to create innovative solutions and advance engineering.",
+      social: {
+        linkedin: "https://www.linkedin.com/in/eyad-alsaid/",
+        email: "mailto:eyad6938sa@gmail.com"
+      }
     },
     {
       name: "Abdullah Al-johani",
       role: "Electrical and Computer Engineer",
       photo: "/assets/abdullah.png",
-      initial: "A", // Keep initial as fallback
-      bio: "Experienced designer focused on creating intuitive and beautiful interfaces that enhance user experience."
+      initial: "A",
+      bio: "Electrical and Computer Engineering student specializing in cloud computing, certified as a Cloud Practitioner and Solution Architect. Skilled in deploying scalable solutions, including in AI.",
+      social: {
+        linkedin: "https://www.linkedin.com/in/a-aljohani/",
+        email: "mailto:abdullah.suwailem.aljohani@gmail.com"
+      }
     },
     {
       name: "Zahid Al-fahmi",
       role: "Electrical and Computer Engineer",
       photo: "/assets/zahid.png",
-      initial: "Z", // Keep initial as fallback
-      bio: "Business administration graduate who handles customer relations and develops strategic partnerships."
+      initial: "Z",
+      bio: "Senior student in Electrical and Computer Engineering with a passion for technology and innovation. Experienced in RTL, FPGA development, ISP, CNNs, embedded systems, and system integration.",
+      social: {
+        linkedin: "https://www.linkedin.com/in/zahid-alfahmi/",
+        email: "mailto:zahid.alfahmi@example.com"
+      }
     }
   ];
 
@@ -1613,17 +1629,36 @@ export default function HomePage() {
                       {member.bio}
                     </Typography>
                     <Box sx={{ display: 'flex', mt: 3, gap: 1.5 }}>
-                      {['LinkedIn', 'Twitter', 'Email'].map((platform) => (
-                        <Button 
-                          key={platform}
-                          size="small" 
-                          variant="text" 
-                          color="primary"
-                          sx={{ minWidth: 'auto', px: 1 }}
-                        >
-                          <Typography variant="caption">{platform}</Typography>
-                        </Button>
-                      ))}
+                      <IconButton
+                        component="a"
+                        href={member.social.linkedin}
+                        target="_blank"
+                        rel="noopener noreferrer"
+                        size="small"
+                        sx={{
+                          color: 'primary.main',
+                          '&:hover': {
+                            backgroundColor: 'rgba(25, 118, 210, 0.08)'
+                          }
+                        }}
+                      >
+                        <LinkedInIcon />
+                      </IconButton>
+                      <IconButton
+                        component="a"
+                        href={member.social.email}
+                        target="_blank"
+                        rel="noopener noreferrer"
+                        size="small"
+                        sx={{
+                          color: 'primary.main',
+                          '&:hover': {
+                            backgroundColor: 'rgba(25, 118, 210, 0.08)'
+                          }
+                        }}
+                      >
+                        <EmailIcon />
+                      </IconButton>
                     </Box>
                   </TeamMemberCard>
                 </MotionBox>
