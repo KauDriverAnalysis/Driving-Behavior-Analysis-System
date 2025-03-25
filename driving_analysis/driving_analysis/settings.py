@@ -25,7 +25,7 @@ SECRET_KEY = 'django-insecure-z9^fxn4*(ba#6ei0g7+@u188!)o4_()$za=62t2!&rn$0tm%=i
 # SECURITY WARNING: don't run with debug turned on in production!
 DEBUG = True
 
-ALLOWED_HOSTS = []
+ALLOWED_HOSTS = ['driving-behavior-analysis-system.onrender.com']
 
 # settings.py
 
