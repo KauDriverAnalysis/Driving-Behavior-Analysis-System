@@ -18,6 +18,7 @@ import {
 } from '@mui/material';
 import { useTheme } from '@mui/material/styles';
 import AddIcon from '@mui/icons-material/Add';
+import { SelectChangeEvent } from '@mui/material/Select';
 
 interface AddCarDialogProps {
   open: boolean;
@@ -89,6 +90,24 @@ export default function AddCarDialog({ open, onClose, onSuccess }: AddCarDialogP
     setFormData(prev => ({
       ...prev,
       [field]: field === 'Release_Year_car' ? Number(value) : value
+    }));
+    
+    // Clear validation error for this field if it exists
+    if (validationErrors[field]) {
+      setValidationErrors(prev => {
+        const newErrors = { ...prev };
+        delete newErrors[field];
+        return newErrors;
+      });
+    }
+  };
+
+  const handleSelectChange = (field: keyof CarFormData) => (
+    event: SelectChangeEvent
+  ) => {
+    setFormData(prev => ({
+      ...prev,
+      [field]: event.target.value
     }));
     
     // Clear validation error for this field if it exists
@@ -289,7 +308,7 @@ export default function AddCarDialog({ open, onClose, onSuccess }: AddCarDialogP
                 <Select
                   value={formData.State_of_car}
                   label="State"
-                  onChange={handleChange('State_of_car')}
+                  onChange={handleSelectChange('State_of_car')}
                 >
                   <MenuItem value="online">Online</MenuItem>
                   <MenuItem value="offline">Offline</MenuItem>
