@@ -1,7 +1,5 @@
 [build]
-  # Remove this line as it's causing path confusion
-  # base = "material-kit-react-main"
-  command = "pnpm install --no-frozen-lockfile && pnpm build"
+  command = "pnpm install --prefer-offline --no-frozen-lockfile && pnpm build"
   publish = ".next"
 
 [[plugins]]
