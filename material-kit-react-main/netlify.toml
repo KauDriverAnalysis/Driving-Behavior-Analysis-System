@@ -1,6 +1,6 @@
 [build]
-  command = "npm run build"
-  publish = ".next"
+  command = "cd material-kit-react-main && npm run build"
+  publish = "material-kit-react-main/.next"
 
 [[plugins]]
   package = "@netlify/plugin-nextjs"
