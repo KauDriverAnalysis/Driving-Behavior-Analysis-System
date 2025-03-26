@@ -59,7 +59,7 @@ const char *root_ca = \
 #define CS_PIN 5
 
 // Update intervals
-#define WRITE_INTERVAL 100
+#define WRITE_INTERVAL 2000
 #define MQTT_INTERVAL 2000  // Interval to send data to MQTT server (ms)
 
 // Sensor objects
@@ -86,7 +86,6 @@ String latitude = "";
 String longitude = "";
 float speedKmh = 0.0;
 unsigned long lastWriteTime = 0;
-String dataBuffer = "";
 unsigned long dataWriteCounter = 0;
 unsigned long lastMQTTTime = 0;
 
@@ -197,7 +196,103 @@ void callback(char* topic, byte* payload, unsigned int length) {
   Serial.println("-----------------------");
 }
 
+// FreeRTOS handles
+TaskHandle_t sensorTaskHandle;
+TaskHandle_t mqttTaskHandle;
+TaskHandle_t sdCardTaskHandle;
+SemaphoreHandle_t dataMutex;
 
+// Shared data buffer
+String dataBuffer = "";
+
+// Separate buffers for MQTT and SD card
+String mqttBuffer = "";
+String sdCardBuffer = "";
+
+// Task for sensor reading (MPU6050 & GPS)
+void sensorTask(void *parameter) {
+  while (true) {
+    mpu.getMotion6(&ax, &ay, &az, &gx, &gy, &gz);
+
+    while (GPS.available() > 0) {
+      char c = GPS.read();
+      if (c == '\n') {
+        parseNMEA(nmeaLine);
+        nmeaLine = "";
+      } else {
+        nmeaLine += c;
+      }
+    }
+
+    if (dmpReady && mpu.dmpGetCurrentFIFOPacket(fifoBuffer)) {
+      mpu.dmpGetQuaternion(&quat, fifoBuffer);
+      mpu.dmpGetGravity(&gravity, &quat);
+      mpu.dmpGetYawPitchRoll(ypr, &quat, &gravity);
+    }
+
+    String dataLine = DEVICE_NAME + "," + String(dataWriteCounter++) + "," 
+                    + timeG + "," + latitude + "," + longitude + "," + String(speedKmh) + ","
+                    + String(ax) + "," + String(ay) + "," + String(az) + ","
+                    + String(ypr[0] * 180 / M_PI) + "\n";
+
+    // Protect MQTT and SD card buffers with mutex
+    if (xSemaphoreTake(dataMutex, portMAX_DELAY)) {
+      mqttBuffer += dataLine;
+      sdCardBuffer += dataLine;
+      xSemaphoreGive(dataMutex);
+    }
+
+    vTaskDelay(10 / portTICK_PERIOD_MS);  // Run at ~100Hz
+  }
+}
+
+// Task for MQTT publishing
+void mqttTask(void *parameter) {
+  while (true) {
+    if (!client.connected()) {
+      reconnect();
+    }
+    client.loop();
+
+    // Protect MQTT buffer with mutex
+    if (xSemaphoreTake(dataMutex, portMAX_DELAY)) {
+      if (mqttBuffer.length() > 0) {
+        int startIndex = 0;
+        int endIndex = mqttBuffer.indexOf('\n');
+        while (endIndex != -1) {
+          String line = mqttBuffer.substring(startIndex, endIndex);
+          client.publish(mqtt_topic, line.c_str());
+          startIndex = endIndex + 1;
+          endIndex = mqttBuffer.indexOf('\n', startIndex);
+        }
+        mqttBuffer = "";  // Clear MQTT buffer after publishing
+      }
+      xSemaphoreGive(dataMutex);
+    }
+
+    vTaskDelay(MQTT_INTERVAL / portTICK_PERIOD_MS);
+  }
+}
+
+// Task for SD card writing
+void sdCardTask(void *parameter) {
+  while (true) {
+    // Protect SD card buffer with mutex
+    if (xSemaphoreTake(dataMutex, portMAX_DELAY)) {
+      if (sdCardBuffer.length() > 0) {
+        dataFile = SD.open("/datalog.csv", FILE_APPEND);
+        if (dataFile) {
+          dataFile.print(sdCardBuffer);
+          dataFile.close();
+        }
+        sdCardBuffer = "";  // Clear SD card buffer after writing
+      }
+      xSemaphoreGive(dataMutex);
+    }
+
+    vTaskDelay(WRITE_INTERVAL / portTICK_PERIOD_MS);
+  }
+}
 
 void setup() {
   Serial.begin(115200);
@@ -270,74 +365,17 @@ void setup() {
   } else {
     Serial.println("Failed to create file!");
   }
+
+  // Create mutex
+  dataMutex = xSemaphoreCreateMutex();
+
+  // Create FreeRTOS tasks
+  xTaskCreatePinnedToCore(sensorTask, "Sensor Task", 4096, NULL, 3, &sensorTaskHandle, 1);
+  xTaskCreatePinnedToCore(mqttTask, "MQTT Task", 4096, NULL, 2, &mqttTaskHandle, 0);
+  xTaskCreatePinnedToCore(sdCardTask, "SD Card Task", 4096, NULL, 2, &sdCardTaskHandle, 0);
 }
 
 void loop() {
-  if (!client.connected()) {
-    reconnect();
-  }
-  client.loop();
-  
-  mpu.getMotion6(&ax, &ay, &az, &gx, &gy, &gz);
-
-  while (GPS.available() > 0) {
-    char c = GPS.read();
-    if (c == '\n') {
-      parseNMEA(nmeaLine);
-      nmeaLine = "";
-    } else {
-      nmeaLine += c;
-    }
-  }
-
-  if (dmpReady && mpu.dmpGetCurrentFIFOPacket(fifoBuffer)) {
-    mpu.dmpGetQuaternion(&quat, fifoBuffer);
-    mpu.dmpGetGravity(&gravity, &quat);
-    mpu.dmpGetYawPitchRoll(ypr, &quat, &gravity);
- 
-
-  }
-
-  dataWriteCounter++;
-  
-  // Streamlined data line with device name at the beginning and only needed fields
-  String dataLine = DEVICE_NAME + "," + String(dataWriteCounter) + "," 
-                  + timeG + "," + latitude + "," + longitude + "," + String(speedKmh) + ","
-                  + String(ax) + "," + String(ay) + "," + String(az) + ","
-                  + String(ypr[0] * 180/M_PI) + "\n";  // Only keep yaw from orientation
-  dataBuffer += dataLine;
-
-  if (millis() - lastWriteTime >= WRITE_INTERVAL) {
-    lastWriteTime = millis();
-
-    dataFile = SD.open("/datalog.csv", FILE_APPEND);
-    if (dataFile) {
-      dataFile.print(dataBuffer);
-      dataFile.close();
-      Serial.printf("Data written! Counter: %d\n", dataWriteCounter);
-    } else {
-      Serial.println("Error writing to SD card!");
-    }
-
-    Serial.printf("Current Heap: %d bytes\n", ESP.getFreeHeap());
-    Serial.printf("Buffer size: %d characters\n", dataBuffer.length());
-  }
-
-  if (millis() - lastMQTTTime >= MQTT_INTERVAL) {
-    lastMQTTTime = millis();
-
-    // Split dataBuffer into individual lines and publish each line
-    int startIndex = 0;
-    int endIndex = dataBuffer.indexOf('\n');
-    while (endIndex != -1) {
-      String line = dataBuffer.substring(startIndex, endIndex);
-      client.publish(mqtt_topic, line.c_str());
-      startIndex = endIndex + 1;
-      endIndex = dataBuffer.indexOf('\n', startIndex);
-    }
-
-    // Clear the buffer after sending
-    dataBuffer = "";
-  }
+  // Empty loop as tasks handle all functionality
 }
 
