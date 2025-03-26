@@ -1,11 +1,31 @@
-[build]
-  command = "NODE_OPTIONS='--max_old_space_size=4096' pnpm install --no-frozen-lockfile --strict-peer-dependencies=false --force && pnpm build"
-  publish = ".next"
-
-[[plugins]]
-  package = "@netlify/plugin-nextjs"
-
-[[redirects]]
-  from = "/*"
-  to = "/index.html"
-  status = 200
+5:42:56 AM:  ELIFECYCLE  Command failed with exit code 1. (https://ntl.fyi/exit-code-1)
+5:42:56 AM: ​
+5:42:56 AM: "build.command" failed                                        
+5:42:56 AM: ────────────────────────────────────────────────────────────────
+5:42:56 AM: ​
+5:42:56 AM:   Error message
+5:42:56 AM:   Command failed with exit code 1: NODE_OPTIONS='--max_old_space_size=4096' pnpm install --no-frozen-lockfile --strict-peer-dependencies=false --force && pnpm build (https://ntl.fyi/exit-code-1)
+5:42:56 AM: ​
+5:42:56 AM:   Error location
+5:42:56 AM:   In build.command from netlify.toml:
+5:42:56 AM:   NODE_OPTIONS='--max_old_space_size=4096' pnpm install --no-frozen-lockfile --strict-peer-dependencies=false --force && pnpm build
+5:42:56 AM: ​
+5:42:56 AM:   Resolved config
+5:42:56 AM:   build:
+5:42:56 AM:     base: /opt/build/repo/material-kit-react-main
+5:42:56 AM:     command: NODE_OPTIONS='--max_old_space_size=4096' pnpm install --no-frozen-lockfile --strict-peer-dependencies=false --force && pnpm build
+5:42:56 AM:     commandOrigin: config
+5:42:56 AM:     publish: /opt/build/repo/material-kit-react-main/.next
+5:42:56 AM:     publishOrigin: config
+5:42:56 AM:   plugins:
+5:42:56 AM:     - inputs: {}
+5:42:56 AM:       origin: config
+5:42:56 AM:       package: '@netlify/plugin-nextjs'
+5:42:56 AM:   redirects:
+5:42:56 AM:     - from: /*
+      status: 200
+      to: /index.html
+  redirectsOrigin: config
+5:42:56 AM: Build failed due to a user error: Build script returned non-zero exit code: 2
+5:42:57 AM: Failing build: Failed to build site
+5:42:57 AM: Finished processing build request in 1m8.379s
