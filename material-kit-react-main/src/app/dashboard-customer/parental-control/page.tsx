@@ -36,17 +36,28 @@ const ParentalControlDashboard = () => {
     setTabValue(newValue);
   };
 
-  // Add useEffect for fetching cars
+  // Make sure cars are filtered by customer ID
   React.useEffect(() => {
     setLoading(true);
-    fetch('https://driving-behavior-analysis-system.onrender.com/api/cars/')
+    
+    // Get customer ID
+    const customerId = localStorage.getItem('customer-id') || 
+                      localStorage.getItem('customer_id') || 
+                      localStorage.getItem('userId');
+    
+    // Create URL with query parameters - add userType and userId
+    const url = customerId 
+      ? `https://driving-behavior-analysis-system.onrender.com/api/cars/?userType=customer&userId=${customerId}`
+      : 'https://driving-behavior-analysis-system.onrender.com/api/cars/';
+    
+    fetch(url)
       .then((response) => response.json())
       .then((data) => {
         const mappedCars = Array.isArray(data) ? data.map((item) => ({
           id: item.id || '',
-          Model: item.Model || item.model || '',
-          Type: item.Type || item.type || '',
-          plate_number: item.plate_number || ''
+          Model: item.model || item.Model_of_car || '',
+          Type: item.type || item.TypeOfCar || '',
+          plate_number: item.plateNumber || item.Plate_number || ''
         })) : [];
         
         setCars(mappedCars);
@@ -127,7 +138,19 @@ const ParentalControlDashboard = () => {
       {/* Tab Content */}
       {tabValue === 0 && <OverviewTab />}
       {tabValue === 1 && <EmergencyContactsTab showNotification={showNotification} />}
-      {tabValue === 2 && <AlertsTab />}
+      {tabValue === 2 && (
+        <AlertsTab 
+          selectedCar={selectedCar} 
+          carDetails={
+            selectedCar !== 'all' 
+              ? {
+                  model: cars.find(c => c.id === selectedCar)?.Model || 'Unknown',
+                  plateNumber: cars.find(c => c.id === selectedCar)?.plate_number || 'Unknown'
+                }
+              : undefined
+          }
+        />
+      )}
       {tabValue === 3 && <PatternScoreTab showNotification={showNotification} />}
     </Box>
   );

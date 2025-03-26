@@ -1,61 +1,337 @@
-import React from 'react';
-import { Box, Paper, Typography, List, ListItem, ListItemIcon, ListItemText, Switch } from '@mui/material';
+import React, { useState, useEffect } from 'react';
+import { 
+  Box, 
+  Paper, 
+  Typography, 
+  List, 
+  ListItem, 
+  ListItemIcon, 
+  ListItemText, 
+  Switch, 
+  CircularProgress, 
+  TextField,
+  InputAdornment
+} from '@mui/material';
 import WarningIcon from '@mui/icons-material/Warning';
-import { recentAlerts } from '../data/mockData';
+import SpeedIcon from '@mui/icons-material/Speed';
+import NotListedLocationIcon from '@mui/icons-material/NotListedLocation';
+import TrendingDownIcon from '@mui/icons-material/TrendingDown';
+import TrendingUpIcon from '@mui/icons-material/TrendingUp';
+import SearchIcon from '@mui/icons-material/Search';
+import { Alert } from '@/types/alert';
 
 const AlertsTab: React.FC = () => {
+  const [alerts, setAlerts] = useState<Alert[]>([]);
+  const [loading, setLoading] = useState(true);
+  const [error, setError] = useState<string | null>(null);
+  const [searchTerm, setSearchTerm] = useState('');
+  const [alertSettings, setAlertSettings] = useState({
+    harshBraking: true,
+    hardAcceleration: true,
+    swerving: true,
+    overSpeed: true,
+    geofence: true
+  });
+
+  // Handle search input change
+  const handleSearchChange = (event: React.ChangeEvent<HTMLInputElement>) => {
+    setSearchTerm(event.target.value);
+  };
+
+  // Fetch alerts from API
+  useEffect(() => {
+    const fetchAlerts = async () => {
+      try {
+        setLoading(true);
+        
+        // Get company ID from localStorage with multiple fallbacks
+        const companyId = localStorage.getItem('company_id') || 
+                         localStorage.getItem('companyId') ||
+                         localStorage.getItem('userId') ||
+                         localStorage.getItem('employee-company-id');
+                      
+        if (!companyId) {
+          throw new Error('No company ID found');
+        }
+        
+        console.log("Using company ID:", companyId);
+        
+        // Get all cars for this company
+        const carsResponse = await fetch(`https://driving-behavior-analysis-system.onrender.com/api/cars/?userType=company&userId=${companyId}`);
+        
+        if (!carsResponse.ok) {
+          throw new Error(`Failed to fetch cars: ${carsResponse.status} ${carsResponse.statusText}`);
+        }
+        
+        const cars = await carsResponse.json();
+        
+        console.log("Cars fetched:", cars);
+        
+        if (!Array.isArray(cars) || cars.length === 0) {
+          setAlerts([]);
+          setLoading(false);
+          return;
+        }
+        
+        // Collect alerts for all company's cars
+        const allAlerts: Alert[] = [];
+        
+        for (const car of cars) {
+          try {
+            // Fetch driving data for this car
+            const dataResponse = await fetch(`https://driving-behavior-analysis-system.onrender.com/api/car-driving-data/${car.id}/`);
+            
+            if (!dataResponse.ok) {
+              console.warn(`Failed to fetch data for car ${car.id}: ${dataResponse.status}`);
+              continue;
+            }
+            
+            const carData = await dataResponse.json();
+            
+            console.log(`Car ${car.id} data:`, carData);
+            
+            // Instead of looking for records array, check the current data
+            if (!carData || !carData.current) continue;
+            
+            // Process current data - this contains the latest metrics
+            const record = carData.current;
+            // Create a synthetic record ID for alerts
+            const recordId = new Date().getTime();
+            
+            // Check for speeding > 120km/h
+            if (record.speed > 120) {
+              allAlerts.push({
+                id: `speed-${car.id}-${recordId}`,
+                type: 'speeding',
+                message: `Vehicle exceeded speed limit: ${Math.round(record.speed)} km/h`,
+                severity: 'error',
+                isRead: false,
+                timestamp: new Date().toISOString(),
+                carInfo: {
+                  id: car.id,
+                  model: car.Model_of_car || car.model,
+                  plateNumber: car.Plate_number || car.plateNumber
+                }
+              });
+            }
+            
+            // Check for harsh braking events > 25
+            if (record.harsh_braking_events > 25) {
+              allAlerts.push({
+                id: `brake-${car.id}-${recordId}`,
+                type: 'harsh_braking',
+                message: `Excessive harsh braking detected: ${record.harsh_braking_events} events`,
+                severity: 'warning',
+                isRead: false,
+                timestamp: new Date().toISOString(),
+                carInfo: {
+                  id: car.id,
+                  model: car.Model_of_car || car.model,
+                  plateNumber: car.Plate_number || car.plateNumber
+                }
+              });
+            }
+            
+            // Check for harsh acceleration > 25
+            if (record.harsh_acceleration_events > 25) {
+              allAlerts.push({
+                id: `accel-${car.id}-${recordId}`,
+                type: 'harsh_acceleration',
+                message: `Excessive harsh acceleration detected: ${record.harsh_acceleration_events} events`,
+                severity: 'warning',
+                isRead: false,
+                timestamp: new Date().toISOString(),
+                carInfo: {
+                  id: car.id,
+                  model: car.Model_of_car || car.model,
+                  plateNumber: car.Plate_number || car.plateNumber
+                }
+              });
+            }
+            
+            // Check for swerving > 25
+            if (record.swerving_events > 25) {
+              allAlerts.push({
+                id: `swerve-${car.id}-${recordId}`,
+                type: 'swerving',
+                message: `Excessive swerving detected: ${record.swerving_events} events`,
+                severity: 'warning',
+                isRead: false,
+                timestamp: new Date().toISOString(),
+                carInfo: {
+                  id: car.id,
+                  model: car.Model_of_car || car.model,
+                  plateNumber: car.Plate_number || car.plateNumber
+                }
+              });
+            }
+          } catch (carError) {
+            console.error(`Error processing car ${car.id}:`, carError);
+          }
+        }
+        
+        // Sort alerts by timestamp (newest first)
+        allAlerts.sort((a, b) => new Date(b.timestamp).getTime() - new Date(a.timestamp).getTime());
+        
+        console.log("Alerts found:", allAlerts.length);
+        setAlerts(allAlerts);
+        setLoading(false);
+      } catch (err) {
+        console.error('Error fetching alerts:', err);
+        setError('Failed to load alerts');
+        setLoading(false);
+      }
+    };
+
+    fetchAlerts();
+  }, []);
+  
+  // Handle alert setting toggling
+  const handleSettingChange = (setting: string) => (event: React.ChangeEvent<HTMLInputElement>) => {
+    setAlertSettings({
+      ...alertSettings,
+      [setting]: event.target.checked
+    });
+  };
+
+  // Filter alerts based on search term
+  const filteredAlerts = alerts.filter(alert => {
+    const searchLower = searchTerm.toLowerCase();
+    return alert.message.toLowerCase().includes(searchLower) || 
+           alert.carInfo.model.toLowerCase().includes(searchLower) || 
+           alert.carInfo.plateNumber.toLowerCase().includes(searchLower) ||
+           alert.type.toLowerCase().includes(searchLower);
+  });
+
+  // Format timestamp to relative time
+  const formatTimestamp = (timestamp: string) => {
+    const date = new Date(timestamp);
+    const now = new Date();
+    const diffMs = now.getTime() - date.getTime();
+    const diffMins = Math.round(diffMs / 60000);
+    
+    if (diffMins < 1) return 'Just now';
+    if (diffMins < 60) return `${diffMins} min ago`;
+    if (diffMins < 1440) return `${Math.floor(diffMins / 60)} hours ago`;
+    return date.toLocaleDateString();
+  };
+  
+  // Get icon for alert type
+  const getAlertIcon = (type: string) => {
+    switch (type) {
+      case 'speeding':
+        return <SpeedIcon />;
+      case 'harsh_braking':
+        return <TrendingDownIcon />;
+      case 'harsh_acceleration':
+        return <TrendingUpIcon />;
+      case 'swerving':
+        return <NotListedLocationIcon />;
+      default:
+        return <WarningIcon />;
+    }
+  };
+  
+  // Get color for alert severity
+  const getAlertColor = (severity: string) => {
+    switch (severity) {
+      case 'error':
+        return 'error.main';
+      case 'warning':
+        return 'warning.main';
+      default:
+        return 'info.main';
+    }
+  };
+
   return (
     <Box sx={{ mt: 3, width: '100%' }}>
+      {/* Add search box for alerts */}
+      <TextField
+        fullWidth
+        variant="outlined"
+        placeholder="Search alerts by vehicle, type, or message..."
+        value={searchTerm}
+        onChange={handleSearchChange}
+        sx={{ mb: 3 }}
+        InputProps={{
+          startAdornment: (
+            <InputAdornment position="start">
+              <SearchIcon />
+            </InputAdornment>
+          ),
+        }}
+      />
+    
       <Paper sx={{ 
         p: 3, 
         borderRadius: 3, 
         mb: 3,
         minHeight: { xs: 'auto', md: '400px' }
       }}>
-        <Typography variant="h6" fontWeight="medium" sx={{ mb: 2 }}>Recent Alerts</Typography>
-        <List>
-          {recentAlerts.map(alert => (
-            <ListItem 
-              key={alert.id}
-              sx={{ 
-                borderRadius: 2, 
-                mb: 1,
-                borderLeft: 4,
-                borderColor: 
-                  alert.severity === 'error' ? 'error.main' : 
-                  alert.severity === 'warning' ? 'warning.main' : 
-                  'info.main',
-                bgcolor: 
-                  alert.severity === 'error' ? 'error.light' : 
-                  alert.severity === 'warning' ? 'warning.light' : 
-                  'info.light',
-              }}
-            >
-              <ListItemIcon>
-                <Box sx={{ 
-                  p: 1, 
-                  borderRadius: '50%', 
-                  bgcolor: 
-                    alert.severity === 'error' ? 'error.main' : 
-                    alert.severity === 'warning' ? 'warning.main' : 
-                    'info.main',
-                  color: 'white'
-                }}>
-                  <WarningIcon fontSize="small" />
-                </Box>
-              </ListItemIcon>
-              <ListItemText 
-                primary={
-                  <Box sx={{ display: 'flex', justifyContent: 'space-between' }}>
-                    <Typography fontWeight="medium">{alert.type} Alert</Typography>
-                    <Typography variant="body2" color="text.secondary">{alert.time}</Typography>
+        <Typography variant="h6" fontWeight="medium" sx={{ mb: 2 }}>Fleet Alerts</Typography>
+        
+        {loading && (
+          <Box sx={{ display: 'flex', justifyContent: 'center', my: 4 }}>
+            <CircularProgress />
+          </Box>
+        )}
+        
+        {!loading && error && (
+          <Typography color="error" sx={{ textAlign: 'center', my: 4 }}>
+            {error}
+          </Typography>
+        )}
+        
+        {!loading && !error && filteredAlerts.length === 0 && (
+          <Typography sx={{ textAlign: 'center', my: 4, color: 'text.secondary' }}>
+            {searchTerm ? 'No alerts match your search criteria.' : 'No alerts found. All vehicles operating within normal parameters.'}
+          </Typography>
+        )}
+        
+        {!loading && !error && filteredAlerts.length > 0 && (
+          <List>
+            {filteredAlerts.map(alert => (
+              <ListItem 
+                key={alert.id}
+                sx={{ 
+                  borderRadius: 2, 
+                  mb: 1,
+                  borderLeft: 4,
+                  borderColor: getAlertColor(alert.severity),
+                  bgcolor: `${getAlertColor(alert.severity)}10`,
+                }}
+              >
+                <ListItemIcon>
+                  <Box sx={{ 
+                    p: 1, 
+                    borderRadius: '50%', 
+                    bgcolor: getAlertColor(alert.severity),
+                    color: 'white'
+                  }}>
+                    {getAlertIcon(alert.type)}
                   </Box>
-                }
-                secondary={alert.message}
-              />
-            </ListItem>
-          ))}
-        </List>
+                </ListItemIcon>
+                <ListItemText 
+                  primary={
+                    <Box sx={{ display: 'flex', justifyContent: 'space-between' }}>
+                      <Typography fontWeight="medium">{alert.type.replace('_', ' ').toUpperCase()} Alert</Typography>
+                      <Typography variant="body2" color="text.secondary">{formatTimestamp(alert.timestamp)}</Typography>
+                    </Box>
+                  }
+                  secondary={
+                    <>
+                      <Typography variant="body2">{alert.message}</Typography>
+                      <Typography variant="caption" color="text.secondary">
+                        {alert.carInfo.model} ({alert.carInfo.plateNumber})
+                      </Typography>
+                    </>
+                  }
+                />
+              </ListItem>
+            ))}
+          </List>
+        )}
       </Paper>
       
       <Paper sx={{ 
@@ -63,51 +339,58 @@ const AlertsTab: React.FC = () => {
         borderRadius: 3,
         minHeight: { xs: 'auto', md: '300px' }
       }}>
-        <Typography variant="h6" fontWeight="medium" sx={{ mb: 2 }}>Alert Settings</Typography>
+        <Typography variant="h6" fontWeight="medium" sx={{ mb: 2 }}>Company Alert Settings</Typography>
         <AlertSettingItem 
           title="Harsh Braking" 
           description="Notify when harsh braking events are detected" 
-          defaultChecked={true} 
+          checked={alertSettings.harshBraking}
+          onChange={handleSettingChange('harshBraking')}
         />
         <AlertSettingItem 
           title="Hard Acceleration" 
           description="Notify when aggressive acceleration is detected" 
-          defaultChecked={true} 
+          checked={alertSettings.hardAcceleration}
+          onChange={handleSettingChange('hardAcceleration')}
         />
         <AlertSettingItem 
           title="Swerving" 
           description="Notify when sudden lane changes or swerving occurs" 
-          defaultChecked={true} 
+          checked={alertSettings.swerving}
+          onChange={handleSettingChange('swerving')}
         />
         <AlertSettingItem 
           title="Over Speed" 
           description="Notify when vehicle exceeds speed limits" 
-          defaultChecked={true} 
+          checked={alertSettings.overSpeed}
+          onChange={handleSettingChange('overSpeed')}
         />
         <AlertSettingItem 
           title="Geofence Boundary" 
           description="Notify when vehicle leaves designated area" 
-          defaultChecked={true} 
+          checked={alertSettings.geofence}
+          onChange={handleSettingChange('geofence')}
         />
       </Paper>
     </Box>
   );
 };
 
+// Alert Setting Item Component
 interface AlertSettingItemProps {
   title: string;
   description: string;
-  defaultChecked: boolean;
+  checked: boolean;
+  onChange: (event: React.ChangeEvent<HTMLInputElement>) => void;
 }
 
-const AlertSettingItem: React.FC<AlertSettingItemProps> = ({ title, description, defaultChecked }) => {
+const AlertSettingItem: React.FC<AlertSettingItemProps> = ({ title, description, checked, onChange }) => {
   return (
     <ListItem sx={{ bgcolor: '#f5f5f5', borderRadius: 1, mb: 1 }}>
       <ListItemText 
         primary={<Typography fontWeight="medium">{title}</Typography>}
         secondary={description}
       />
-      <Switch defaultChecked={defaultChecked} edge="end" />
+      <Switch checked={checked} onChange={onChange} edge="end" />
     </ListItem>
   );
 };
