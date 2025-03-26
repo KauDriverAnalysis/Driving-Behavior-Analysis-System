@@ -1,7 +1,11 @@
 [build]
-  base = "material-kit-react-main"
+  base = ""  # Remove this line or leave it empty
   command = "pnpm install && pnpm build"
   publish = ".next"
+
+[build.environment]
+  NODE_VERSION = "18.17.0"  # Match the version from your package.json
+  NPM_FLAGS = "--no-audit --no-fund"
 
 [[plugins]]
   package = "@netlify/plugin-nextjs"
