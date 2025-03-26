@@ -360,12 +360,11 @@ const ScrollDownButton = styled(Button)(({ theme }) => ({
   }
 }));
 
-const FloatingElement = styled(Box)(({ theme }) => ({
+const FloatingElement = styled(motion.div)(({ theme }) => ({
   position: 'absolute',
   borderRadius: '50%',
   background: 'linear-gradient(135deg, rgba(25, 118, 210, 0.2), rgba(25, 118, 210, 0))',
   backdropFilter: 'blur(8px)',
-  animation: 'float 15s ease-in-out infinite'
 }));
 
 // Add this new component for a modern circuit-board style background
