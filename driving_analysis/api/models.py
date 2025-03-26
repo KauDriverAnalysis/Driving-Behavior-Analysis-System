@@ -92,7 +92,38 @@ class Geofence(models.Model):
     def get_coordinates(self):
         return json.loads(self.coordinates_json)
     
- 
-
+ # Add this to your existing models.py file
+class ScorePattern(models.Model):
+    # Foreign keys - one of these must be set
+    customer_id = models.ForeignKey(Customer, on_delete=models.CASCADE, null=True, blank=True)
+    company_id = models.ForeignKey(Company, on_delete=models.CASCADE, null=True, blank=True)
+    
+    # Scoring weights (percentages)
+    harsh_braking_weight = models.IntegerField(default=20)
+    harsh_acceleration_weight = models.IntegerField(default=10)
+    swerving_weight = models.IntegerField(default=30)
+    over_speed_weight = models.IntegerField(default=20)
+    potential_swerving_weight = models.IntegerField(default=0)  # Not used by default
+    
+    # Timestamps
+    created_at = models.DateTimeField(auto_now_add=True)
+    updated_at = models.DateTimeField(auto_now=True)
+    
+    class Meta:
+        constraints = [
+            models.CheckConstraint(
+                check=models.Q(customer_id__isnull=False) | models.Q(company_id__isnull=False),
+                name='score_pattern_customer_or_company'
+            )
+        ]
+        
+    def is_valid(self):
+        """Check if weights sum to 100"""
+        total = (self.harsh_braking_weight + 
+                 self.harsh_acceleration_weight + 
+                 self.swerving_weight + 
+                 self.over_speed_weight + 
+                 self.potential_swerving_weight)
+        return total == 100
 
 

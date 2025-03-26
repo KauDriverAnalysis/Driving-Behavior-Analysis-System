@@ -2,8 +2,8 @@ from django.shortcuts import render, get_object_or_404, redirect
 from django.http import JsonResponse, HttpResponse
 import folium
 from django.core.cache import cache
-from .models import DrivingData, Customer, Company, Car, Driver
-from .forms import CustomerForm, CompanyForm, CarForm, DriverForm, DrivingDataForm
+from .models import DrivingData, Customer, Company, Car, Driver, ScorePattern
+from .forms import CustomerForm, CompanyForm, CarForm, DriverForm, DrivingDataForm, ScorePattern
 from .models import DrivingData, Customer, Company, Car, Driver,Employee
 from .forms import CustomerForm, CompanyForm, CarForm, DriverForm,DrivingDataForm,EmployeeForm
 from .cleansing_data import cleanse_data
@@ -2070,4 +2070,234 @@ def get_fleet_overview(request):
         return JsonResponse(overview_data)
     except Exception as e:
         print(f"Error in get_fleet_overview: {str(e)}")
+        return JsonResponse({'error': str(e)}, status=500)
+    
+
+def score_chunk(chunk_df, results, car_id=None):
+    """Score the driving behavior with custom weights if available"""
+    from .models import Car, ScorePattern
+    
+    # Initialize score to 100%
+    score = 100
+    
+    # Try to get custom scoring pattern for this car
+    custom_weights = None
+    
+    if car_id:
+        try:
+            car = Car.objects.get(id=car_id)
+            
+            # First check if there's a customer-specific pattern
+            if car.customer_id:
+                custom_weights = ScorePattern.objects.filter(customer_id=car.customer_id).first()
+            
+            # If no customer-specific pattern, try company pattern
+            if not custom_weights and car.company_id:
+                custom_weights = ScorePattern.objects.filter(company_id=car.company_id).first()
+        except Exception as e:
+            print(f"Error getting custom weights: {str(e)}")
+    
+    # Define weights - use custom ones if available, otherwise defaults
+    if custom_weights:
+        harsh_braking_weight = custom_weights.harsh_braking_weight
+        harsh_acceleration_weight = custom_weights.harsh_acceleration_weight
+        swerving_weight = custom_weights.swerving_weight
+        overspeed_weight = custom_weights.over_speed_weight
+        potential_swerving_weight = custom_weights.potential_swerving_weight
+    else:
+        # Default weights
+        harsh_braking_weight = 20
+        harsh_acceleration_weight = 10
+        swerving_weight = 30
+        overspeed_weight = 20
+        potential_swerving_weight = 0
+
+    # Apply scoring deductions based on detected events
+    score -= results['harsh_braking_events'] * harsh_braking_weight / 100
+    score -= results['harsh_acceleration_events'] * harsh_acceleration_weight / 100
+    score -= results['swerving_events'] * swerving_weight / 100
+    score -= results['over_speed_events'] * overspeed_weight / 100
+    score -= results['potential_swerving_events'] * potential_swerving_weight / 100
+
+    # Ensure the score doesn't go below 0%
+    score = max(score, 0)
+
+    return score
+
+@csrf_exempt
+def get_score_pattern(request):
+    """
+    Get the score pattern for a company or customer
+    """
+    try:
+        user_type = request.GET.get('userType')
+        user_id = request.GET.get('userId')
+        
+        if not user_type or not user_id:
+            return JsonResponse({
+                'error': 'Both userType and userId are required'
+            }, status=400)
+        
+        # Find the appropriate pattern
+        if user_type == 'customer':
+            score_pattern = ScorePattern.objects.filter(customer_id=user_id).first()
+        elif user_type in ['company', 'admin', 'employee']:
+            # For employees, get the company ID
+            if user_type == 'employee':
+                try:
+                    employee = Employee.objects.get(id=user_id)
+                    if employee.company_id:
+                        score_pattern = ScorePattern.objects.filter(company_id=employee.company_id.id).first()
+                    else:
+                        score_pattern = None
+                except Employee.DoesNotExist:
+                    score_pattern = None
+            else:
+                score_pattern = ScorePattern.objects.filter(company_id=user_id).first()
+        else:
+            return JsonResponse({
+                'error': 'Invalid userType. Must be "customer", "company", "admin", or "employee"'
+            }, status=400)
+        
+        # If no pattern exists, create default
+        if not score_pattern:
+            if user_type == 'customer':
+                try:
+                    customer = Customer.objects.get(id=user_id)
+                    score_pattern = ScorePattern.objects.create(customer_id=customer)
+                except Customer.DoesNotExist:
+                    return JsonResponse({'error': 'Customer not found'}, status=404)
+            elif user_type in ['company', 'admin']:
+                try:
+                    company = Company.objects.get(id=user_id)
+                    score_pattern = ScorePattern.objects.create(company_id=company)
+                except Company.DoesNotExist:
+                    return JsonResponse({'error': 'Company not found'}, status=404)
+            elif user_type == 'employee':
+                try:
+                    employee = Employee.objects.get(id=user_id)
+                    if employee.company_id:
+                        score_pattern = ScorePattern.objects.create(company_id=employee.company_id)
+                    else:
+                        return JsonResponse({'error': 'Employee has no company'}, status=404)
+                except Employee.DoesNotExist:
+                    return JsonResponse({'error': 'Employee not found'}, status=404)
+        
+        # Return the pattern
+        return JsonResponse({
+            'id': score_pattern.id,
+            'harshBraking': score_pattern.harsh_braking_weight,
+            'harshAcceleration': score_pattern.harsh_acceleration_weight,
+            'swerving': score_pattern.swerving_weight,
+            'overSpeed': score_pattern.over_speed_weight,
+            'potentialSwerving': score_pattern.potential_swerving_weight,
+            'customerId': score_pattern.customer_id_id,
+            'companyId': score_pattern.company_id_id,
+            'createdAt': score_pattern.created_at.isoformat(),
+            'updatedAt': score_pattern.updated_at.isoformat()
+        })
+    except Exception as e:
+        print(f"Error getting score pattern: {str(e)}")
+        return JsonResponse({'error': str(e)}, status=500)
+
+@csrf_exempt
+def update_score_pattern(request):
+    """
+    Update the score pattern for a company or customer
+    """
+    if request.method != 'POST':
+        return JsonResponse({'error': 'Method not allowed'}, status=405)
+    
+    try:
+        # Parse request body
+        data = json.loads(request.body)
+        
+        # Get required fields
+        user_type = data.get('userType')
+        user_id = data.get('userId')
+        
+        if not user_type or not user_id:
+            return JsonResponse({
+                'error': 'Both userType and userId are required'
+            }, status=400)
+        
+        # Get weights
+        harsh_braking = int(data.get('harshBraking', 20))
+        harsh_acceleration = int(data.get('harshAcceleration', 10)) 
+        swerving = int(data.get('swerving', 30))
+        over_speed = int(data.get('overSpeed', 20))
+        potential_swerving = int(data.get('potentialSwerving', 0))
+        
+        # Validate weights sum to 100
+        total = harsh_braking + harsh_acceleration + swerving + over_speed + potential_swerving
+        if total != 100:
+            return JsonResponse({
+                'error': f'Weights must sum to 100. Current total: {total}'
+            }, status=400)
+        
+        # Find or create pattern
+        if user_type == 'customer':
+            customer = Customer.objects.get(id=user_id)
+            score_pattern, created = ScorePattern.objects.get_or_create(
+                customer_id=customer,
+                defaults={
+                    'harsh_braking_weight': harsh_braking,
+                    'harsh_acceleration_weight': harsh_acceleration,
+                    'swerving_weight': swerving,
+                    'over_speed_weight': over_speed,
+                    'potential_swerving_weight': potential_swerving
+                }
+            )
+            if not created:
+                score_pattern.harsh_braking_weight = harsh_braking
+                score_pattern.harsh_acceleration_weight = harsh_acceleration
+                score_pattern.swerving_weight = swerving
+                score_pattern.over_speed_weight = over_speed
+                score_pattern.potential_swerving_weight = potential_swerving
+                score_pattern.save()
+        elif user_type in ['company', 'admin', 'employee']:
+            # For employees, get the company ID
+            if user_type == 'employee':
+                employee = Employee.objects.get(id=user_id)
+                if not employee.company_id:
+                    return JsonResponse({'error': 'Employee has no company'}, status=400)
+                company = employee.company_id
+            else:
+                company = Company.objects.get(id=user_id)
+                
+            score_pattern, created = ScorePattern.objects.get_or_create(
+                company_id=company,
+                defaults={
+                    'harsh_braking_weight': harsh_braking,
+                    'harsh_acceleration_weight': harsh_acceleration,
+                    'swerving_weight': swerving,
+                    'over_speed_weight': over_speed,
+                    'potential_swerving_weight': potential_swerving
+                }
+            )
+            if not created:
+                score_pattern.harsh_braking_weight = harsh_braking
+                score_pattern.harsh_acceleration_weight = harsh_acceleration
+                score_pattern.swerving_weight = swerving
+                score_pattern.over_speed_weight = over_speed
+                score_pattern.potential_swerving_weight = potential_swerving
+                score_pattern.save()
+        else:
+            return JsonResponse({
+                'error': 'Invalid userType. Must be "customer", "company", "admin", or "employee"'
+            }, status=400)
+        
+        return JsonResponse({
+            'success': True,
+            'message': 'Score pattern updated successfully',
+            'id': score_pattern.id
+        })
+    except Customer.DoesNotExist:
+        return JsonResponse({'error': 'Customer not found'}, status=404)
+    except Company.DoesNotExist:
+        return JsonResponse({'error': 'Company not found'}, status=404)
+    except Employee.DoesNotExist:
+        return JsonResponse({'error': 'Employee not found'}, status=404)
+    except Exception as e:
+        print(f"Error updating score pattern: {str(e)}")
         return JsonResponse({'error': str(e)}, status=500)
