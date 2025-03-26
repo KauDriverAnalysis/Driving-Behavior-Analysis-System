@@ -84,13 +84,20 @@ export function CarsTable({ cars, onSelectCar, selectedCar }: CarsTableProps): R
         if (bValue === undefined || bValue === null) return sortBy.direction === 'asc' ? 1 : -1;
         
         // Compare values based on type
-        if (typeof aValue === 'string') {
+        if (typeof aValue === 'string' && typeof bValue === 'string') {
           return sortBy.direction === 'asc' 
             ? aValue.localeCompare(bValue) 
             : bValue.localeCompare(aValue);
-        } else {
+        } else if (typeof aValue === 'number' && typeof bValue === 'number') {
           return sortBy.direction === 'asc' ? aValue - bValue : bValue - aValue;
+        } else if (typeof aValue === 'boolean' && typeof bValue === 'boolean') {
+          return sortBy.direction === 'asc' 
+            ? (aValue === bValue ? 0 : aValue ? 1 : -1)
+            : (aValue === bValue ? 0 : aValue ? -1 : 1);
         }
+        
+        // If types don't match or aren't handled, maintain original order
+        return 0;
       })
     : filteredCars;
 

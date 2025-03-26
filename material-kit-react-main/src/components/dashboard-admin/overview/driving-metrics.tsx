@@ -8,6 +8,7 @@ import Box from '@mui/material/Box';
 import Grid from '@mui/material/Grid';
 import LinearProgress from '@mui/material/LinearProgress';
 import dynamic from 'next/dynamic';
+import type { ApexOptions } from 'apexcharts';
 
 // Dynamically import ApexCharts to avoid SSR issues
 const Chart = dynamic(() => import('react-apexcharts'), { ssr: false });
@@ -46,7 +47,7 @@ export function DrivingMetrics({ data }: DrivingMetricsProps) {
     { name: 'Speeding', value: safeData.speeding, percentage: getPercentage(safeData.speeding), color: '#F44336' }
   ];
 
-  const radarChartOptions = {
+  const radarChartOptions: ApexOptions = {
     chart: {
       background: 'transparent',
       toolbar: {
@@ -74,8 +75,8 @@ export function DrivingMetrics({ data }: DrivingMetricsProps) {
     plotOptions: {
       radar: {
         polygons: {
-          strokeWidth: 1,
-          strokeColor: '#E2E8F0',
+          strokeWidth: '1',
+          strokeColors: '#E2E8F0',  // Changed from strokeColor to strokeColors
           fill: {
             colors: ['#F8FAFC', '#F1F5F9']
           }

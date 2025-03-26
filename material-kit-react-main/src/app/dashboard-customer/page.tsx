@@ -40,6 +40,15 @@ interface Car {
   Type?: string;
 }
 
+// Define an interface for trip objects
+interface Trip {
+  start: string;
+  destination: string;
+  time: string;
+  score: number;
+  miles: number;
+}
+
 export default function CustomerOverview(): React.JSX.Element {
   const [timeFrame, setTimeFrame] = useState<'1d' | '7d' | '30d'>('1d');
   const [stats, setStats] = useState({
@@ -58,13 +67,18 @@ export default function CustomerOverview(): React.JSX.Element {
     swerving: 0,
     speeding: 0
   });
-  const [performanceTrend, setPerformanceTrend] = useState({
+  const [performanceTrend, setPerformanceTrend] = useState<{
+    hours: string[];
+    days: string[];
+    weeks: string[];
+    scores: number[];
+  }>({
     hours: [],
     days: [],
     weeks: [],
     scores: []
   });
-  const [tripHistory, setTripHistory] = useState([]);
+  const [tripHistory, setTripHistory] = useState<Trip[]>([]);
   const [cars, setCars] = useState<Car[]>([]);
   const [selectedCar, setSelectedCar] = useState('');
   const [loading, setLoading] = useState(true);

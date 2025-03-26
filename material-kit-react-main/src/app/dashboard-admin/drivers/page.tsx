@@ -23,21 +23,9 @@ import AddIcon from '@mui/icons-material/Add';
 import { DriversTable } from '@/components/dashboard-admin/drivers/DriversTable';
 import AddDriverDialog from './add-driver-dialog';
 import EditDriverDialog from './edit-driver-dialog';
+import { Driver, Car } from '@/types/driver';  // Import the shared interfaces
 
-interface Driver {
-  id: string;
-  name: string;
-  gender: string;
-  phone_number: string;
-  company_id: string;
-  car_id: string;
-}
-
-interface Car {
-  id: string;
-  model: string;
-  plateNumber: string;
-}
+// Remove the local interface definitions
 
 export default function DriversPage(): React.JSX.Element {
   const [searchTerm, setSearchTerm] = useState('');
@@ -269,7 +257,7 @@ export default function DriversPage(): React.JSX.Element {
             
             {filteredDrivers.length > 0 && (
               <DriversTable
-                items={paginatedDrivers}
+                items={paginatedDrivers as any}
                 count={filteredDrivers.length}
                 page={page}
                 rowsPerPage={rowsPerPage}
@@ -278,10 +266,10 @@ export default function DriversPage(): React.JSX.Element {
                   setRowsPerPage(newRowsPerPage);
                   setPage(0);
                 }}
-                onDelete={handleDeleteDriver}
-                onEdit={handleEditDriver}
+                onDelete={handleDeleteDriver as any}
+                onEdit={handleEditDriver as any}
                 onCarAssign={handleCarAssign}
-                availableCars={availableCars}
+                availableCars={availableCars as any}
               />
             )}
           </>

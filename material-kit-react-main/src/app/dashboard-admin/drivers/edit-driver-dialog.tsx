@@ -16,7 +16,8 @@ import {
   MenuItem,
   FormHelperText,
   Alert,
-  Box
+  Box,
+  SelectChangeEvent  // Add this import
 } from '@mui/material';
 import { useTheme } from '@mui/material/styles';
 import EditIcon from '@mui/icons-material/Edit';
@@ -126,6 +127,16 @@ export default function EditDriverDialog({
     });
   };
 
+  // Add this new handler for Select components
+  const handleSelectChange = (field: keyof Driver) => (
+    event: SelectChangeEvent
+  ) => {
+    setFormData({
+      ...formData,
+      [field]: event.target.value
+    });
+  };
+
   const handleSubmit = async (event: React.FormEvent) => {
     event.preventDefault();
     setLoading(true);
@@ -224,7 +235,7 @@ export default function EditDriverDialog({
                 <Select
                   value={formData.gender}
                   label="Gender"
-                  onChange={handleChange('gender')}
+                  onChange={handleSelectChange('gender')}
                 >
                   <MenuItem value="male">Male</MenuItem>
                   <MenuItem value="female">Female</MenuItem>
@@ -247,7 +258,7 @@ export default function EditDriverDialog({
                 <Select
                   value={formData.car_id}
                   label="Car"
-                  onChange={handleChange('car_id')}
+                  onChange={handleSelectChange('car_id')}
                   disabled={loadingCars}
                 >
                   {availableCars.map(car => (

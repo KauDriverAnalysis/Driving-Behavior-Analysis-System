@@ -14,16 +14,7 @@ import {
 } from '@mui/material';
 import EditIcon from '@mui/icons-material/Edit';
 import DeleteIcon from '@mui/icons-material/Delete';
-
-interface Employee {
-  id: string;
-  name: string;
-  gender: string;
-  phone_number: string;
-  address: string;
-  Email: string;
-  password: string;
-}
+import { Employee } from '@/types/employee';
 
 interface EmployeesTableProps {
   items: Employee[];

@@ -203,19 +203,21 @@ export function LocationMap({ selectedCar }: LocationMapProps) {
             } 
             // Otherwise create a new marker
             else {
-              const marker = L.marker([loc.latitude, loc.longitude], {
-                icon: CarIcon || DefaultIcon
-              })
-                .addTo(markerLayerRef.current)
-                .bindPopup(`
-                  <div style="text-align: center;">
-                    <b>${loc.model || 'Vehicle ' + carId}</b><br/>
-                    Speed: ${loc.speed || 0} km/h<br/>
-                    Plate: ${loc.plate || 'Unknown'}
-                  </div>
-                `);
-              
-              markersRef.current[carId] = marker;
+              if (markerLayerRef.current) {  // Add null check
+                const marker = L.marker([loc.latitude, loc.longitude], {
+                  icon: CarIcon || DefaultIcon
+                })
+                  .addTo(markerLayerRef.current)
+                  .bindPopup(`
+                    <div style="text-align: center;">
+                      <b>${loc.model || 'Vehicle ' + carId}</b><br/>
+                      Speed: ${loc.speed || 0} km/h<br/>
+                      Plate: ${loc.plate || 'Unknown'}
+                    </div>
+                  `);
+                
+                markersRef.current[carId] = marker;
+              }
             }
           });
           

@@ -38,6 +38,21 @@ interface Car {
   company_id: number | null;
 }
 
+const transformCarForEdit = (car: Car) => {
+  if (!car) return null;
+  return {
+    id: car.id,
+    model: car.Model_of_car,
+    type: car.TypeOfCar,
+    plateNumber: car.Plate_number,
+    releaseYear: car.Release_Year_car,
+    state: car.State_of_car,
+    deviceId: car.device_id,
+    companyId: car.company_id,
+    customerId: car.customer_id
+  };
+};
+
 export default function CarsPage(): React.JSX.Element {
   const [cars, setCars] = useState<Car[]>([]);
   const [searchTerm, setSearchTerm] = useState('');
@@ -159,12 +174,12 @@ export default function CarsPage(): React.JSX.Element {
     return cars.filter(car => {
       const searchTermLower = searchTerm.toLowerCase();
       const matchesSearch = searchTerm === '' || (
-        car.model.toLowerCase().includes(searchTermLower) ||
-        car.plateNumber.toLowerCase().includes(searchTermLower) ||
-        car.type.toLowerCase().includes(searchTermLower)
+        car.Model_of_car.toLowerCase().includes(searchTermLower) ||
+        car.Plate_number.toLowerCase().includes(searchTermLower) ||
+        car.TypeOfCar.toLowerCase().includes(searchTermLower)
       );
       
-      const matchesStatus = statusFilter === 'all' || car.state === statusFilter;
+      const matchesStatus = statusFilter === 'all' || car.State_of_car === statusFilter;
       
       return matchesSearch && matchesStatus;
     });
@@ -300,53 +315,52 @@ export default function CarsPage(): React.JSX.Element {
       </Card>
 
       {/* Edit Car Dialog */}
-      <EditCarDialog
-        open={editDialogOpen}
-        onClose={() => {
-          setEditDialogOpen(false);
-          setSelectedCar(null);
-        }}
-        onSubmit={(updatedCar) => {
-          // Format data for API - convert from camelCase to the format backend expects
-          const formattedCar = {
-            model: updatedCar.model,
-            type: updatedCar.type,
-            plateNumber: updatedCar.plateNumber,
-            Release_Year_car: updatedCar.releaseYear,
-            state: updatedCar.state,
-            device_id: updatedCar.deviceId,
-            company_id: updatedCar.companyId,
-            customer_id: updatedCar.customerId
-          };
+      {selectedCar && (
+        <EditCarDialog
+          open={editDialogOpen}
+          onClose={() => {
+            setEditDialogOpen(false);
+            setSelectedCar(null);
+          }}
+          onSubmit={(updatedCar) => {
+            // Format data for API - convert from camelCase to the format backend expects
+            const formattedCar = {
+              Model_of_car: updatedCar.model,
+              TypeOfCar: updatedCar.type,
+              Plate_number: updatedCar.plateNumber,
+              Release_Year_car: updatedCar.releaseYear,
+              State_of_car: updatedCar.state,
+              device_id: updatedCar.deviceId,
+              company_id: updatedCar.companyId,
+              customer_id: updatedCar.customerId
+            };
 
-          fetch(`https://driving-behavior-analysis-system.onrender.com/api/update_car/${updatedCar.id}/`, {
-            method: 'POST',
-            headers: {
-              'Content-Type': 'application/json',
-            },
-            body: JSON.stringify(formattedCar),
-          })
-            .then(response => {
-              if (!response.ok) {
-                return response.json().then(data => {
-                  throw new Error(data.error || 'Failed to update car');
-                });
-              }
-              return response.json();
+            fetch(`https://driving-behavior-analysis-system.onrender.com/api/update_car/${updatedCar.id}/`, {
+              method: 'POST',
+              headers: {
+                'Content-Type': 'application/json',
+              },
+              body: JSON.stringify(formattedCar),
             })
-            .then(() => {
-              setRefreshTrigger(prev => prev + 1); // Refresh the list
-            })
-            .catch(error => {
-              console.error('Error updating car:', error);
-            })
-            .finally(() => {
-              setEditDialogOpen(false);
-              setSelectedCar(null);
-            });
-        }}
-        car={selectedCar}
-      />
+              .then(response => {
+                if (response.ok) {
+                  setRefreshTrigger(prev => prev + 1);
+                  setEditDialogOpen(false);
+                  setSelectedCar(null);
+                } else {
+                  return response.json().then(data => {
+                    throw new Error(data.error || 'Failed to update car');
+                  });
+                }
+              })
+              .catch(error => {
+                console.error('Error updating car:', error);
+                // Handle error (could show an alert)
+              });
+          }}
+          car={transformCarForEdit(selectedCar)!} // Non-null assertion operator
+        />
+      )}
 
       {/* Add Car Dialog */}
       <AddCarDialog
@@ -366,7 +380,7 @@ export default function CarsPage(): React.JSX.Element {
         <DialogTitle>Confirm Delete</DialogTitle>
         <DialogContent>
           <DialogContentText>
-            Are you sure you want to delete this car with plate number "{carToDelete?.plateNumber}"? This action cannot be undone.
+            Are you sure you want to delete this car with plate number "{carToDelete?.Plate_number}"? This action cannot be undone.
           </DialogContentText>
         </DialogContent>
         <DialogActions>

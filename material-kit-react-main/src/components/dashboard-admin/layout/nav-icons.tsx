@@ -11,9 +11,11 @@ import { IdentificationBadge } from '@phosphor-icons/react/dist/ssr/Identificati
 import { UserCircle } from '@phosphor-icons/react/dist/ssr/UserCircle';
 import { ChartLine } from '@phosphor-icons/react/dist/ssr/ChartLine';
 import { Shield } from '@phosphor-icons/react/dist/ssr/Shield'; // Add this import
+import { Icon } from '@phosphor-icons/react';
+import type { NavIcon } from '@/types/nav';
 
 // Create a mapping of icon names to components
-export const navIcons = {
+export const navIcons:Record<NavIcon, Icon> = {
   'chart-pie': ChartPie,
   'chart-line': ChartLine,
   'shield': Shield,      // Add shield icon for Pattern Score

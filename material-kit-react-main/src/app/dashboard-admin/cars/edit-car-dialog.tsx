@@ -16,6 +16,7 @@ import {
   Alert,
   CircularProgress
 } from '@mui/material';
+import { SelectChangeEvent } from '@mui/material/Select';
 import { useTheme } from '@mui/material/styles';
 import EditIcon from '@mui/icons-material/Edit';
 
@@ -48,6 +49,7 @@ export default function EditCarDialog({
   const [formData, setFormData] = React.useState<Car | null>(null);
   const [loading, setLoading] = React.useState(false);
   const [error, setError] = React.useState<string | null>(null);
+  const [validationErrors, setValidationErrors] = React.useState<{ [key in keyof Car]?: string }>({});
 
   React.useEffect(() => {
     if (car) {
@@ -66,6 +68,24 @@ export default function EditCarDialog({
       ...prev!,
       [field]: field === 'releaseYear' ? Number(value) : value
     }));
+  };
+
+  const handleSelectChange = (field: keyof Car) => (
+    event: SelectChangeEvent
+  ) => {
+    setFormData(prev => ({
+      ...prev!,  // Add non-null assertion operator here
+      [field]: event.target.value
+    }));
+    
+    // Clear validation error for this field if it exists
+    if (validationErrors[field]) {
+      setValidationErrors(prev => {
+        const newErrors = { ...prev };
+        delete newErrors[field];
+        return newErrors;
+      });
+    }
   };
 
   const handleSubmit = async (event: React.FormEvent) => {
@@ -160,7 +180,7 @@ export default function EditCarDialog({
                 <Select
                   value={formData.state}
                   label="State"
-                  onChange={handleChange('state')}
+                  onChange={handleSelectChange('state')}
                 >
                   <MenuItem value="online">Online</MenuItem>
                   <MenuItem value="offline">Offline</MenuItem>

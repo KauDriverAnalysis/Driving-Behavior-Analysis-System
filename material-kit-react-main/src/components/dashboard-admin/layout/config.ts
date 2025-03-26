@@ -3,24 +3,28 @@ import { paths } from '@/paths';
 
 const baseNavItems: NavItemConfig[] = [
   {
+    key: 'overview',
     title: 'Overview',
     href: paths.dashboardAdmin.overview,
     icon: 'chart-pie',
   },
   {
+    key: 'tracking',
     title: 'Tracking',
     href: paths.dashboardAdmin.tracking,
     icon: 'map',
   },
   {
+    key: 'cars',
     title: 'Cars',
     href: paths.dashboardAdmin.cars,
     icon: 'car',
   },
   {
+    key: 'drivers',
     title: 'Drivers',
     href: paths.dashboardAdmin.drivers,
-    icon: 'driver', // Changed icon for Drivers
+    icon: 'driver',
   }
 ];
 

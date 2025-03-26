@@ -17,7 +17,8 @@ import {
   FormHelperText,
   Alert,
   Snackbar,
-  Box
+  Box,
+  SelectChangeEvent  // Add this import
 } from '@mui/material';
 import { useTheme } from '@mui/material/styles';
 import AddIcon from '@mui/icons-material/Add';
@@ -107,6 +108,16 @@ export default function AddDriverDialog({
 
   const handleChange = (field: string) => (
     event: React.ChangeEvent<HTMLInputElement | { value: unknown }>
+  ) => {
+    setFormData({
+      ...formData,
+      [field]: event.target.value
+    });
+  };
+
+  // Add a new handler for Select components
+  const handleSelectChange = (field: string) => (
+    event: SelectChangeEvent
   ) => {
     setFormData({
       ...formData,
@@ -217,7 +228,7 @@ export default function AddDriverDialog({
                   <Select
                     value={formData.gender}
                     label="Gender"
-                    onChange={handleChange('gender')}
+                    onChange={handleSelectChange('gender')}
                   >
                     <MenuItem value="male">Male</MenuItem>
                     <MenuItem value="female">Female</MenuItem>
@@ -243,7 +254,7 @@ export default function AddDriverDialog({
                   <Select
                     value={formData.car_id}
                     label="Car"
-                    onChange={handleChange('car_id')}
+                    onChange={handleSelectChange('car_id')}
                     disabled={loadingCars}
                   >
                     {availableCars.map(car => (

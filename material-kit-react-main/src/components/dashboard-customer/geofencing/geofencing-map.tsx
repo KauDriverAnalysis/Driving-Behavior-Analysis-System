@@ -80,7 +80,7 @@ export function GeofencingMap({
           drawnItemsRef.current = new L.FeatureGroup();
           map.addLayer(drawnItemsRef.current);
 
-          const drawControl = new L.Control.Draw({
+          const drawControl = new LeafletDraw.Control.Draw({
             draw: {
               polyline: false,
               rectangle: false,
@@ -110,81 +110,82 @@ export function GeofencingMap({
               remove: false
             }
           });
+
           map.addControl(drawControl);
           drawControlRef.current = drawControl;
+        }
 
-          // If there's existing geometry, show it in edit mode
-          if (previewGeometry) {
-            let layer;
-            if (previewGeometry.type === 'circle') {
-              const { center, radius } = previewGeometry.data;
-              layer = L.circle(center, {
-                radius,
-                color: previewGeometry.color
+        // If there's existing geometry, show it in edit mode
+        if (previewGeometry) {
+          let layer;
+          if (previewGeometry.type === 'circle') {
+            const { center, radius } = previewGeometry.data;
+            layer = L.circle(center, {
+              radius,
+              color: previewGeometry.color
+            });
+          } else if (previewGeometry.type === 'polygon') {
+            const { coordinates } = previewGeometry.data;
+            layer = L.polygon(coordinates.map((point: [number, number]) => L.latLng(point[0], point[1])), {
+              color: previewGeometry.color
+            });
+          }
+          if (layer && drawnItemsRef.current) {
+            drawnItemsRef.current.addLayer(layer);
+            map.fitBounds(layer.getBounds());
+          }
+        }
+
+        // Handle draw events
+        map.on(L.Draw.Event.CREATED, (e: any) => {
+          const layer = e.layer;
+          drawnItemsRef.current?.clearLayers();
+          drawnItemsRef.current?.addLayer(layer);
+
+          // Notify parent component about geometry changes
+          if (onGeometryChange) {
+            if (e.layerType === 'circle') {
+              onGeometryChange('circle', {
+                center: [layer.getLatLng().lat, layer.getLatLng().lng],
+                radius: layer.getRadius()
               });
-            } else if (previewGeometry.type === 'polygon') {
-              const { coordinates } = previewGeometry.data;
-              layer = L.polygon(coordinates.map((point: [number, number]) => L.latLng(point[0], point[1])), {
-                color: previewGeometry.color
-              });
-            }
-            if (layer) {
-              drawnItemsRef.current.addLayer(layer);
-              map.fitBounds(layer.getBounds());
+            } else if (e.layerType === 'polygon') {
+              const points = layer.getLatLngs()[0].map((latlng: L.LatLng) => [latlng.lat, latlng.lng]);
+              onGeometryChange('polygon', { coordinates: points });
             }
           }
+        });
 
-          // Handle draw events
-          map.on(L.Draw.Event.CREATED, (e: any) => {
-            const layer = e.layer;
-            drawnItemsRef.current?.clearLayers();
-            drawnItemsRef.current?.addLayer(layer);
-
-            // Notify parent component about geometry changes
-            if (onGeometryChange) {
-              if (e.layerType === 'circle') {
-                onGeometryChange('circle', {
-                  center: [layer.getLatLng().lat, layer.getLatLng().lng],
-                  radius: layer.getRadius()
-                });
-              } else if (e.layerType === 'polygon') {
-                const points = layer.getLatLngs()[0].map((latlng: L.LatLng) => [latlng.lat, latlng.lng]);
-                onGeometryChange('polygon', { coordinates: points });
-              }
+        map.on(L.Draw.Event.EDITED, (e: any) => {
+          const layers = e.layers;
+          layers.eachLayer((layer: any) => {
+            if (layer instanceof L.Circle) {
+              onGeometryChange?.('circle', {
+                center: [layer.getLatLng().lat, layer.getLatLng().lng],
+                radius: layer.getRadius()
+              });
+            } else if (layer instanceof L.Polygon) {
+              const points = layer.getLatLngs()[0].map((latlng: L.LatLng) => [latlng.lat, latlng.lng]);
+              onGeometryChange?.('polygon', { coordinates: points });
             }
           });
+        });
 
-          map.on(L.Draw.Event.EDITED, (e: any) => {
-            const layers = e.layers;
-            layers.eachLayer((layer: any) => {
-              if (layer instanceof L.Circle) {
-                onGeometryChange?.('circle', {
-                  center: [layer.getLatLng().lat, layer.getLatLng().lng],
-                  radius: layer.getRadius()
-                });
-              } else if (layer instanceof L.Polygon) {
-                const points = layer.getLatLngs()[0].map((latlng: L.LatLng) => [latlng.lat, latlng.lng]);
-                onGeometryChange?.('polygon', { coordinates: points });
-              }
-            });
-          });
-
-          // Add vertex editing for polygons
-          map.on('draw:editvertex', (e: any) => {
-            const layers = drawnItemsRef.current?.getLayers();
-            if (layers && layers.length > 0) {
-              const layer = layers[0];
-              if (layer instanceof L.Polygon) {
-                const latLngs = layer.getLatLngs()[0];
-                const coordinates = latLngs.map((latlng: L.LatLng) => [
-                  latlng.lat,
-                  latlng.lng
-                ]);
-                onGeometryChange?.('polygon', { coordinates });
-              }
+        // Add vertex editing for polygons
+        map.on('draw:editvertex', (e: any) => {
+          const layers = drawnItemsRef.current?.getLayers();
+          if (layers && layers.length > 0) {
+            const layer = layers[0];
+            if (layer instanceof L.Polygon) {
+              const latLngs = layer.getLatLngs()[0];
+              const coordinates = latLngs.map((latlng: L.LatLng) => [
+                latlng.lat,
+                latlng.lng
+              ]);
+              onGeometryChange?.('polygon', { coordinates });
             }
-          });
-        }
+          }
+        });
 
         // Store map instance in ref
         mapInstanceRef.current = map;

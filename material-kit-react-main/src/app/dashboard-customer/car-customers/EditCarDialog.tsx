@@ -11,6 +11,7 @@ import {
   Grid,
   MenuItem,
   Select,
+  SelectChangeEvent, // Add this import
   Typography
 } from '@mui/material';
 import { useTheme } from '@mui/material/styles';
@@ -48,6 +49,16 @@ export default function EditCarDialog({
     setFormData(prev => ({
       ...prev!,
       [field]: field === 'releaseYear' ? Number(value) : value
+    }));
+  };
+
+  // Add a new handler for Select components
+  const handleSelectChange = (field: keyof Car) => (
+    event: SelectChangeEvent<string>
+  ) => {
+    setFormData(prev => ({
+      ...prev!,
+      [field]: event.target.value
     }));
   };
 
@@ -138,7 +149,7 @@ export default function EditCarDialog({
                 <Select
                   value={formData.state}
                   label="State"
-                  onChange={handleChange('state')}
+                  onChange={handleSelectChange('state')} // Use the new handler here
                 >
                   <MenuItem value="online">Online</MenuItem>
                   <MenuItem value="offline">Offline</MenuItem>

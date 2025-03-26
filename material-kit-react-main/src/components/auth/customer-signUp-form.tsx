@@ -45,9 +45,9 @@ const customerSchema = zod.object({
 
 type CustomerValues = zod.infer<typeof customerSchema>;
 
-const defaultCustomerValues = {
+const defaultCustomerValues: CustomerValues = {
   name: '',
-  gender: '',
+  gender: 'male' as 'male' | 'female', // Specify a valid default value
   phone_number: '',
   address: '',
   email: '',

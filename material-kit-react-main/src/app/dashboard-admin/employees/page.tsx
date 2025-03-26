@@ -22,19 +22,7 @@ import AddIcon from '@mui/icons-material/Add';
 import { EmployeesTable } from '@/components/dashboard-admin/employee/employees-table';
 import AddEmployeeDialog from './add-employee-dialog';
 import EditEmployeeDialog from './edit-employee-dialog';
-
-// Define Employee interface
-interface Employee {
-  id: string;
-  name: string;
-  gender: string;
-  phone_number: string;
-  address: string;
-  Email: string;
-  Password?: string;
-  department?: string;
-  joinDate?: string;
-}
+import { Employee } from '@/types/employee';
 
 export default function EmployeesPage(): React.JSX.Element {
   const [searchTerm, setSearchTerm] = useState('');

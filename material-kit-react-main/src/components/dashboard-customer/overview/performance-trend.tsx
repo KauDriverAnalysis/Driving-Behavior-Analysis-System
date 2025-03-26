@@ -13,9 +13,9 @@ const Chart = dynamic(() => import('react-apexcharts'), { ssr: false });
 interface PerformanceTrendProps {
   timeFrame: '1d' | '7d' | '30d';
   data: {
-    hours?: string[];
-    days?: string[];
-    weeks?: string[];
+    hours: string[];
+    days: string[];
+    weeks: string[];
     scores: number[];
   };
 }

@@ -24,24 +24,19 @@ import EditIcon from '@mui/icons-material/Edit';
 import DeleteIcon from '@mui/icons-material/Delete';
 import KeyboardArrowDownIcon from '@mui/icons-material/KeyboardArrowDown';
 
-// Update the Driver interface to include car details
-interface Driver {
+export interface Driver {
   id: string;
   name: string;
   gender: string;
   phone_number: string;
-  car_id: string;
-  car?: {
-    id: string;
-    Model_of_car: string;
-    Plate_number: string;
-  };
+  car?: Car | null; // Add this property
 }
 
-interface Car {
+export interface Car {
   id: string;
-  model: string;
-  plateNumber: string;
+  Model_of_car: string; // Note the capitalization
+  Plate_number: string; // Note the capitalization
+  // Other car properties
 }
 
 interface DriversTableProps {
@@ -50,14 +45,13 @@ interface DriversTableProps {
   page: number;
   rowsPerPage: number;
   onPageChange: (newPage: number) => void;
-  onRowsPerPageChange: (newRowsPerPage: number) => void;
-  onEdit: (driver: Driver) => void;
+  onRowsPerPageChange: (rowsPerPage: number) => void;
   onDelete: (driver: Driver) => void;
-  onCarAssign: (driverId: string, carId: string) => Promise<void>;
+  onEdit: (driver: Driver) => void;
+  onCarAssign: (driverId: string, carId: string) => void;
   availableCars: Car[];
 }
 
-// Update the table headers and rows
 export function DriversTable({
   items,
   count,
@@ -149,7 +143,7 @@ export function DriversTable({
                           onClick={() => handleCarSelect(car.id)}
                           selected={driver.car?.id === car.id}
                         >
-                          {car.model} ({car.plateNumber})
+                          {car.Model_of_car} ({car.Plate_number})
                         </MenuItem>
                       ))
                     )}
