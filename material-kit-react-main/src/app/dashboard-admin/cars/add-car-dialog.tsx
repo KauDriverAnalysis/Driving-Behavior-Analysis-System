@@ -39,6 +39,17 @@ interface ValidationErrors {
   [key: string]: string[];
 }
 
+interface CarApiData {
+  Model_of_car: string;
+  TypeOfCar: string;
+  Plate_number: string;
+  Release_Year_car: number;
+  State_of_car: 'online' | 'offline';
+  device_id: string;
+  customer_id?: string;  // Optional
+  company_id?: string;   // Optional
+}
+
 export default function AddCarDialog({ open, onClose, onSuccess }: AddCarDialogProps) {
   const theme = useTheme();
   const [formData, setFormData] = React.useState<CarFormData>({
@@ -126,7 +137,7 @@ export default function AddCarDialog({ open, onClose, onSuccess }: AddCarDialogP
       }
       
       // Only include the IDs that are not null
-      const apiData = {
+      const apiData: CarApiData = {
         Model_of_car: formData.Model_of_car,
         TypeOfCar: formData.TypeOfCar,
         Plate_number: formData.Plate_number,
