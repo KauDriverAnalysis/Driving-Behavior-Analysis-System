@@ -6,6 +6,7 @@ import Stack from '@mui/material/Stack';
 import Typography from '@mui/material/Typography';
 import Box from '@mui/material/Box';
 import dynamic from 'next/dynamic';
+import type { ApexOptions } from 'apexcharts';
 
 // Dynamically import ApexCharts to avoid SSR issues
 const Chart = dynamic(() => import('react-apexcharts'), { ssr: false });
@@ -44,7 +45,7 @@ export function PerformanceTrend({ timeFrame, data }: PerformanceTrendProps) {
   const trend = scores.length >= 2 ? scores[scores.length - 1] - scores[0] : 0;
   
   // Chart options with safe data
-  const chartOptions = {
+  const chartOptions: ApexOptions = {
     chart: {
       background: 'transparent',
       toolbar: {
@@ -78,7 +79,7 @@ export function PerformanceTrend({ timeFrame, data }: PerformanceTrendProps) {
     tooltip: {
       enabled: true,
       y: {
-        formatter: function(val) {
+        formatter: function(val: number): string {
           return Math.round(val).toString();
         }
       }
@@ -104,8 +105,8 @@ export function PerformanceTrend({ timeFrame, data }: PerformanceTrendProps) {
         style: {
           colors: '#818E9B'
         },
-        formatter: function(val) {
-          return Math.round(val);
+        formatter: function(val: number): string {
+          return Math.round(val).toString();
         }
       }
     }

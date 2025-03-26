@@ -136,8 +136,8 @@ export function GeofencingMap({
           }
         }
 
-        // Handle draw events
-        map.on(L.Draw.Event.CREATED, (e: any) => {
+        // Handle draw events - replace the L.Draw.Event.CREATED with string event name
+        map.on('draw:created', (e: any) => {
           const layer = e.layer;
           drawnItemsRef.current?.clearLayers();
           drawnItemsRef.current?.addLayer(layer);
@@ -156,7 +156,8 @@ export function GeofencingMap({
           }
         });
 
-        map.on(L.Draw.Event.EDITED, (e: any) => {
+        // Replace L.Draw.Event.EDITED with string event name
+        map.on('draw:edited', (e: any) => {
           const layers = e.layers;
           layers.eachLayer((layer: any) => {
             if (layer instanceof L.Circle) {
@@ -165,7 +166,9 @@ export function GeofencingMap({
                 radius: layer.getRadius()
               });
             } else if (layer instanceof L.Polygon) {
-              const points = layer.getLatLngs()[0].map((latlng: L.LatLng) => [latlng.lat, latlng.lng]);
+              const points = (layer.getLatLngs()[0] as L.LatLng[]).map(
+                (latlng: L.LatLng) => [latlng.lat, latlng.lng]
+              );
               onGeometryChange?.('polygon', { coordinates: points });
             }
           });
@@ -177,7 +180,7 @@ export function GeofencingMap({
           if (layers && layers.length > 0) {
             const layer = layers[0];
             if (layer instanceof L.Polygon) {
-              const latLngs = layer.getLatLngs()[0];
+              const latLngs = layer.getLatLngs()[0] as L.LatLng[];
               const coordinates = latLngs.map((latlng: L.LatLng) => [
                 latlng.lat,
                 latlng.lng

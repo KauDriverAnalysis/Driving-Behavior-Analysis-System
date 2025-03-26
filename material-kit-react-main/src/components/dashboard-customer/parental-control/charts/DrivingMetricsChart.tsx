@@ -29,9 +29,16 @@ const DrivingMetricsChart: React.FC<DrivingMetricsChartProps> = ({ data }) => {
             <XAxis dataKey="date" />
             <YAxis />
             <Tooltip 
-              formatter={(value, name) => [value, name.replace(/([A-Z])/g, ' $1').trim()]}
+              formatter={(value: number, name: string | number) => [
+                value, 
+                typeof name === 'string' ? name.replace(/([A-Z])/g, ' $1').trim() : name
+              ]}
             />
-            <Legend formatter={(value) => value.replace(/([A-Z])/g, ' $1').trim()} />
+            <Legend 
+              formatter={(value: string | number) => 
+                typeof value === 'string' ? value.replace(/([A-Z])/g, ' $1').trim() : value
+              } 
+            />
             <Line 
               type="monotone" 
               dataKey="harshBraking" 

@@ -1,4 +1,4 @@
-import React from 'react';
+import React, { useState, useEffect } from 'react';
 import { Box, Grid } from '@mui/material';
 import StatCard from '../cards/StatCard';
 import DrivingScoreChart from '../charts/DrivingScoreChart';
@@ -6,11 +6,25 @@ import DrivingMetricsChart from '../charts/DrivingMetricsChart';
 import ShieldIcon from '@mui/icons-material/Shield';
 import WarningIcon from '@mui/icons-material/Warning';
 import NotificationsIcon from '@mui/icons-material/Notifications';
-
-// Mock data will be imported from a separate file in the full implementation
-import { drivingHistoryData } from '../data/mockData';
+import type { DrivingMetricsData } from '../data/types';
 
 const OverviewTab: React.FC = () => {
+  const [metricsData, setMetricsData] = useState<DrivingMetricsData[]>([]);
+
+  useEffect(() => {
+    const fetchMetricsData = async () => {
+      try {
+        const response = await fetch('/api/driving-metrics');
+        const data = await response.json();
+        setMetricsData(data);
+      } catch (error) {
+        console.error('Failed to fetch metrics data:', error);
+      }
+    };
+
+    fetchMetricsData();
+  }, []);
+
   return (
     <Box sx={{ mt: 3, width: '100%' }}>
       {/* Stats Cards */}
@@ -50,8 +64,8 @@ const OverviewTab: React.FC = () => {
       </Grid>
       
       {/* Charts */}
-      <DrivingScoreChart data={drivingHistoryData} />
-      <DrivingMetricsChart data={drivingHistoryData} />
+      <DrivingScoreChart data={metricsData} />
+      <DrivingMetricsChart data={metricsData} />
     </Box>
   );
 };

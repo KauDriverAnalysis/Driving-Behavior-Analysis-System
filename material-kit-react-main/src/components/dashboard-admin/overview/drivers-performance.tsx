@@ -76,10 +76,11 @@ export function DriversPerformance({ data }: DriversPerformanceProps) {
       position: 'bottom' as const,  // Add type assertion here
       fontSize: '14px',
       markers: {
-        strokeWidth: 0,    // Changed from width
-        size: 12,         // Changed from height
-        shape: 'circle',  // Add shape property
-        fillColors: undefined,  // Optional: let colors match the series
+        width: 12,            // Use width instead of size
+        height: 12,          // Add height to maintain square shape
+        strokeWidth: 0,      // Keep stroke width at 0
+        strokeColor: '#fff', // Optional: specify stroke color
+        radius: 6,          // Add radius for rounded corners
         offsetX: 0,
         offsetY: 0
       },
