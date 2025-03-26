@@ -1,5 +1,5 @@
 [build]
-  command = "NODE_OPTIONS='--max_old_space_size=4096' pnpm install --no-frozen-lockfile --strict-peer-dependencies=false --legacy-peer-deps && pnpm build"
+  command = "NODE_OPTIONS='--max_old_space_size=4096' pnpm install --no-frozen-lockfile --strict-peer-dependencies=false --force && pnpm build"
   publish = ".next"
 
 [[plugins]]
