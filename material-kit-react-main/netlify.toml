@@ -1,7 +1,5 @@
 [build]
-  # Remove this line as it's causing path confusion
-  # base = "material-kit-react-main"
-  command = "NODE_OPTIONS='--max_old_space_size=4096' pnpm install --no-frozen-lockfile --strict-peer-dependencies=false && pnpm build"
+  command = "NODE_OPTIONS='--max_old_space_size=4096' pnpm install --no-frozen-lockfile --strict-peer-dependencies=false --legacy-peer-deps && pnpm build"
   publish = ".next"
 
 [[plugins]]
