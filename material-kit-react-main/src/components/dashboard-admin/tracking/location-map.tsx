@@ -247,7 +247,7 @@ export function LocationMap({ selectedCar }: LocationMapProps) {
       lastFetchTime = now;
       
       // Always get all car locations - we'll filter on the frontend
-      fetch('http://localhost:8000/api/get-car-location/')
+      fetch('https://driving-behavior-analysis-system.onrender.com/api/get-car-location/')
         .then(response => {
           if (!response.ok) {
             throw new Error(`HTTP error! status: ${response.status}`);

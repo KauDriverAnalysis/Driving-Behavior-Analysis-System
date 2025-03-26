@@ -39,7 +39,7 @@ const ParentalControlDashboard = () => {
   // Add useEffect for fetching cars
   React.useEffect(() => {
     setLoading(true);
-    fetch('http://localhost:8000/api/cars/')
+    fetch('https://driving-behavior-analysis-system.onrender.com/api/cars/')
       .then((response) => response.json())
       .then((data) => {
         const mappedCars = Array.isArray(data) ? data.map((item) => ({

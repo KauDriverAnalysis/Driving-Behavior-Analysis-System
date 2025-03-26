@@ -67,7 +67,7 @@ export function CompanySignUpForm(): React.JSX.Element {
       setIsPending(true);
   
       try {
-        const response = await fetch('http://localhost:8000/api/create_company/', {
+        const response = await fetch('https://driving-behavior-analysis-system.onrender.com/api/create_company/', {
           method: 'POST',
           headers: {
             'Content-Type': 'application/json',

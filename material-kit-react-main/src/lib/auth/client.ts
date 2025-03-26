@@ -52,7 +52,7 @@ class AuthClient {
 
     try {
       // Determine which API endpoint to use based on accountType
-      let endpoint = 'http://localhost:8000/api/';
+      let endpoint = 'https://driving-behavior-analysis-system.onrender.com/api/';
       
       if (accountType === 'company') {
         endpoint += 'company_login/';
@@ -172,7 +172,7 @@ class AuthClient {
     const { email } = params;
     
     try {
-      const response = await fetch('http://localhost:8000/api/reset_password/', {
+      const response = await fetch('https://driving-behavior-analysis-system.onrender.com/api/reset_password/', {
         method: 'POST',
         headers: {
           'Content-Type': 'application/json',
@@ -203,7 +203,7 @@ class AuthClient {
     try {
       console.log(`Attempting to reset password for ${email} with token ${token.substring(0, 6)}...`);
       
-      const response = await fetch('http://localhost:8000/api/update_password/', {
+      const response = await fetch('https://driving-behavior-analysis-system.onrender.com/api/update_password/', {
         method: 'POST',
         headers: {
           'Content-Type': 'application/json',

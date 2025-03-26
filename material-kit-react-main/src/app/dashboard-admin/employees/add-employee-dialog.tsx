@@ -208,7 +208,7 @@ export default function AddEmployeeDialog({
     console.log('Payload being sent:', payload); // Debug log
     
     try {
-      const response = await fetch('http://localhost:8000/api/create_employee/', {
+      const response = await fetch('https://driving-behavior-analysis-system.onrender.com/api/create_employee/', {
         method: 'POST',
         headers: {
           'Content-Type': 'application/json',

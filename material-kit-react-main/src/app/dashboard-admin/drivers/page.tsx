@@ -56,7 +56,7 @@ export default function DriversPage(): React.JSX.Element {
   // Fetch drivers data
   useEffect(() => {
     setLoading(true);
-    fetch('http://localhost:8000/api/drivers/')
+    fetch('https://driving-behavior-analysis-system.onrender.com/api/drivers/')
       .then(response => response.json())
       .then(data => {
         setDrivers(data);
@@ -75,7 +75,7 @@ export default function DriversPage(): React.JSX.Element {
                      localStorage.getItem('employee-company-id');
                      
   if (company_id) {
-    fetch(`http://localhost:8000/api/cars/?userType=company&userId=${company_id}`)
+    fetch(`https://driving-behavior-analysis-system.onrender.com/api/cars/?userType=company&userId=${company_id}`)
       .then(response => response.json())
       .then(data => {
         const cars = data.map((car: any) => ({
@@ -101,7 +101,7 @@ export default function DriversPage(): React.JSX.Element {
 
   const handleConfirmDelete = () => {
     if (driverToDelete) {
-      fetch(`http://localhost:8000/api/delete_driver/${driverToDelete.id}/`, {
+      fetch(`https://driving-behavior-analysis-system.onrender.com/api/delete_driver/${driverToDelete.id}/`, {
         method: 'POST',
         headers: {
           'Content-Type': 'application/json',
@@ -136,7 +136,7 @@ export default function DriversPage(): React.JSX.Element {
 
   const handleCarAssign = async (driverId: string, carId: string) => {
     try {
-      const response = await fetch(`http://localhost:8000/api/update_driver/${driverId}/`, {
+      const response = await fetch(`https://driving-behavior-analysis-system.onrender.com/api/update_driver/${driverId}/`, {
         method: 'POST',
         headers: {
           'Content-Type': 'application/json',
@@ -328,7 +328,7 @@ export default function DriversPage(): React.JSX.Element {
         }}
         onSubmit={(updatedDriver) => {
           // Call API to update driver
-          fetch(`http://localhost:8000/api/update_driver/${updatedDriver.id}/`, {
+          fetch(`https://driving-behavior-analysis-system.onrender.com/api/update_driver/${updatedDriver.id}/`, {
             method: 'POST',
             headers: {
               'Content-Type': 'application/json',

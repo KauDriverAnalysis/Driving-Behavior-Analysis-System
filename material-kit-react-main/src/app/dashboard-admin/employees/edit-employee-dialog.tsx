@@ -76,7 +76,7 @@ export default function EditEmployeeDialog({
     
     try {
       // Call API directly from dialog
-      const response = await fetch(`http://localhost:8000/api/update_employee/${formData.id}/`, {
+      const response = await fetch(`https://driving-behavior-analysis-system.onrender.com/api/update_employee/${formData.id}/`, {
         method: 'POST',
         headers: {
           'Content-Type': 'application/json',

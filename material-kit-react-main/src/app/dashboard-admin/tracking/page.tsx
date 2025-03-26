@@ -72,7 +72,7 @@ export default function Tracking(): React.JSX.Element {
   
   // Function to fetch all cars (basic data only)
   const fetchCars = () => {
-    fetch('http://localhost:8000/api/cars/')
+    fetch('https://driving-behavior-analysis-system.onrender.com/api/cars/')
       .then(response => response.json())
       .then(data => {
         console.log('Car data received:', data);
@@ -114,7 +114,7 @@ export default function Tracking(): React.JSX.Element {
     
     // Create array of promises for each car's data
     const metricPromises = carsList.map(car => 
-      fetch(`http://localhost:8000/api/car-driving-data/${car.id}/`)
+      fetch(`https://driving-behavior-analysis-system.onrender.com/api/car-driving-data/${car.id}/`)
         .then(response => response.json())
         .catch(error => {
           console.error(`Error fetching metrics for car ${car.id}:`, error);
@@ -171,7 +171,7 @@ export default function Tracking(): React.JSX.Element {
     const previousData = drivingData;
 
     // Fetch driving data for selected car
-    fetch(`http://localhost:8000/api/car-driving-data/${carId}/`)
+    fetch(`https://driving-behavior-analysis-system.onrender.com/api/car-driving-data/${carId}/`)
       .then(response => response.json())
       .then(data => {
         // Only update if this is still the car we want data for

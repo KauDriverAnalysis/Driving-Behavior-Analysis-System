@@ -77,7 +77,7 @@ export default function ResetPasswordConfirmPage() {
       try {
         console.log('Attempting to update password with token:', token.substring(0, 6) + '...');
         
-        const response = await fetch('http://localhost:8000/api/update_password/', {
+        const response = await fetch('https://driving-behavior-analysis-system.onrender.com/api/update_password/', {
           method: 'POST',
           headers: {
             'Content-Type': 'application/json',

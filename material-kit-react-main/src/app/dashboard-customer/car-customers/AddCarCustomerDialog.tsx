@@ -187,7 +187,7 @@ export default function AddCarCustomerDialog({
         apiData.company_id = companyId;
       }
       
-      const response = await fetch('http://localhost:8000/api/create_car/', {
+      const response = await fetch('https://driving-behavior-analysis-system.onrender.com/api/create_car/', {
         method: 'POST',
         headers: {
           'Content-Type': 'application/json',

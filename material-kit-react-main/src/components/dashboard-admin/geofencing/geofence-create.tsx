@@ -129,7 +129,7 @@ export function GeofenceCreate({
     };
 
     console.log("Submitting geofence data:", geofenceData);
-    console.log("Full API URL for creating geofence:", 'http://localhost:8000/api/geofences/create/');
+    console.log("Full API URL for creating geofence:", 'https://driving-behavior-analysis-system.onrender.com/api/geofences/create/');
     console.log("Complete request payload:", JSON.stringify(geofenceData, null, 2));
 
     try {
@@ -138,7 +138,7 @@ export function GeofenceCreate({
 
       if (editGeofence) {
         console.log(`Updating geofence ${editGeofence.id} with userType: ${userType}, userId: ${userId}`);
-        response = await fetch(`http://localhost:8000/api/geofences/${editGeofence.id}/update/`, {
+        response = await fetch(`https://driving-behavior-analysis-system.onrender.com/api/geofences/${editGeofence.id}/update/`, {
           method: 'PUT',
           headers: {
             'Content-Type': 'application/json',
@@ -151,7 +151,7 @@ export function GeofenceCreate({
         });
       } else {
         console.log(`Creating new geofence with userType: ${userType}, userId: ${userId}`);
-        response = await fetch('http://localhost:8000/api/geofences/create/', {
+        response = await fetch('https://driving-behavior-analysis-system.onrender.com/api/geofences/create/', {
           method: 'POST',
           headers: {
             'Content-Type': 'application/json',

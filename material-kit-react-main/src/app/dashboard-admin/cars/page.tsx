@@ -65,7 +65,7 @@ export default function CarsPage(): React.JSX.Element {
       setLoading(true);
       try {
         // Update the URL to point to your Django backend
-        const response = await fetch(`http://localhost:8000/api/cars/?userType=${userType || ''}&userId=${userId || ''}`);
+        const response = await fetch(`https://driving-behavior-analysis-system.onrender.com/api/cars/?userType=${userType || ''}&userId=${userId || ''}`);
         
         if (!response.ok) {
           throw new Error(`HTTP error! status: ${response.status}`);
@@ -95,7 +95,7 @@ export default function CarsPage(): React.JSX.Element {
 
   const handleConfirmDelete = () => {
     if (carToDelete) {
-      fetch(`http://localhost:8000/api/delete_car/${carToDelete.id}/`, {
+      fetch(`https://driving-behavior-analysis-system.onrender.com/api/delete_car/${carToDelete.id}/`, {
         method: 'POST',
         headers: {
           'Content-Type': 'application/json',
@@ -127,7 +127,7 @@ export default function CarsPage(): React.JSX.Element {
 
   const handleStatusChange = async (car: Car, newStatus: 'online' | 'offline') => {
     try {
-      const response = await fetch(`http://localhost:8000/api/update_car/${car.id}/`, {
+      const response = await fetch(`https://driving-behavior-analysis-system.onrender.com/api/update_car/${car.id}/`, {
         method: 'POST',
         headers: {
           'Content-Type': 'application/json',
@@ -319,7 +319,7 @@ export default function CarsPage(): React.JSX.Element {
             customer_id: updatedCar.customerId
           };
 
-          fetch(`http://localhost:8000/api/update_car/${updatedCar.id}/`, {
+          fetch(`https://driving-behavior-analysis-system.onrender.com/api/update_car/${updatedCar.id}/`, {
             method: 'POST',
             headers: {
               'Content-Type': 'application/json',

@@ -132,7 +132,7 @@ export default function GeofencingPage() {
     try {
       setLoading(true);
       // Update URL to include userType and userId as query parameters
-      const response = await fetch(`http://localhost:8000/api/geofences/?userType=${userType}&userId=${userId}`);
+      const response = await fetch(`https://driving-behavior-analysis-system.onrender.com/api/geofences/?userType=${userType}&userId=${userId}`);
       
       if (!response.ok) {
         throw new Error(`HTTP error! Status: ${response.status}`);
@@ -231,7 +231,7 @@ export default function GeofencingPage() {
       setGeofences(prev => prev.filter(g => g.id !== id));
       
       // Then make the API call with user type and ID as query parameters
-      const response = await fetch(`http://localhost:8000/api/geofences/${id}/delete/?userType=${userType}&userId=${userId}`, {
+      const response = await fetch(`https://driving-behavior-analysis-system.onrender.com/api/geofences/${id}/delete/?userType=${userType}&userId=${userId}`, {
         method: 'DELETE',
       });
   
@@ -276,7 +276,7 @@ const handleToggleActive = async (id: string) => {
   
   try {
     // Make API call to update geofence active status
-    const response = await fetch(`http://localhost:8000/api/geofences/${id}/update/`, {
+    const response = await fetch(`https://driving-behavior-analysis-system.onrender.com/api/geofences/${id}/update/`, {
       method: 'PUT',
       headers: {
         'Content-Type': 'application/json',

@@ -48,8 +48,8 @@ const CarCustomersPage = () => {
     
     // Create URL with query parameters
     const url = customerId 
-      ? `http://localhost:8000/api/cars/?userType=customer&userId=${customerId}`
-      : 'http://localhost:8000/api/cars/';
+      ? `https://driving-behavior-analysis-system.onrender.com/api/cars/?userType=customer&userId=${customerId}`
+      : 'https://driving-behavior-analysis-system.onrender.com/api/cars/';
     
     fetch(url)
       .then(response => response.json())
@@ -120,7 +120,7 @@ const CarCustomersPage = () => {
     console.log('Updating car with data:', requestData);
     
     // Call API to update car
-    fetch(`http://localhost:8000/api/update_car/${updatedCar.id}/`, {
+    fetch(`https://driving-behavior-analysis-system.onrender.com/api/update_car/${updatedCar.id}/`, {
       method: 'POST',
       headers: {
         'Content-Type': 'application/json',
@@ -155,7 +155,7 @@ const CarCustomersPage = () => {
 
   const handleConfirmDelete = () => {
     if (carToDelete) {
-      fetch(`http://localhost:8000/api/delete_car/${carToDelete.id}/`, {
+      fetch(`https://driving-behavior-analysis-system.onrender.com/api/delete_car/${carToDelete.id}/`, {
         method: 'POST',
         headers: {
           'Content-Type': 'application/json',
@@ -205,7 +205,7 @@ const CarCustomersPage = () => {
         return;
       }
 
-      const response = await fetch(`http://localhost:8000/api/update_car/${car.id}/`, {
+      const response = await fetch(`https://driving-behavior-analysis-system.onrender.com/api/update_car/${car.id}/`, {
         method: 'POST',
         headers: {
           'Content-Type': 'application/json',

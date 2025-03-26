@@ -85,7 +85,7 @@ export default function AddDriverDialog({
     setLoadingCars(true);
     
     // Fetch cars that belong to this company
-    fetch(`http://localhost:8000/api/cars/?userType=company&userId=${company_id}`)
+    fetch(`https://driving-behavior-analysis-system.onrender.com/api/cars/?userType=company&userId=${company_id}`)
       .then(response => response.json())
       .then(data => {
         // Format cars for dropdown
@@ -136,7 +136,7 @@ export default function AddDriverDialog({
         car_id: formData.car_id
       };
       
-      const response = await fetch('http://localhost:8000/api/create_driver/', {
+      const response = await fetch('https://driving-behavior-analysis-system.onrender.com/api/create_driver/', {
         method: 'POST',
         headers: {
           'Content-Type': 'application/json',

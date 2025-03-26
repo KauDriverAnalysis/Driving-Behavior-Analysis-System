@@ -73,7 +73,7 @@ export function CustomerSignUpForm(): React.JSX.Element {
       try {
         console.log("Submitting customer data:", values);
         
-        const response = await fetch('http://localhost:8000/api/create_customer/', {
+        const response = await fetch('https://driving-behavior-analysis-system.onrender.com/api/create_customer/', {
           method: 'POST',
           headers: {
             'Content-Type': 'application/json',

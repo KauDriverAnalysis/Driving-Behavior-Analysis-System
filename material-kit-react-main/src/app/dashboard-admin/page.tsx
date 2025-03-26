@@ -72,7 +72,7 @@ export default function Overview(): React.JSX.Element {
                      localStorage.getItem('employee-company-id');
     
     // Add company_id parameter to filter cars for this company only
-    fetch(`http://localhost:8000/api/fleet-overview/?time_frame=${timeFrame}&company_id=${companyId || ''}`)
+    fetch(`https://driving-behavior-analysis-system.onrender.com/api/fleet-overview/?time_frame=${timeFrame}&company_id=${companyId || ''}`)
       .then(response => {
         if (!response.ok) {
           throw new Error(`HTTP error! status: ${response.status}`);
@@ -190,7 +190,7 @@ export default function Overview(): React.JSX.Element {
       
     // Set up polling interval to refresh data every 15 seconds
     const intervalId = setInterval(() => {
-      fetch(`http://localhost:8000/api/fleet-overview/?time_frame=${timeFrame}`)
+      fetch(`https://driving-behavior-analysis-system.onrender.com/api/fleet-overview/?time_frame=${timeFrame}`)
         .then(response => response.json())
         .then(data => {
           setOverviewData(data);

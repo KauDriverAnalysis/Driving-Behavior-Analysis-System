@@ -52,7 +52,7 @@ export default function EmployeesPage(): React.JSX.Element {
   // Fetch employees data
   useEffect(() => {
     setLoading(true);
-    fetch('http://localhost:8000/api/employees/')
+    fetch('https://driving-behavior-analysis-system.onrender.com/api/employees/')
       .then(response => response.json())
       .then(data => {
         setEmployees(data);
@@ -77,7 +77,7 @@ export default function EmployeesPage(): React.JSX.Element {
   const handleConfirmDelete = () => {
     if (employeeToDelete) {
       // Call API to delete employee
-      fetch(`http://localhost:8000/api/delete_employee/${employeeToDelete.id}/`, {
+      fetch(`https://driving-behavior-analysis-system.onrender.com/api/delete_employee/${employeeToDelete.id}/`, {
         method: 'POST',
         headers: {
           'Content-Type': 'application/json',
@@ -269,7 +269,7 @@ export default function EmployeesPage(): React.JSX.Element {
             ...(updatedEmployee.Password && { Password: updatedEmployee.Password })
           };
 
-          fetch(`http://localhost:8000/api/update_employee/${updatedEmployee.id}/`, {
+          fetch(`https://driving-behavior-analysis-system.onrender.com/api/update_employee/${updatedEmployee.id}/`, {
             method: 'POST',
             headers: {
               'Content-Type': 'application/json',

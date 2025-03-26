@@ -82,7 +82,7 @@ export function AccountDetailsForm(): React.JSX.Element {
         setLoading(true);
         if (companyId) {
           // Fetch company details
-          const response = await fetch(`http://localhost:8000/api/company/${companyId}/`);
+          const response = await fetch(`https://driving-behavior-analysis-system.onrender.com/api/company/${companyId}/`);
           if (!response.ok) {
             throw new Error('Failed to fetch company data');
           }
@@ -149,7 +149,7 @@ export function AccountDetailsForm(): React.JSX.Element {
       };
       
       // Call our update_company endpoint
-      const response = await fetch(`http://localhost:8000/api/update_company/${companyId}/`, {
+      const response = await fetch(`https://driving-behavior-analysis-system.onrender.com/api/update_company/${companyId}/`, {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify(dataToSend)

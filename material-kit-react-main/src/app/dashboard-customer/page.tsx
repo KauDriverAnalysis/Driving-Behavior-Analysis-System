@@ -89,7 +89,7 @@ export default function CustomerOverview(): React.JSX.Element {
     }
     
     // Fetch cars owned by this customer
-    fetch(`http://localhost:8000/api/cars/?userType=customer&userId=${customerId}`)
+    fetch(`https://driving-behavior-analysis-system.onrender.com/api/cars/?userType=customer&userId=${customerId}`)
       .then((response) => {
         if (!response.ok) {
           throw new Error(`HTTP error! status: ${response.status}`);
@@ -127,7 +127,7 @@ export default function CustomerOverview(): React.JSX.Element {
     setError(null);
     
     // Fetch car driving data
-    fetch(`http://localhost:8000/api/car-driving-data/${selectedCar}/`)
+    fetch(`https://driving-behavior-analysis-system.onrender.com/api/car-driving-data/${selectedCar}/`)
       .then(response => {
         if (!response.ok) {
           throw new Error(`HTTP error! status: ${response.status}`);
@@ -233,7 +233,7 @@ export default function CustomerOverview(): React.JSX.Element {
   const fetchCarLocation = () => {
     if (!selectedCar) return;
     
-    fetch(`http://localhost:8000/api/car-location/${selectedCar}/`)
+    fetch(`https://driving-behavior-analysis-system.onrender.com/api/car-location/${selectedCar}/`)
       .then(response => {
         if (!response.ok) {
           throw new Error(`HTTP error! status: ${response.status}`);

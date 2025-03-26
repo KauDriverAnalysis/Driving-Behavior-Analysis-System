@@ -84,7 +84,7 @@ export function AccountDetailsForm(): React.JSX.Element {
         
         
         // Call the get_customer endpoint
-        const response = await fetch(`http://localhost:8000/api/customer/${customerId}/`);
+        const response = await fetch(`https://driving-behavior-analysis-system.onrender.com/api/customer/${customerId}/`);
         
         if (!response.ok) {
           throw new Error('Failed to fetch customer data');
@@ -158,7 +158,7 @@ export function AccountDetailsForm(): React.JSX.Element {
       console.log(`Updating customer ${customerId} with data:`, dataToSend);
       
       // Call update_customer endpoint
-      const response = await fetch(`http://localhost:8000/api/update_customer/${customerId}/`, {
+      const response = await fetch(`https://driving-behavior-analysis-system.onrender.com/api/update_customer/${customerId}/`, {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify(dataToSend)
