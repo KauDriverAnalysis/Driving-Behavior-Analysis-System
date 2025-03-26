@@ -1,5 +1,5 @@
 [build]
-  command = "pnpm install --prefer-offline --no-frozen-lockfile && pnpm build"
+  command = "pnpm install --prefer-offline --no-frozen-lockfile --force && pnpm build"
   publish = ".next"
 
 [[plugins]]
