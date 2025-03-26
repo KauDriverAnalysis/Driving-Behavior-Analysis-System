@@ -928,7 +928,6 @@ export default function HomePage() {
   {[...Array(5)].map((_, i) => (
     <FloatingElement
       key={i}
-      component={motion.div}
       initial={{ opacity: 0, scale: 0 }}
       animate={{ 
         opacity: [0.3, 0.6, 0.3],
