@@ -1,10 +1,6 @@
 [build]
-  command = "pnpm install --prefer-offline --no-frozen-lockfile --force && pnpm build"
+  command = "pnpm install --prefer-offline --no-frozen-lockfile && pnpm build"
   publish = ".next"
-
-[build.environment]
-  NODE_VERSION = "18.17.0"
-  NETLIFY_SKIP_GO_INSTALL = "true"
 
 [[plugins]]
   package = "@netlify/plugin-nextjs"
