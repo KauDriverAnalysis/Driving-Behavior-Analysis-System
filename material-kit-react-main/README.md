@@ -41,7 +41,7 @@ to save more time and design efforts :)
 - Make sure your Node.js and npm versions are up to date
 - Install dependencies: `npm install` or `yarn`
 - Start the server: `npm run dev` or `yarn dev`
-- Open browser: `https://driving-behavior-analysis.netlify.app`
+- Open browser: `http://localhost:3000`
 
 ## File Structure
 

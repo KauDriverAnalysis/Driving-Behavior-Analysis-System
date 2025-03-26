@@ -30,11 +30,11 @@ ALLOWED_HOSTS = ['driving-behavior-analysis-system.onrender.com']
 # settings.py
 
 CORS_ORIGIN_WHITELIST = [
-    'https://driving-behavior-analysis.netlify.app',  # Add your Netlify URL here
+    'http://localhost:3000',  # Add your Netlify URL here
 ]
 
 CSRF_TRUSTED_ORIGINS = [
-    'https://driving-behavior-analysis.netlify.app',  # Add your Netlify URL here
+    'http://localhost:3000',  # Add your Netlify URL here
 ]
 
 # Application definition
