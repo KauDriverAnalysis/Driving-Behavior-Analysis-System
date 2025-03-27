@@ -17,7 +17,8 @@ import {
   FormHelperText,
   Alert,
   Snackbar,
-  Box
+  Box,
+  SelectChangeEvent  // Add this import
 } from '@mui/material';
 import { useTheme } from '@mui/material/styles';
 import AddIcon from '@mui/icons-material/Add';
@@ -68,8 +69,8 @@ export default function AddDriverDialog({
       
       // Get company ID from localStorage
       const company_id = localStorage.getItem('company_id') || 
-                         localStorage.getItem('companyId') || 
-                         localStorage.getItem('employee-company-id');
+                        localStorage.getItem('companyId') || 
+                        localStorage.getItem('employee-company-id');
       
       setCompanyId(company_id);
       
@@ -84,17 +85,17 @@ export default function AddDriverDialog({
   const fetchAvailableCars = (company_id: string) => {
     setLoadingCars(true);
     
-    // Fetch cars that belong to this company
     fetch(`https://driving-behavior-analysis-system.onrender.com/api/cars/?userType=company&userId=${company_id}`)
       .then(response => response.json())
       .then(data => {
-        // Format cars for dropdown
+        // Update this part to match the edit dialog's car mapping
         const cars = data.map((car: any) => ({
           id: car.id,
-          model: car.model,
-          plateNumber: car.plateNumber
+          model: car.model || car.Model_of_car,  // Handle both naming conventions
+          plateNumber: car.plateNumber || car.Plate_number  // Handle both naming conventions
         }));
         
+        console.log('Mapped cars:', cars); // Debug log
         setAvailableCars(cars);
         setLoadingCars(false);
       })
@@ -107,6 +108,16 @@ export default function AddDriverDialog({
 
   const handleChange = (field: string) => (
     event: React.ChangeEvent<HTMLInputElement | { value: unknown }>
+  ) => {
+    setFormData({
+      ...formData,
+      [field]: event.target.value
+    });
+  };
+
+  // Add a new handler for Select components
+  const handleSelectChange = (field: string) => (
+    event: SelectChangeEvent
   ) => {
     setFormData({
       ...formData,
@@ -168,7 +179,7 @@ export default function AddDriverDialog({
     }
   };
 
-   const isFormValid = () => {
+  const isFormValid = () => {
     return (
       formData.name.trim() !== '' &&
       formData.gender !== '' &&
@@ -217,7 +228,7 @@ export default function AddDriverDialog({
                   <Select
                     value={formData.gender}
                     label="Gender"
-                    onChange={handleChange('gender')}
+                    onChange={handleSelectChange('gender')}
                   >
                     <MenuItem value="male">Male</MenuItem>
                     <MenuItem value="female">Female</MenuItem>
@@ -243,7 +254,7 @@ export default function AddDriverDialog({
                   <Select
                     value={formData.car_id}
                     label="Car"
-                    onChange={handleChange('car_id')}
+                    onChange={handleSelectChange('car_id')}
                     disabled={loadingCars}
                   >
                     {availableCars.map(car => (
