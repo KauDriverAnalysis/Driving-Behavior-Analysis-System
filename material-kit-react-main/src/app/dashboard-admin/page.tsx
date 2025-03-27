@@ -22,6 +22,14 @@ import { PerformanceTrend } from '@/components/dashboard-admin/overview/performa
 import { DriversPerformance } from '@/components/dashboard-admin/overview/drivers-performance';
 import { StatusBreakdown } from '@/components/dashboard-admin/overview/status-breakdown';
 
+// Update the performanceTrend state type to include all possible shapes
+interface PerformanceTrendData {
+  hours?: string[];
+  days?: string[];
+  weeks?: string[];
+  scores: number[];
+}
+
 export default function Overview(): React.JSX.Element {
   const [timeFrame, setTimeFrame] = useState<'1d' | '7d' | '30d'>('1d');
   const [loading, setLoading] = useState<boolean>(true);
@@ -45,7 +53,8 @@ export default function Overview(): React.JSX.Element {
     swerving: 0,
     speeding: 0
   });
-  const [performanceTrend, setPerformanceTrend] = useState({
+  // Update the useState initialization
+  const [performanceTrend, setPerformanceTrend] = useState<PerformanceTrendData>({
     hours: ['00:00'],
     scores: [0]
   });
@@ -104,14 +113,16 @@ export default function Overview(): React.JSX.Element {
         
         // Use actual historical data if available
         if (data.historical_scores && data.historical_scores.length > 0) {
-          const labels = data.historical_scores.map(item => item.time_label);
-          const scores = data.historical_scores.map(item => item.score);
+          const labels = data.historical_scores.map((item: { time_label: string }) => item.time_label);
+          const scores = data.historical_scores.map((item: { score: number }) => item.score);
           
-          setPerformanceTrend(
-            timeFrame === '1d' ? { hours: labels, scores } : 
-            (timeFrame === '7d' ? { days: labels, scores } : 
-            { weeks: labels, scores })
-          );
+          if (timeFrame === '1d') {
+            setPerformanceTrend({ hours: labels, scores });
+          } else if (timeFrame === '7d') {
+            setPerformanceTrend({ days: labels, scores });
+          } else {
+            setPerformanceTrend({ weeks: labels, scores });
+          }
         } else {
           // Fallback to simulated data
           const trendLabels = timeFrame === '1d' ? 
@@ -122,16 +133,18 @@ export default function Overview(): React.JSX.Element {
           
           // Generate scores array from historical data or use average score
           const avgScore = data.fleet_stats.avg_score;
-          const scores = trendLabels.map((_, index) => {
+          const scores = trendLabels.map(() => {
             // Simulate slight variation around average to create a chart
             return Math.max(0, Math.min(100, avgScore + (Math.random() * 10 - 5)));
           });
           
-          setPerformanceTrend(
-            timeFrame === '1d' ? { hours: trendLabels, scores } : 
-            (timeFrame === '7d' ? { days: trendLabels, scores } : 
-            { weeks: trendLabels, scores })
-          );
+          if (timeFrame === '1d') {
+            setPerformanceTrend({ hours: trendLabels, scores });
+          } else if (timeFrame === '7d') {
+            setPerformanceTrend({ days: trendLabels, scores });
+          } else {
+            setPerformanceTrend({ weeks: trendLabels, scores });
+          }
         }
         
         // Map driver performance from API data
@@ -141,7 +154,7 @@ export default function Overview(): React.JSX.Element {
           let excellent = 0, good = 0, average = 0, poor = 0;
           
           // Process best drivers
-          data.best_drivers.forEach(driver => {
+          data.best_drivers.forEach((driver: { score: number }) => {
             if (driver.score >= 90) excellent++;
             else if (driver.score >= 80) good++;
             else if (driver.score >= 70) average++;
@@ -149,7 +162,7 @@ export default function Overview(): React.JSX.Element {
           });
           
           // Process worst drivers
-          data.worst_drivers.forEach(driver => {
+          data.worst_drivers.forEach((driver: { score: number }) => {
             if (driver.score >= 90) excellent++;
             else if (driver.score >= 80) good++;
             else if (driver.score >= 70) average++;
@@ -211,12 +224,12 @@ export default function Overview(): React.JSX.Element {
               average: data.drivers.average || 0,
               poor: data.drivers.poor || 0
             });
-            
-            // You can also log all driver data to debug
-            console.log("All drivers with scores:", data.drivers.all_drivers);
           }
         })
-        .catch(err => console.error('Error in periodic data update:', err));
+        .catch(err => {
+          console.error('Error in polling interval:', err);
+          // Don't update error state here to avoid disrupting the UI
+        });
     }, 15000);
     
     return () => clearInterval(intervalId);
