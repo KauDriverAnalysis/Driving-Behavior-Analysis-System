@@ -11,22 +11,14 @@ import {
   Grid,
   MenuItem,
   Select,
+  SelectChangeEvent,
   Typography,
   Alert,
   CircularProgress
 } from '@mui/material';
 import { useTheme } from '@mui/material/styles';
 import EditIcon from '@mui/icons-material/Edit';
-
-interface Employee {
-  id: string;
-  name: string;
-  gender: string;
-  phone_number: string;
-  address: string;
-  Email: string;
-  Password: string; // Match the field name with the backend
-}
+import { Employee } from '@/types/employee';
 
 interface EditEmployeeDialogProps {
   open: boolean;
@@ -48,11 +40,11 @@ export default function EditEmployeeDialog({
 
   React.useEffect(() => {
     if (employee) {
-      // Create a copy of the employee and ensure proper field names
+      // Create a copy of the employee with only fields defined in the interface
       setFormData({
         ...employee,
-        // Ensure password is properly named to match interface
-        Password: employee.Password || employee.password || ''
+        // Use only the Password property since that's what's defined in your interface
+        Password: employee.Password || ''
       });
       setError(null);
     }
@@ -62,6 +54,15 @@ export default function EditEmployeeDialog({
 
   const handleChange = (field: keyof Employee) => (
     event: React.ChangeEvent<HTMLInputElement | { value: unknown }>
+  ) => {
+    setFormData(prev => ({
+      ...prev!,
+      [field]: event.target.value
+    }));
+  };
+
+  const handleSelectChange = (field: keyof Employee) => (
+    event: SelectChangeEvent
   ) => {
     setFormData(prev => ({
       ...prev!,
@@ -160,7 +161,7 @@ export default function EditEmployeeDialog({
                 <Select
                   value={formData.gender}
                   label="Gender"
-                  onChange={handleChange('gender')}
+                  onChange={handleSelectChange('gender')}
                   required
                 >
                   <MenuItem value="male">Male</MenuItem>

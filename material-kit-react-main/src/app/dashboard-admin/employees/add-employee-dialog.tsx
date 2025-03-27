@@ -13,14 +13,15 @@ import Checkbox from '@mui/material/Checkbox';
 import { useTheme } from '@mui/material/styles';
 import Snackbar from '@mui/material/Snackbar';
 import Alert from '@mui/material/Alert';
-import Select from '@mui/material/Select';
+import Select, { SelectChangeEvent } from '@mui/material/Select'; // Add SelectChangeEvent import
 import MenuItem from '@mui/material/MenuItem';
 import FormHelperText from '@mui/material/FormHelperText';
+import { Employee } from '@/types/employee';
 
 interface AddEmployeeDialogProps {
   open: boolean;
   onClose: () => void;
-  onSuccess?: () => void; // Optional callback for when an employee is successfully added
+  onSuccess: () => void;
 }
 
 interface FormData {
@@ -144,8 +145,13 @@ export default function AddEmployeeDialog({
     );
   };
 
-  const handleGenderChange = (event: React.ChangeEvent<{ value: unknown }>) => {
-    setGender(event.target.value as string);
+  // Update the handleGenderChange function to use SelectChangeEvent
+  const handleGenderChange = (event: SelectChangeEvent) => {
+    setGender(event.target.value);
+    setTouched(prev => ({
+      ...prev,
+      gender: true
+    }));
   };
 
   const closeAlert = () => {
@@ -163,7 +169,11 @@ export default function AddEmployeeDialog({
       return acc;
     }, {} as Record<keyof FormData, boolean>);
     
-    setTouched(allTouched);
+    // Add gender to the touched state
+    setTouched({
+      ...allTouched,
+      gender: true  // Add this explicitly
+    });
     
     // Validate phone number again before submission
     if (!validatePhoneNumber(formData.phone_number)) {
