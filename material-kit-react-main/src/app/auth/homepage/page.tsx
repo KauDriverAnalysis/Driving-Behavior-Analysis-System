@@ -345,7 +345,7 @@ const StyledAvatar = styled(Avatar)(({ theme }) => ({
   }
 }));
 
-const ScrollDownButton = styled(Button)(({ theme }) => ({
+const ScrollDownButton = motion(styled(Button)(({ theme }) => ({
   position: 'absolute',
   bottom: theme.spacing(5),
   left: '50%',
@@ -358,14 +358,13 @@ const ScrollDownButton = styled(Button)(({ theme }) => ({
   '&:hover': {
     backgroundColor: 'rgba(255, 255, 255, 0.2)',
   }
-}));
+})));
 
-const FloatingElement = styled(Box)(({ theme }) => ({
+const FloatingElement = styled(motion.div)(({ theme }) => ({
   position: 'absolute',
   borderRadius: '50%',
   background: 'linear-gradient(135deg, rgba(25, 118, 210, 0.2), rgba(25, 118, 210, 0))',
   backdropFilter: 'blur(8px)',
-  animation: 'float 15s ease-in-out infinite'
 }));
 
 // Add this new component for a modern circuit-board style background
@@ -929,7 +928,6 @@ export default function HomePage() {
   {[...Array(5)].map((_, i) => (
     <FloatingElement
       key={i}
-      component={motion.div}
       initial={{ opacity: 0, scale: 0 }}
       animate={{ 
         opacity: [0.3, 0.6, 0.3],
@@ -970,7 +968,7 @@ export default function HomePage() {
   >
     <MotionTypography 
       variant="h2" 
-      component="h1" 
+      //component="h1" 
       gutterBottom
       variants={{
         hidden: { opacity: 0, y: -50 },
@@ -1012,7 +1010,7 @@ export default function HomePage() {
 
     <MotionTypography 
       variant="h5" 
-      component="p"
+      //component="p"
       variants={{
         hidden: { opacity: 0, y: 30 },
         visible: { 
@@ -1105,7 +1103,6 @@ export default function HomePage() {
   </MotionContainer>
 
   <ScrollDownButton 
-    component={motion.button}
     animate={{ 
       y: [0, 10, 0],
       opacity: [0.6, 1, 0.6],

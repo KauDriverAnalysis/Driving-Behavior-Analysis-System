@@ -471,14 +471,14 @@ def car_list(request):
         car_data = [
             {
                 'id': car.id,
-                'model': car.Model_of_car,
-                'type': car.TypeOfCar,
-                'plateNumber': car.Plate_number,
-                'releaseYear': car.Release_Year_car,
-                'state': car.State_of_car,
-                'deviceId': car.device_id,
-                'customerId': car.customer_id_id,
-                'companyId': car.company_id_id,
+                'Model_of_car': car.Model_of_car,
+                'TypeOfCar': car.TypeOfCar,
+                'Plate_number': car.Plate_number,
+                'Release_Year_car': car.Release_Year_car,
+                'State_of_car': car.State_of_car,
+                'device_id': car.device_id,
+                'customer_id': car.customer_id_id,
+                'company_id': car.company_id_id,
             }
             for car in cars_queryset
         ]

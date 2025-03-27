@@ -18,6 +18,7 @@ import {
 } from '@mui/material';
 import { useTheme } from '@mui/material/styles';
 import AddIcon from '@mui/icons-material/Add';
+import { SelectChangeEvent } from '@mui/material/Select';
 
 interface AddCarDialogProps {
   open: boolean;
@@ -37,6 +38,17 @@ interface CarFormData {
 
 interface ValidationErrors {
   [key: string]: string[];
+}
+
+interface CarApiData {
+  Model_of_car: string;
+  TypeOfCar: string;
+  Plate_number: string;
+  Release_Year_car: number;
+  State_of_car: 'online' | 'offline';
+  device_id: string;
+  customer_id?: string;  // Optional
+  company_id?: string;   // Optional
 }
 
 export default function AddCarDialog({ open, onClose, onSuccess }: AddCarDialogProps) {
@@ -90,6 +102,24 @@ export default function AddCarDialog({ open, onClose, onSuccess }: AddCarDialogP
     }
   };
 
+  const handleSelectChange = (field: keyof CarFormData) => (
+    event: SelectChangeEvent
+  ) => {
+    setFormData(prev => ({
+      ...prev,
+      [field]: event.target.value
+    }));
+    
+    // Clear validation error for this field if it exists
+    if (validationErrors[field]) {
+      setValidationErrors(prev => {
+        const newErrors = { ...prev };
+        delete newErrors[field];
+        return newErrors;
+      });
+    }
+  };
+
   const handleSubmit = async (event: React.FormEvent) => {
     event.preventDefault();
     
@@ -126,7 +156,7 @@ export default function AddCarDialog({ open, onClose, onSuccess }: AddCarDialogP
       }
       
       // Only include the IDs that are not null
-      const apiData = {
+      const apiData: CarApiData = {
         Model_of_car: formData.Model_of_car,
         TypeOfCar: formData.TypeOfCar,
         Plate_number: formData.Plate_number,
@@ -278,7 +308,7 @@ export default function AddCarDialog({ open, onClose, onSuccess }: AddCarDialogP
                 <Select
                   value={formData.State_of_car}
                   label="State"
-                  onChange={handleChange('State_of_car')}
+                  onChange={handleSelectChange('State_of_car')}
                 >
                   <MenuItem value="online">Online</MenuItem>
                   <MenuItem value="offline">Offline</MenuItem>
