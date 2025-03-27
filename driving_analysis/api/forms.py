@@ -1,5 +1,5 @@
 from django import forms
-from .models import Customer, Company, Car, Driver, DrivingData, Employee, Geofence
+from .models import Customer, Company, Car, Driver, DrivingData, Employee, Geofence, ScorePattern
 from django.contrib.auth.hashers import make_password
 import re
 from django.core.exceptions import ValidationError
@@ -199,6 +199,45 @@ class GeofenceForm(forms.ModelForm):
     
     def __str__(self):
         return f"{self.name} ({self.type})"
+    # ...existing code...
+
+class ScorePatternForm(forms.ModelForm):
+    class Meta:
+        model = ScorePattern
+        fields = [
+            'customer_id', 
+            'company_id',
+            'harsh_braking_weight',
+            'harsh_acceleration_weight',
+            'swerving_weight',
+            'over_speed_weight',
+            'potential_swerving_weight'
+        ]
+
+    def clean(self):
+        cleaned_data = super().clean()
+        customer_id = cleaned_data.get('customer_id')
+        company_id = cleaned_data.get('company_id')
+
+        # Validate owner constraints
+        if not company_id and not customer_id:
+            raise ValidationError("Either company_id or customer_id must be set")
+        if company_id and customer_id:
+            raise ValidationError("Cannot set both company_id and customer_id")
+
+        # Validate weights sum to 100%
+        total_weight = sum([
+            cleaned_data.get('harsh_braking_weight', 0),
+            cleaned_data.get('harsh_acceleration_weight', 0),
+            cleaned_data.get('swerving_weight', 0),
+            cleaned_data.get('over_speed_weight', 0),
+            cleaned_data.get('potential_swerving_weight', 0)
+        ])
+
+        if total_weight != 100:
+            raise ValidationError("Weights must sum to 100")
+
+        return cleaned_data
 
 
 
