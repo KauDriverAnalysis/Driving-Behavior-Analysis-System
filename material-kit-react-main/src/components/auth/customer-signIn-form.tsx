@@ -65,6 +65,12 @@ export function CustomerSignInForm(): React.JSX.Element {
         }
 
         await checkSession?.();
+        
+        // Add type guard for userType
+        if (userType !== 'admin' && userType !== 'customer' && userType !== 'employee') {
+          throw new Error('Invalid user type received');
+        }
+        
         setUserType(userType);
 
         if (userType === 'customer') {

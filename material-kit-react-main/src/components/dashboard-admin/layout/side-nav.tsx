@@ -24,7 +24,9 @@ export function SideNav(): React.JSX.Element {
   const pathname = usePathname();
   const { user, userType } = useUser();
   console.log('Current user:', user, 'User type:', userType); 
-  const navItems = getNavItems(userType);
+  
+  // Add null check for userType
+  const navItems = getNavItems(userType || undefined);
 
   return (
     <Box

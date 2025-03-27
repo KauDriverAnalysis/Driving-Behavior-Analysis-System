@@ -7,9 +7,11 @@ import type { User } from '@/types/user';
 import { authClient } from '@/lib/auth/client';
 import { logger } from '@/lib/default-logger';
 
-interface UserContextType {
+export interface UserContextType {
   user: any | null;
   userType: string | null;
+  error: Error | null;
+  isLoading: boolean;
   setUserType: (type: string | null) => void;
   checkSession?: () => Promise<void>;
   // Other properties your context has...
@@ -24,6 +26,8 @@ export interface UserProviderProps {
 
 export function UserProvider({ children }: UserProviderProps): React.JSX.Element {
   const [user, setUser] = useState<any | null>(null);
+  const [error, setError] = useState<Error | null>(null);
+  const [isLoading, setIsLoading] = useState(false);
   // Initialize userType from localStorage
   const [userType, setUserTypeState] = useState<string | null>(() => {
     if (typeof window !== 'undefined') {
@@ -43,19 +47,23 @@ export function UserProvider({ children }: UserProviderProps): React.JSX.Element
   };
 
   const checkSession = React.useCallback(async (): Promise<void> => {
+    setIsLoading(true);
     try {
-      const { data, error } = await authClient.getUser();
+      const { data, error: apiError } = await authClient.getUser();
 
-      if (error) {
-        logger.error(error);
+      if (apiError) {
+        setError(new Error(apiError));
         setUser(null);
         return;
       }
 
       setUser(data ?? null);
+      setError(null);
     } catch (err) {
-      logger.error(err);
+      setError(err instanceof Error ? err : new Error('An unknown error occurred'));
       setUser(null);
+    } finally {
+      setIsLoading(false);
     }
   }, []);
 
@@ -72,7 +80,9 @@ export function UserProvider({ children }: UserProviderProps): React.JSX.Element
       user, 
       userType, 
       setUserType, 
-      checkSession 
+      checkSession,
+      error,
+      isLoading
     }}>
       {children}
     </UserContext.Provider>

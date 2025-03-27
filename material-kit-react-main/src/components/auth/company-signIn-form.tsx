@@ -23,6 +23,7 @@ import { paths } from '@/paths';
 import { authClient } from '@/lib/auth/client';
 import { useUser } from '@/hooks/use-user';
 
+
 const schema = zod.object({
   email: zod.string().min(1, { message: 'Email is required' }).email(),
   password: zod.string().min(1, { message: 'Password is required' }),
@@ -61,15 +62,12 @@ export function CompanySignInForm(): React.JSX.Element {
         }
         
         await checkSession?.();
-        setUserType(userType);
+        // Add null check and type narrowing
+        setUserType(userType || null);
         
-        // Fix: All company, admin, and employee users should use dashboardAdmin paths
-        // There is no dashboardCompany path in the paths.ts file
         router.push(paths.dashboardAdmin.overview);
       } catch (error) {
         console.error('Login error:', error);
-        
-        // Display error to user
         setError('root', { 
           type: 'server', 
           message: error instanceof Error ? error.message : 'Authentication failed' 

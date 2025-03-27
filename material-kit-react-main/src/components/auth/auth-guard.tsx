@@ -8,6 +8,7 @@ import { paths } from '@/paths';
 import { logger } from '@/lib/default-logger';
 import { useUser } from '@/hooks/use-user';
 
+
 export interface AuthGuardProps {
   children: React.ReactNode;
 }
@@ -48,7 +49,7 @@ export function AuthGuard({ children }: AuthGuardProps): React.JSX.Element | nul
   }
 
   if (error) {
-    return <Alert color="error">{error}</Alert>;
+    return <Alert color="error">{error.message}</Alert>;
   }
 
   return <React.Fragment>{children}</React.Fragment>;

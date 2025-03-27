@@ -11,17 +11,11 @@ export function isNavItemActive({
     return false;
   }
 
-  if (matcher) {
-    if (matcher.type === 'startsWith') {
-      return pathname.startsWith(matcher.href);
-    }
-
-    if (matcher.type === 'equals') {
-      return pathname === matcher.href;
-    }
-
-    return false;
+  // If there's a RegExp matcher, use it to test the pathname
+  if (matcher instanceof RegExp) {
+    return matcher.test(pathname);
   }
 
+  // Default to exact match
   return pathname === href;
 }

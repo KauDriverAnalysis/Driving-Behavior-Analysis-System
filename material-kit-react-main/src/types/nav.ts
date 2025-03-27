@@ -1,5 +1,3 @@
-import { Icon } from '@phosphor-icons/react';
-
 export type NavIcon = 
   | 'chart-pie'
   | 'chart-line'
