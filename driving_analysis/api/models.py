@@ -117,13 +117,4 @@ class ScorePattern(models.Model):
             )
         ]
         
-    def is_valid(self):
-        """Check if weights sum to 100"""
-        total = (self.harsh_braking_weight + 
-                 self.harsh_acceleration_weight + 
-                 self.swerving_weight + 
-                 self.over_speed_weight + 
-                 self.potential_swerving_weight)
-        return total == 100
-
-
+   
