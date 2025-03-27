@@ -22,8 +22,8 @@ import FilterListIcon from '@mui/icons-material/FilterList';
 
 interface Car {
   id: string;
-  model: string;
-  status: string;
+  Model_of_car: string;
+  State_of_car: string;
   isActive?: boolean;
   score?: number;
   speed?: number;
@@ -69,8 +69,8 @@ export function CarsTable({ cars, onSelectCar, selectedCar }: CarsTableProps): R
   // Filter cars based on search term
   const filteredCars = cars.filter(car => 
     String(car.id).toLowerCase().includes(search.toLowerCase()) ||
-    String(car.model).toLowerCase().includes(search.toLowerCase()) ||
-    String(car.status).toLowerCase().includes(search.toLowerCase())
+    String(car.Model_of_car).toLowerCase().includes(search.toLowerCase()) ||
+    String(car.State_of_car).toLowerCase().includes(search.toLowerCase())
   );
 
   // Sort cars based on sort field and direction
@@ -249,11 +249,11 @@ export function CarsTable({ cars, onSelectCar, selectedCar }: CarsTableProps): R
                       {car.id}
                     </Box>
                   </TableCell>
-                  <TableCell>{car.model}</TableCell>
+                  <TableCell>{car.Model_of_car}</TableCell>
                   <TableCell>
                     <Chip 
-                      label={car.status} 
-                      color={car.status === 'Active' ? 'success' : 'default'} 
+                      label={car.State_of_car} 
+                      color={car.State_of_car === 'online' ? 'success' : 'error'} 
                       size="small" 
                       variant="outlined"
                       sx={{ 
