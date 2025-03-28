@@ -26,27 +26,7 @@ from .models import Geofence
 from .forms import GeofenceForm
 
 
-def driver_map(request):
-    latest_location = cache.get('latest_location')
-    print(f"Driver map latest_location: {latest_location}")  # Debugging statement
-    if (latest_location):
-        m = folium.Map(location=[latest_location['latitude'], latest_location['longitude']], zoom_start=12)
 
-        # Add markers for each data point in the buffer
-        buffer = cache.get('buffer', [])
-        for data in buffer:
-            folium.Marker(
-                [data['latitude'], data['longitude']], 
-                popup=f"Speed: {data['speed']}, Acceleration: {data['ax']}"
-            ).add_to(m)
-
-        map_html = m._repr_html_()
-        map_ready = True
-    else:
-        map_html = None
-        map_ready = False
-
-    return render(request, 'driver_map.html', {'map': map_html, 'map_ready': map_ready})
 
 from django.http import JsonResponse
 from django.core.cache import cache
