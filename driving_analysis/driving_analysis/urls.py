@@ -16,13 +16,11 @@ Including another URLconf
 """
 from django.contrib import admin
 from django.urls import path, include
-from api.views import driver_map, get_latest_data
+from api.views import  get_latest_data
 from api import views
 
 urlpatterns = [
     path('admin/', admin.site.urls),
-    path('', driver_map, name='home'),  # Redirect root URL to driver_map
-    path('driver-map/', driver_map, name='driver_map'),  # Fixed typo with double backticks
     path('get-latest-data/', get_latest_data, name='get_latest_data'),  # Ensure this line is correct
     path('create/', views.create_customer, name='create_customer'),
     path('api/customers/', views.customer_list, name='customer_list_api'),  # Added customer list endpoint
