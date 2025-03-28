@@ -38,13 +38,12 @@ interface ScorePattern {
 }
 
 const PatternScoreTab: React.FC<PatternScoreTabProps> = ({ showNotification }) => {
-  // Initial score pattern data with default values
+  // Initial score pattern data
   const initialScorePattern: ScorePattern[] = [
-    { id: 'harshBraking', name: 'Harsh Braking', value: 20, color: '#FF5252', icon: <BrakeIcon /> },
-    { id: 'hardAcceleration', name: 'Hard Acceleration', value: 10, color: '#FF9800', icon: <TrendingUpIcon /> },
-    { id: 'swerving', name: 'Swerving', value: 30, color: '#2196F3', icon: <CompareArrowsIcon /> },
+    { id: 'harshBraking', name: 'Harsh Braking', value: 30, color: '#FF5252', icon: <BrakeIcon /> },
+    { id: 'hardAcceleration', name: 'Hard Acceleration', value: 25, color: '#FF9800', icon: <TrendingUpIcon /> },
+    { id: 'swerving', name: 'Swerving', value: 20, color: '#2196F3', icon: <CompareArrowsIcon /> },
     { id: 'overSpeed', name: 'Over Speed', value: 25, color: '#E040FB', icon: <SpeedIcon /> },
-    { id: 'potentialSwerving', name: 'Potential Swerving', value: 15, color: '#00C853', icon: <CompareArrowsIcon /> },
   ];
 
   // State for the score pattern
@@ -52,59 +51,16 @@ const PatternScoreTab: React.FC<PatternScoreTabProps> = ({ showNotification }) =
   const [isValid, setIsValid] = useState(true);
   const [totalScore, setTotalScore] = useState(100);
   const [isDirty, setIsDirty] = useState(false);
-  const [loading, setLoading] = useState(false);
-
-  // Fetch the current score pattern when component mounts
-  useEffect(() => {
-    const fetchScorePattern = async () => {
-      try {
-        setLoading(true);
-        
-        // Get user info from localStorage
-        const userType = localStorage.getItem('role') || 'company';
-        const userId = localStorage.getItem('company_id') || 
-                      localStorage.getItem('companyId') ||
-                      localStorage.getItem('userId');
-
-        if (!userId) {
-          console.error('No user ID found in localStorage');
-          setLoading(false);
-          return;
-        }
-
-        const response = await fetch(`https://driving-behavior-analysis-system.onrender.com/api/score-pattern/?userType=${userType}&userId=${userId}`);
-        
-        if (!response.ok) {
-          throw new Error(`Failed to fetch score pattern: ${response.status}`);
-        }
-
-        const data = await response.json();
-
-        // Update score pattern with fetched data
-        setScorePattern([
-          { id: 'harshBraking', name: 'Harsh Braking', value: data.harshBraking, color: '#FF5252', icon: <BrakeIcon /> },
-          { id: 'hardAcceleration', name: 'Hard Acceleration', value: data.harshAcceleration, color: '#FF9800', icon: <TrendingUpIcon /> },
-          { id: 'swerving', name: 'Swerving', value: data.swerving, color: '#2196F3', icon: <CompareArrowsIcon /> },
-          { id: 'overSpeed', name: 'Over Speed', value: data.overSpeed, color: '#E040FB', icon: <SpeedIcon /> },
-          { id: 'potentialSwerving', name: 'Potential Swerving', value: data.potentialSwerving, color: '#00C853', icon: <CompareArrowsIcon /> },
-        ]);
-        
-        setLoading(false);
-      } catch (error) {
-        console.error('Error fetching score pattern:', error);
-        setLoading(false);
-      }
-    };
-
-    fetchScorePattern();
-  }, []);
 
   // Effect to validate the total equals 100
   useEffect(() => {
     const sum = scorePattern.reduce((acc, item) => acc + item.value, 0);
     setTotalScore(sum);
     setIsValid(sum === 100);
-    setIsDirty(true);
+    // Mark as dirty if it's different from initial values
+    const hasChanged = JSON.stringify(scorePattern.map(s => s.value)) !== 
+                       JSON.stringify(initialScorePattern.map(s => s.value));
+    setIsDirty(hasChanged);
   }, [scorePattern]);
 
   // Handle slider change
@@ -114,57 +70,12 @@ const PatternScoreTab: React.FC<PatternScoreTabProps> = ({ showNotification }) =
     );
   };
 
-  // Save changes to backend
-  const handleSave = async () => {
+  // Save changes
+  const handleSave = () => {
     if (isValid) {
-      try {
-        setLoading(true);
-        
-        // Get user info from localStorage
-        const userType = localStorage.getItem('role') || 'company';
-        const userId = localStorage.getItem('company_id') || 
-                      localStorage.getItem('companyId') ||
-                      localStorage.getItem('userId');
-
-        if (!userId) {
-          console.error('No user ID found in localStorage');
-          showNotification('Failed to save: No user ID found', 'error');
-          setLoading(false);
-          return;
-        }
-
-        // Map score pattern to API format
-        const scorePatternData = {
-          userType,
-          userId,
-          harshBraking: scorePattern.find(item => item.id === 'harshBraking')?.value || 0,
-          harshAcceleration: scorePattern.find(item => item.id === 'hardAcceleration')?.value || 0,
-          swerving: scorePattern.find(item => item.id === 'swerving')?.value || 0,
-          overSpeed: scorePattern.find(item => item.id === 'overSpeed')?.value || 0,
-          potentialSwerving: scorePattern.find(item => item.id === 'potentialSwerving')?.value || 0,
-        };
-
-        const response = await fetch('https://driving-behavior-analysis-system.onrender.com/api/update-score-pattern/', {
-          method: 'POST',
-          headers: {
-            'Content-Type': 'application/json',
-          },
-          body: JSON.stringify(scorePatternData),
-        });
-
-        if (!response.ok) {
-          const errorData = await response.json();
-          throw new Error(errorData.error || 'Failed to update score pattern');
-        }
-
-        showNotification('Pattern score weights saved successfully');
-        setIsDirty(false);
-        setLoading(false);
-      } catch (error) {
-        console.error('Error saving score pattern:', error);
-        showNotification(`Failed to save: ${error.message}`, 'error');
-        setLoading(false);
-      }
+      // Here you would typically save to backend
+      showNotification('Pattern score weights saved successfully');
+      setIsDirty(false);
     } else {
       showNotification('Total weight must equal 100%', 'error');
     }

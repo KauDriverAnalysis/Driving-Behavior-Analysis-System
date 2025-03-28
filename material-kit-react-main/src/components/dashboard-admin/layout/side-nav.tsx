@@ -24,7 +24,9 @@ export function SideNav(): React.JSX.Element {
   const pathname = usePathname();
   const { user, userType } = useUser();
   console.log('Current user:', user, 'User type:', userType); 
-  const navItems = getNavItems(userType);
+  
+  // Add null check for userType
+  const navItems = getNavItems(userType || undefined);
 
   return (
     <Box
@@ -89,7 +91,9 @@ interface NavItemProps extends Omit<NavItemConfig, 'items'> {
 
 function NavItem({ disabled, external, href, icon, matcher, pathname, title }: NavItemProps): React.JSX.Element {
   const active = isNavItemActive({ disabled, external, href, matcher, pathname });
-  const Icon = icon ? navIcons[icon] : null;
+  const Icon = icon && Object.prototype.hasOwnProperty.call(navIcons, icon) 
+    ? navIcons[icon as keyof typeof navIcons] 
+    : null;
 
   return (
     <li>

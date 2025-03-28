@@ -12,6 +12,7 @@ import CheckIcon from '@mui/icons-material/Check';
 import ConstructionIcon from '@mui/icons-material/Construction';
 import PauseIcon from '@mui/icons-material/Pause';
 import dynamic from 'next/dynamic';
+import type { ApexOptions } from 'apexcharts';
 
 // Dynamically import ApexCharts to avoid SSR issues
 const Chart = dynamic(() => import('react-apexcharts'), { ssr: false });
@@ -27,8 +28,7 @@ interface StatusBreakdownProps {
 export function StatusBreakdown({ data }: StatusBreakdownProps) {
   const totalCars = data.active + data.maintenance + data.idle;
   
-  // Modified bar chart options to emphasize actual counts
-  const barChartOptions = {
+  const barChartOptions: ApexOptions = {
     chart: {
       background: 'transparent',
       stacked: false, // Change to false to show separate bars
@@ -44,7 +44,7 @@ export function StatusBreakdown({ data }: StatusBreakdownProps) {
         columnWidth: '70%',
         barHeight: '70%',
         dataLabels: {
-          position: 'top',
+          position: 'center' as const,  // Changed from 'top' to 'center' with type assertion
           maxItems: 100,
           hideOverflowingLabels: false,
           orientation: 'horizontal'
@@ -57,9 +57,8 @@ export function StatusBreakdown({ data }: StatusBreakdownProps) {
       formatter: function(val: number) {
         return val; // Show the actual number
       },
-      position: 'right', // Change to 'right' for horizontal bars
       offsetX: 0, // Reset the offset
-      textAnchor: 'start',
+      textAnchor: 'start' as const, // Add type assertion here
       style: {
         fontSize: '12px',
         colors: ['#304758']

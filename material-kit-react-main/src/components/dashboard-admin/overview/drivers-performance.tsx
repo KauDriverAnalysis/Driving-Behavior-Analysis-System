@@ -6,6 +6,7 @@ import Stack from '@mui/material/Stack';
 import Typography from '@mui/material/Typography';
 import Box from '@mui/material/Box';
 import dynamic from 'next/dynamic';
+import type { ApexOptions } from 'apexcharts';
 
 // Dynamically import ApexCharts to avoid SSR issues
 const Chart = dynamic(() => import('react-apexcharts'), { ssr: false });
@@ -22,7 +23,7 @@ interface DriversPerformanceProps {
 export function DriversPerformance({ data }: DriversPerformanceProps) {
   const totalDrivers = data.excellent + data.good + data.average + data.poor;
   
-  const chartOptions = {
+  const chartOptions: ApexOptions = {
     chart: {
       background: 'transparent',
       toolbar: {
@@ -69,15 +70,19 @@ export function DriversPerformance({ data }: DriversPerformanceProps) {
       }
     },
     stroke: {
-      width: 0
+      width: [0, 0, 0, 0] // Change to array of numbers for each series
     },
     legend: {
-      position: 'bottom',
+      position: 'bottom' as const,  // Add type assertion here
       fontSize: '14px',
       markers: {
-        width: 12,
-        height: 12,
-        radius: 12
+        width: 12,            // Use width instead of size
+        height: 12,          // Add height to maintain square shape
+        strokeWidth: 0,      // Keep stroke width at 0
+        strokeColor: '#fff', // Optional: specify stroke color
+        radius: 6,          // Add radius for rounded corners
+        offsetX: 0,
+        offsetY: 0
       },
       itemMargin: {
         horizontal: 8

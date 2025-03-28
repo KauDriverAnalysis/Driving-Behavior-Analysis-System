@@ -22,8 +22,8 @@ import FilterListIcon from '@mui/icons-material/FilterList';
 
 interface Car {
   id: string;
-  Model_of_car: string;
-  State_of_car: string;
+  model: string;
+  status: string;
   isActive?: boolean;
   score?: number;
   speed?: number;
@@ -69,8 +69,8 @@ export function CarsTable({ cars, onSelectCar, selectedCar }: CarsTableProps): R
   // Filter cars based on search term
   const filteredCars = cars.filter(car => 
     String(car.id).toLowerCase().includes(search.toLowerCase()) ||
-    String(car.Model_of_car).toLowerCase().includes(search.toLowerCase()) ||
-    String(car.State_of_car).toLowerCase().includes(search.toLowerCase())
+    String(car.model).toLowerCase().includes(search.toLowerCase()) ||
+    String(car.status).toLowerCase().includes(search.toLowerCase())
   );
 
   // Sort cars based on sort field and direction
@@ -84,13 +84,20 @@ export function CarsTable({ cars, onSelectCar, selectedCar }: CarsTableProps): R
         if (bValue === undefined || bValue === null) return sortBy.direction === 'asc' ? 1 : -1;
         
         // Compare values based on type
-        if (typeof aValue === 'string') {
+        if (typeof aValue === 'string' && typeof bValue === 'string') {
           return sortBy.direction === 'asc' 
             ? aValue.localeCompare(bValue) 
             : bValue.localeCompare(aValue);
-        } else {
+        } else if (typeof aValue === 'number' && typeof bValue === 'number') {
           return sortBy.direction === 'asc' ? aValue - bValue : bValue - aValue;
+        } else if (typeof aValue === 'boolean' && typeof bValue === 'boolean') {
+          return sortBy.direction === 'asc' 
+            ? (aValue === bValue ? 0 : aValue ? 1 : -1)
+            : (aValue === bValue ? 0 : aValue ? -1 : 1);
         }
+        
+        // If types don't match or aren't handled, maintain original order
+        return 0;
       })
     : filteredCars;
 
@@ -249,11 +256,11 @@ export function CarsTable({ cars, onSelectCar, selectedCar }: CarsTableProps): R
                       {car.id}
                     </Box>
                   </TableCell>
-                  <TableCell>{car.Model_of_car}</TableCell>
+                  <TableCell>{car.model}</TableCell>
                   <TableCell>
                     <Chip 
-                      label={car.State_of_car} 
-                      color={car.State_of_car === 'online' ? 'success' : 'error'} 
+                      label={car.status} 
+                      color={car.status === 'Active' ? 'success' : 'default'} 
                       size="small" 
                       variant="outlined"
                       sx={{ 
