@@ -231,10 +231,15 @@ const CarCustomersPage = () => {
 
   // Filter logic for the table
   const filteredCars = cars.filter(car => {
+    // First check if all required properties exist and have values
+    const model = car.model || car.Model_of_car || '';
+    const plateNumber = car.plateNumber || car.Plate_number || '';
+    const type = car.type || car.TypeOfCar || '';
+    
     const matchesSearch = 
-      car.model.toLowerCase().includes(searchTerm.toLowerCase()) ||
-      car.plateNumber.toLowerCase().includes(searchTerm.toLowerCase()) ||
-      car.type.toLowerCase().includes(searchTerm.toLowerCase());
+      model.toLowerCase().includes(searchTerm.toLowerCase()) ||
+      plateNumber.toLowerCase().includes(searchTerm.toLowerCase()) ||
+      type.toLowerCase().includes(searchTerm.toLowerCase());
       
     const matchesStatus = statusFilter === 'all' || car.state === statusFilter;
     
