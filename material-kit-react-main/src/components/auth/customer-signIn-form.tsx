@@ -53,7 +53,7 @@ export function CustomerSignInForm(): React.JSX.Element {
       try {
         console.log('Attempting customer login with:', values.email);
         
-        const { userType, error } = await authClient.signInWithPassword({
+        const { userType: authUserType, error } = await authClient.signInWithPassword({
           ...values,
           accountType: 'customer'
         });
@@ -65,9 +65,9 @@ export function CustomerSignInForm(): React.JSX.Element {
         }
 
         await checkSession?.();
-        setUserType(userType);
+        setUserType(authUserType || null);
 
-        if (userType === 'customer') {
+        if (authUserType === 'customer') {
           router.push(paths.dashboardCustomer.overview);
         } else {
           setError('root', { 

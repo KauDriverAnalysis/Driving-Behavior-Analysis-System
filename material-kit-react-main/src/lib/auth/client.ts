@@ -36,6 +36,12 @@ export interface ResetPasswordParams {
   email: string;
 }
 
+export interface UpdatePasswordParams {
+  email: string;
+  token: string;
+  newPassword: string;
+}
+
 class AuthClient {
   async signUp(_: SignUpParams): Promise<{ error?: string }> {
     const token = generateToken();
@@ -47,7 +53,7 @@ class AuthClient {
     return { error: 'Social authentication not implemented' };
   }
 
-  async signInWithPassword(params: SignInWithPasswordParams): Promise<{ userId?: string; userType?: string; error?: string }> {
+  async signInWithPassword(params: SignInWithPasswordParams): Promise<{ userId?: string; userType?: string; error?: string | null }> {
     const { email, password, accountType = 'customer' } = params;
 
     try {
@@ -164,7 +170,11 @@ class AuthClient {
       };
     } catch (error) {
       console.error('Authentication error:', error);
-      return { error: 'Connection error. Please try again later.' };
+      return { 
+        error: 'Connection error. Please try again later.',
+        userId: undefined,
+        userType: undefined
+      };
     }
   }
  
@@ -253,10 +263,9 @@ class AuthClient {
     
     // Create a user object with data from localStorage
     const userData = {
-      id: userId || 'USR-000',
+      ...user, // Spread default values first
+      id: userId || user.id || 'USR-000', // Override with localStorage value if available
       userType: userType || 'guest',
-      // Include other user fields as needed
-      ...user // Keep the default avatar, etc.
     };
     
     return { data: userData };

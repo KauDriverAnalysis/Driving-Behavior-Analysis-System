@@ -1,4 +1,5 @@
-// PerformanceTrend.tsx
+'use client';
+
 import * as React from 'react';
 import Card from '@mui/material/Card';
 import CardContent from '@mui/material/CardContent';
@@ -6,36 +7,49 @@ import Stack from '@mui/material/Stack';
 import Typography from '@mui/material/Typography';
 import Box from '@mui/material/Box';
 import dynamic from 'next/dynamic';
+import type { ApexOptions } from 'apexcharts';
 
-// Dynamically import ApexCharts to avoid SSR issues
-const Chart = dynamic(() => import('react-apexcharts'), { ssr: false });
+// Dynamically import ApexCharts to avoid SSR issues with proper typing
+const ReactApexChart = dynamic(() => import('react-apexcharts'), { 
+  ssr: false,
+  loading: () => <Box sx={{ height: 300, display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
+    <Typography color="text.secondary">Loading chart...</Typography>
+  </Box>
+});
+
+interface PerformanceTrendData {
+  hours?: string[];
+  days?: string[];
+  weeks?: string[];
+  scores: number[];
+}
 
 interface PerformanceTrendProps {
   timeFrame: '1d' | '7d' | '30d';
-  data: {
-    hours?: string[];
-    days?: string[];
-    weeks?: string[];
-    scores: number[];
-  };
+  data: PerformanceTrendData;
 }
 
-export function PerformanceTrend({ timeFrame, data }: PerformanceTrendProps) {
+function PerformanceTrend({ timeFrame, data }: PerformanceTrendProps) {
+  // Get the appropriate labels based on timeFrame
+  const getLabels = () => {
+    if (timeFrame === '1d' && data?.hours) return data.hours;
+    if (timeFrame === '7d' && data?.days) return data.days;
+    if (timeFrame === '30d' && data?.weeks) return data.weeks;
+    return [];
+  };
+
+  const labels = getLabels();
+
   // Safety check - ensure data exists and has the expected format
-  const hasValidData = data && 
+  const hasValidData = Boolean(data && 
     ((timeFrame === '1d' && data.hours && Array.isArray(data.hours) && data.hours.length > 0) ||
      (timeFrame === '7d' && data.days && Array.isArray(data.days) && data.days.length > 0) ||
-     (timeFrame === '30d' && data.weeks && Array.isArray(data.weeks) && data.weeks.length > 0));
+     (timeFrame === '30d' && data.weeks && Array.isArray(data.weeks) && data.weeks.length > 0)));
 
-  // Default values for chart data
-  const labels = timeFrame === '1d' 
-    ? (data?.hours || []) 
-    : timeFrame === '7d' 
-      ? (data?.days || []) 
-      : (data?.weeks || []);
-      
   // Ensure scores is an array of valid numbers
-  const scores = data?.scores?.map(score => Number(score) || 0) || [];
+  const scores = Array.isArray(data?.scores) 
+    ? data.scores.map(score => Number(score) || 0) 
+    : [];
   
   // Calculate average and trend only if we have valid data
   const average = scores.length > 0 ? scores.reduce((a, b) => a + b, 0) / scores.length : 0;
@@ -44,7 +58,7 @@ export function PerformanceTrend({ timeFrame, data }: PerformanceTrendProps) {
   const trend = scores.length >= 2 ? scores[scores.length - 1] - scores[0] : 0;
   
   // Chart options with safe data
-  const chartOptions = {
+  const chartOptions: ApexOptions = {
     chart: {
       background: 'transparent',
       toolbar: {
@@ -78,7 +92,7 @@ export function PerformanceTrend({ timeFrame, data }: PerformanceTrendProps) {
     tooltip: {
       enabled: true,
       y: {
-        formatter: function(val) {
+        formatter: function(val: number): string {
           return Math.round(val).toString();
         }
       }
@@ -104,8 +118,8 @@ export function PerformanceTrend({ timeFrame, data }: PerformanceTrendProps) {
         style: {
           colors: '#818E9B'
         },
-        formatter: function(val) {
-          return Math.round(val);
+        formatter: function(val: number): string {
+          return Math.round(val).toString();
         }
       }
     }
@@ -133,7 +147,8 @@ export function PerformanceTrend({ timeFrame, data }: PerformanceTrendProps) {
           
           <Box sx={{ height: 300 }}>
             {hasValidData ? (
-              <Chart 
+              // @ts-ignore - ApexCharts types can be problematic
+              <ReactApexChart 
                 height={300}
                 options={chartOptions}
                 series={series}
@@ -182,3 +197,7 @@ export function PerformanceTrend({ timeFrame, data }: PerformanceTrendProps) {
     </Card>
   );
 }
+
+// Export both as named and default export for maximum compatibility
+export { PerformanceTrend };
+export default PerformanceTrend;

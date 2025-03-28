@@ -51,7 +51,7 @@ export function CompanySignInForm(): React.JSX.Element {
       setIsPending(true);
 
       try {
-        const { userType, error } = await authClient.signInWithPassword({
+        const { userType: authUserType, error } = await authClient.signInWithPassword({
           ...values,
           accountType: 'company'
         });
@@ -61,7 +61,7 @@ export function CompanySignInForm(): React.JSX.Element {
         }
         
         await checkSession?.();
-        setUserType(userType);
+        setUserType(authUserType || null);
         
         // Fix: All company, admin, and employee users should use dashboardAdmin paths
         // There is no dashboardCompany path in the paths.ts file

@@ -2,7 +2,8 @@ import React from 'react';
 import { Paper, Typography, Box } from '@mui/material';
 import { LineChart, Line, XAxis, YAxis, CartesianGrid, Tooltip, Legend, ResponsiveContainer } from 'recharts';
 
-interface DrivingMetricsData {
+// Add the 'export' keyword here
+export interface DrivingMetricsData {
   date: string;
   harshBraking: number;
   hardAcceleration: number;
@@ -29,9 +30,16 @@ const DrivingMetricsChart: React.FC<DrivingMetricsChartProps> = ({ data }) => {
             <XAxis dataKey="date" />
             <YAxis />
             <Tooltip 
-              formatter={(value, name) => [value, name.replace(/([A-Z])/g, ' $1').trim()]}
+              formatter={(value: number, name: string | number) => [
+                value, 
+                typeof name === 'string' ? name.replace(/([A-Z])/g, ' $1').trim() : name
+              ]}
             />
-            <Legend formatter={(value) => value.replace(/([A-Z])/g, ' $1').trim()} />
+            <Legend 
+              formatter={(value: string | number) => 
+                typeof value === 'string' ? value.replace(/([A-Z])/g, ' $1').trim() : value
+              } 
+            />
             <Line 
               type="monotone" 
               dataKey="harshBraking" 
