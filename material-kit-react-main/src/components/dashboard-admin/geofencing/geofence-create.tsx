@@ -12,8 +12,13 @@ import {
   MenuItem,
   FormHelperText
 } from '@mui/material';
-import { v4 as uuidv4 } from 'uuid';
-import { Geofence } from '@/app/dashboard-admin/geofencing/page';
+import type { Geofence } from '@/app/dashboard-admin/geofencing/page';
+
+interface GeometryData {
+  center?: [number, number];
+  coordinates?: [number, number][];
+  radius?: number;
+}
 
 interface GeofenceCreateProps {
   onSave: (geofence: Geofence) => void;
@@ -21,7 +26,7 @@ interface GeofenceCreateProps {
   editGeofence?: Geofence;
   geometry: {
     type: 'circle' | 'polygon';
-    data: any;
+    data: GeometryData;
   } | null;
   onColorChange?: (color: string) => void;
   initialColor?: string;
@@ -34,7 +39,7 @@ export function GeofenceCreate({
   geometry,
   onColorChange,
   initialColor = '#ff4444'
-}: GeofenceCreateProps) {
+}: GeofenceCreateProps): React.JSX.Element {
   const [name, setName] = useState(editGeofence?.name || '');
   const [description, setDescription] = useState(editGeofence?.description || '');
   const [color, setColor] = useState(editGeofence?.color || initialColor);
@@ -53,7 +58,7 @@ export function GeofenceCreate({
     geometry: ''
   });
 
-  const validateForm = () => {
+  const validateForm = (): boolean => {
     const errors = {
       name: '',
       geometry: ''
@@ -71,7 +76,7 @@ export function GeofenceCreate({
     return !errors.name && !errors.geometry;
   };
 
-  const handleSubmit = async (e: React.FormEvent) => {
+  const handleSubmit = async (e: React.FormEvent): Promise<void> => {
     e.preventDefault();
     
     if (!validateForm() || !geometry) {
@@ -79,26 +84,20 @@ export function GeofenceCreate({
     }
     
     // Get user type and ID from localStorage - using the WORKING keys
-    console.log("Getting user info for geofence creation...");
-    
     // First, try the direct userType and userId keys
     let userType = localStorage.getItem('userType');
     let userId = localStorage.getItem('userId');
     
-    if (userType && userId) {
-      console.log(`✅ Using direct keys for geofence: Type: ${userType}, ID: ${userId}`);
-    } else {
+    if (!userType || !userId) {
       // Fall back to company or customer specific IDs
       const companyId = localStorage.getItem('company-id');
       if (companyId) {
-        console.log("✅ Using company ID for geofence:", companyId);
         userType = 'company';
         userId = companyId;
       } else {
         // Check for customer login
         const customerId = localStorage.getItem('customer-id');
         if (customerId) {
-          console.log("✅ Using customer ID for geofence:", customerId);
           userType = 'customer';
           userId = customerId;
         }
@@ -106,10 +105,24 @@ export function GeofenceCreate({
     }
     
     if (!userType || !userId) {
-      console.log("❌ No user information found for geofence creation");
       setFormErrors(prev => ({
         ...prev,
         geometry: 'User information not available. Please log in again.'
+      }));
+      return;
+    }
+    
+    // Safely create coordinates and radius based on geometry type
+    const coordinates = geometry.type === 'circle' 
+      ? geometry.data.center 
+      : geometry.data.coordinates;
+      
+    const radius = geometry.type === 'circle' ? geometry.data.radius : undefined;
+    
+    if (!coordinates) {
+      setFormErrors(prev => ({
+        ...prev,
+        geometry: 'Invalid geometry data. Please try drawing again.'
       }));
       return;
     }
@@ -118,26 +131,18 @@ export function GeofenceCreate({
       name,
       description: description || '',
       type: geometry.type,
-      coordinates: geometry.type === 'circle' 
-        ? geometry.data.center 
-        : geometry.data.coordinates,
-      radius: geometry.type === 'circle' ? geometry.data.radius : undefined,
+      coordinates,
+      radius,
       color,
       active: true,
-      userType, // Add user type to the request
-      userId    // Add user ID to the request
+      userType,
+      userId
     };
-
-    console.log("Submitting geofence data:", geofenceData);
-    console.log("Full API URL for creating geofence:", 'https://driving-behavior-analysis-system.onrender.com/api/geofences/create/');
-    console.log("Complete request payload:", JSON.stringify(geofenceData, null, 2));
 
     try {
       let response;
-      let resultGeofence;
 
       if (editGeofence) {
-        console.log(`Updating geofence ${editGeofence.id} with userType: ${userType}, userId: ${userId}`);
         response = await fetch(`https://driving-behavior-analysis-system.onrender.com/api/geofences/${editGeofence.id}/update/`, {
           method: 'PUT',
           headers: {
@@ -145,12 +150,11 @@ export function GeofenceCreate({
           },
           body: JSON.stringify({
             ...geofenceData,
-            userType: userType,
-            userId: userId
+            userType,
+            userId
           }),
         });
       } else {
-        console.log(`Creating new geofence with userType: ${userType}, userId: ${userId}`);
         response = await fetch('https://driving-behavior-analysis-system.onrender.com/api/geofences/create/', {
           method: 'POST',
           headers: {
@@ -160,21 +164,18 @@ export function GeofenceCreate({
         });
       }
 
-      console.log("Response status:", response.status);
-      console.log("Response status text:", response.statusText);
-
       if (!response.ok) {
-        const errorData = await response.json();
+        const errorData = await response.json() as { error?: string };
         throw new Error(errorData.error || 'Failed to save geofence');
       }
 
-      resultGeofence = await response.json();
+      const resultGeofence = await response.json() as Geofence;
       onSave(resultGeofence);
     } catch (err) {
-      console.error('Error saving geofence:', err);
+      const errorMessage = err instanceof Error ? err.message : 'Unknown error occurred';
       setFormErrors(prev => ({ 
         ...prev, 
-        geometry: `Failed to ${editGeofence ? 'update' : 'create'} geofence. Please try again.` 
+        geometry: `Failed to ${editGeofence ? 'update' : 'create'} geofence: ${errorMessage}` 
       }));
     }
   };
@@ -202,8 +203,8 @@ export function GeofenceCreate({
                 setName(e.target.value);
                 setFormErrors(prev => ({ ...prev, name: '' }));
               }}
-              error={!!formErrors.name}
-              helperText={formErrors.name}
+              error={Boolean(formErrors.name)}
+              helperText={formErrors.name || ' '}
               required
             />
             
@@ -211,7 +212,7 @@ export function GeofenceCreate({
               label="Description (optional)"
               fullWidth
               value={description}
-              onChange={(e) => setDescription(e.target.value)}
+              onChange={(e) => { setDescription(e.target.value); }}
               multiline
               rows={2}
             />

@@ -7,7 +7,6 @@ import {
   TableCell,
   TableHead,
   TableRow,
-  Paper,
   TableContainer,
   IconButton,
   Tooltip,

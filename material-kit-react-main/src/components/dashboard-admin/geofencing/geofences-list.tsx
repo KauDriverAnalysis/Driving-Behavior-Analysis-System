@@ -1,4 +1,4 @@
-import React, { useEffect, useState } from 'react';
+import React, { useState } from 'react';
 import {
   Box,
   List,
@@ -12,7 +12,6 @@ import {
   Divider,
   Stack,
   Tooltip,
-  CircularProgress,
   Snackbar,
   Alert,
   Dialog,
@@ -25,7 +24,7 @@ import AddIcon from '@mui/icons-material/Add';
 import DeleteIcon from '@mui/icons-material/Delete';
 import CircleIcon from '@mui/icons-material/Circle';
 import PolygonIcon from '@mui/icons-material/Category';
-import { Geofence } from '@/app/dashboard-customer/geofencing/page';
+import type { Geofence } from '@/app/dashboard-customer/geofencing/page';
 
 interface GeofencesListProps {
   selectedGeofenceId: string | null;
@@ -43,9 +42,8 @@ export function GeofencesList({
   onDelete,
   onToggleActive,
   geofences
-}: GeofencesListProps) {
-  const [loading, setLoading] = useState<boolean>(false);
-  const [error, setError] = useState<string | null>(null);
+}: GeofencesListProps): React.JSX.Element {
+  // Removed unused states
   const [notification, setNotification] = useState<{
     open: boolean;
     message: string;
@@ -58,7 +56,7 @@ export function GeofencesList({
   const [deleteId, setDeleteId] = useState<string | null>(null);
   const [showDeleteDialog, setShowDeleteDialog] = useState<boolean>(false);
 
-  const handleToggleActive = async (id: string) => {
+  const handleToggleActive = async (id: string): Promise<void> => {
     try {
       // Get user type and ID from localStorage using the correct keys
       const userType = localStorage.getItem('userType');
@@ -69,26 +67,26 @@ export function GeofencesList({
         return;
       }
       
-      console.log(`Toggling geofence active status with userType: ${userType}, userId: ${userId}`);
+      // Removed console.log
       onToggleActive(id);
       showNotification('Geofence status updated successfully', 'success');
     } catch (err) {
-      console.error('Error toggling geofence status:', err);
+      // Removed console.error
       showNotification('Failed to update geofence status', 'error');
     }
   };
 
-  const handleDeleteClick = (id: string) => {
+  const handleDeleteClick = (id: string): void => {
     setDeleteId(id);
     setShowDeleteDialog(true);
   };
 
-  const handleDeleteCancel = () => {
+  const handleDeleteCancel = (): void => {
     setDeleteId(null);
     setShowDeleteDialog(false);
   };
 
-  const handleDeleteConfirm = () => {
+  const handleDeleteConfirm = (): void => {
     if (!deleteId) return;
     
     try {
@@ -101,13 +99,13 @@ export function GeofencesList({
         return;
       }
       
-      console.log(`Deleting geofence with userType: ${userType}, userId: ${userId}`);
+      // Removed console.log
       
       // Call the delete function with the necessary parameters
       onDelete(deleteId);
       showNotification('Geofence deleted successfully', 'success');
     } catch (err) {
-      console.error('Error deleting geofence:', err);
+      // Removed console.error
       showNotification('Failed to delete geofence', 'error');
     }
     
@@ -115,7 +113,7 @@ export function GeofencesList({
     setShowDeleteDialog(false);
   };
 
-  const showNotification = (message: string, type: 'success' | 'error') => {
+  const showNotification = (message: string, type: 'success' | 'error'): void => {
     setNotification({
       open: true,
       message,
@@ -123,7 +121,7 @@ export function GeofencesList({
     });
   };
 
-  const handleCloseNotification = () => {
+  const handleCloseNotification = (): void => {
     setNotification(prev => ({ ...prev, open: false }));
   };
 
@@ -150,11 +148,7 @@ export function GeofencesList({
       </Box>
 
       <Box sx={{ flexGrow: 1, overflow: 'auto' }}>
-        {loading ? (
-          <Box sx={{ display: 'flex', justifyContent: 'center', p: 3 }}>
-            <CircularProgress />
-          </Box>
-        ) : geofences.length === 0 ? (
+        {geofences.length === 0 ? (
           <Box sx={{ p: 3, textAlign: 'center' }}>
             <Typography color="text.secondary">
               No geofences defined yet. Create your first geofence to start monitoring.
@@ -167,7 +161,7 @@ export function GeofencesList({
                 <ListItem
                   button
                   selected={selectedGeofenceId === geofence.id}
-                  onClick={() => onSelect(geofence.id)}
+                  onClick={() => { onSelect(geofence.id); }} // Added braces
                   sx={{
                     pl: 2,
                     pr: 6,
@@ -202,7 +196,7 @@ export function GeofencesList({
                         checked={geofence.active}
                         onChange={(e) => {
                           e.stopPropagation();
-                          handleToggleActive(geofence.id);
+                          void handleToggleActive(geofence.id); // Added void to handle Promise
                         }}
                       />
                     </Tooltip>
@@ -243,7 +237,7 @@ export function GeofencesList({
           <Button onClick={handleDeleteCancel} color="primary">
             Cancel
           </Button>
-          <Button onClick={handleDeleteConfirm} color="error" autoFocus>
+          <Button onClick={handleDeleteConfirm} color="error">
             Delete
           </Button>
         </DialogActions>
