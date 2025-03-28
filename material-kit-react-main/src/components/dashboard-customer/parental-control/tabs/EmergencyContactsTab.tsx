@@ -1,31 +1,57 @@
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 import { Box, Paper, Typography, Grid, TextField, Button, List, ListItem, ListItemIcon, ListItemText, IconButton } from '@mui/material';
 import DeleteIcon from '@mui/icons-material/Delete';
 import PhoneIcon from '@mui/icons-material/Phone';
 
 interface EmergencyContactsTabProps {
   showNotification: (message: string, type?: string) => void;
+  selectedCar: string;
 }
 
 interface Contact {
   id: number;
   name: string;
   phone: string;
+  car_id?: string;
 }
 
-const EmergencyContactsTab: React.FC<EmergencyContactsTabProps> = ({ showNotification }) => {
+const EmergencyContactsTab: React.FC<EmergencyContactsTabProps> = ({ 
+  showNotification,
+  selectedCar
+}) => {
   const [emergencyContacts, setEmergencyContacts] = useState<Contact[]>([
-    { id: 1, name: 'Mom', phone: '(555) 123-4567' },
-    { id: 2, name: 'Dad', phone: '(555) 987-6543' }
+    { id: 1, name: 'Mom', phone: '(555) 123-4567', car_id: selectedCar },
+    { id: 2, name: 'Dad', phone: '(555) 987-6543', car_id: selectedCar }
   ]);
   const [newContact, setNewContact] = useState<{ name: string; phone: string }>({ name: '', phone: '' });
+  const [loading, setLoading] = useState(false);
+
+  // Fetch emergency contacts for the selected car
+  useEffect(() => {
+    if (selectedCar) {
+      setLoading(true);
+      console.log(`Fetching emergency contacts for car: ${selectedCar}`);
+      
+      // Example API call (commented out)
+      // fetch(`https://driving-behavior-analysis-system.onrender.com/api/emergency-contacts/${selectedCar}/`)
+      //   .then(response => response.json())
+      //   .then(data => {
+      //     setEmergencyContacts(data);
+      //     setLoading(false);
+      //   })
+      //   .catch(error => {
+      //     console.error('Error fetching emergency contacts:', error);
+      //     setLoading(false);
+      //   });
+    }
+  }, [selectedCar]);
 
   // Add emergency contact
   const handleAddContact = () => {
     if (newContact.name && newContact.phone) {
       setEmergencyContacts([
         ...emergencyContacts,
-        { id: emergencyContacts.length + 1, ...newContact }
+        { id: emergencyContacts.length + 1, ...newContact, car_id: selectedCar }
       ]);
       setNewContact({ name: '', phone: '' });
       showNotification('Emergency contact added successfully');

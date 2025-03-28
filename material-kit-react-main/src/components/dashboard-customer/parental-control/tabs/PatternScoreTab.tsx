@@ -27,6 +27,7 @@ import BrakeIcon from '@mui/icons-material/NotInterested';
 // Define interfaces
 interface PatternScoreTabProps {
   showNotification: (message: string, type?: string) => void;
+  selectedCar: string;
 }
 
 interface ScorePattern {
@@ -37,7 +38,10 @@ interface ScorePattern {
   icon: JSX.Element;
 }
 
-const PatternScoreTab: React.FC<PatternScoreTabProps> = ({ showNotification }) => {
+const PatternScoreTab: React.FC<PatternScoreTabProps> = ({ 
+  showNotification,
+  selectedCar 
+}) => {
   // Initial score pattern data
   const initialScorePattern: ScorePattern[] = [
     { id: 'harshBraking', name: 'Harsh Braking', value: 30, color: '#FF5252', icon: <BrakeIcon /> },
@@ -51,6 +55,8 @@ const PatternScoreTab: React.FC<PatternScoreTabProps> = ({ showNotification }) =
   const [isValid, setIsValid] = useState(true);
   const [totalScore, setTotalScore] = useState(100);
   const [isDirty, setIsDirty] = useState(false);
+  const [scoreData, setScoreData] = useState(null);
+  const [loading, setLoading] = useState(false);
 
   // Effect to validate the total equals 100
   useEffect(() => {
@@ -63,6 +69,41 @@ const PatternScoreTab: React.FC<PatternScoreTabProps> = ({ showNotification }) =
     setIsDirty(hasChanged);
   }, [scorePattern]);
 
+  // Use selectedCar in useEffect to fetch data
+  useEffect(() => {
+    if (selectedCar) {
+      setLoading(true);
+      console.log(`Fetching pattern score data for car: ${selectedCar}`);
+      
+      // Here you would fetch actual data from your API
+      // Example API call (commented out):
+      // fetch(`https://driving-behavior-analysis-system.onrender.com/api/car-score-patterns/${selectedCar}/`)
+      //   .then(response => response.json())
+      //   .then(data => {
+      //     setScoreData(data);
+      //     // If there's saved pattern data, use it
+      //     if (data.pattern) {
+      //       setScorePattern([
+      //         { ...scorePattern[0], value: data.pattern.harshBraking },
+      //         { ...scorePattern[1], value: data.pattern.hardAcceleration },
+      //         { ...scorePattern[2], value: data.pattern.swerving },
+      //         { ...scorePattern[3], value: data.pattern.overSpeed },
+      //       ]);
+      //     }
+      //     setLoading(false);
+      //   })
+      //   .catch(error => {
+      //     console.error('Error loading score pattern data:', error);
+      //     setLoading(false);
+      //   });
+      
+      // For now, simulate loading with a timeout
+      setTimeout(() => {
+        setLoading(false);
+      }, 500);
+    }
+  }, [selectedCar]);
+
   // Handle slider change
   const handleSliderChange = (id: string, newValue: number) => {
     setScorePattern(prev => 
@@ -70,11 +111,40 @@ const PatternScoreTab: React.FC<PatternScoreTabProps> = ({ showNotification }) =
     );
   };
 
-  // Save changes
+  // Save changes - update to include car ID
   const handleSave = () => {
     if (isValid) {
-      // Here you would typically save to backend
-      showNotification('Pattern score weights saved successfully');
+      // Here you would save to backend with the car ID
+      // Example API call (commented out):
+      // const patternData = {
+      //   carId: selectedCar,
+      //   pattern: {
+      //     harshBraking: scorePattern[0].value,
+      //     hardAcceleration: scorePattern[1].value,
+      //     swerving: scorePattern[2].value,
+      //     overSpeed: scorePattern[3].value
+      //   }
+      // };
+      // 
+      // fetch('https://driving-behavior-analysis-system.onrender.com/api/car-score-patterns/', {
+      //   method: 'POST',
+      //   headers: {
+      //     'Content-Type': 'application/json'
+      //   },
+      //   body: JSON.stringify(patternData)
+      // })
+      //   .then(response => response.json())
+      //   .then(() => {
+      //     showNotification('Pattern score weights saved successfully');
+      //     setIsDirty(false);
+      //   })
+      //   .catch(error => {
+      //     console.error('Error saving pattern data:', error);
+      //     showNotification('Failed to save pattern data', 'error');
+      //   });
+      
+      // For now, just show notification
+      showNotification(`Pattern score weights saved successfully for car ${selectedCar}`);
       setIsDirty(false);
     } else {
       showNotification('Total weight must equal 100%', 'error');
@@ -95,6 +165,9 @@ const PatternScoreTab: React.FC<PatternScoreTabProps> = ({ showNotification }) =
 
   return (
     <Box sx={{ mt: 3, width: '100%' }}>
+      <Typography variant="h6" color="text.secondary" sx={{ mb: 2 }}>
+        Customizing score pattern for car: {selectedCar || 'No car selected'}
+      </Typography>
       <Grid container spacing={3}>
         {/* Left column - Chart */}
         <Grid item xs={12} md={5}>

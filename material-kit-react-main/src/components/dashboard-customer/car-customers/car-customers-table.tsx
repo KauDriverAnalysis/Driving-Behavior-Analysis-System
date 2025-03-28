@@ -19,14 +19,14 @@ import DeleteIcon from '@mui/icons-material/Delete';
 // Updated interface to match the Car model
 export interface Car {
   id: string;
-  model: string;      // Model_of_car
-  type: string;       // TypeOfCar
-  plateNumber: string; // Plate_number
-  releaseYear: number; // Release_Year_car
-  state: 'online' | 'offline'; // State_of_car
-  deviceId: string;   // device_id
-  customerId: number | null; // customer_id FK
-  companyId: number | null; // company_id FK
+  Model_of_car: string;      // Model_of_car
+  TypeOfCar: string;       // TypeOfCar
+  Plate_number: string; // Plate_number
+  Release_Year_car: number; // Release_Year_car
+  State_of_car: 'online' | 'offline'; // State_of_car
+  device_id: string;   // device_id
+  customer_id: number | null; // customer_id FK
+  company_id: number | null; // company_id FK
 }
 
 interface CarCustomersTableProps {
@@ -79,17 +79,17 @@ export const CarCustomersTable = ({
         <TableBody>
           {items.map((car) => (
             <TableRow hover key={car.id}>
-              <TableCell>{car.model}</TableCell>
-              <TableCell>{car.type}</TableCell>
-              <TableCell>{car.plateNumber}</TableCell>
-              <TableCell>{car.releaseYear}</TableCell>
+              <TableCell>{car.Model_of_car}</TableCell>
+              <TableCell>{car.TypeOfCar}</TableCell>
+              <TableCell>{car.Plate_number}</TableCell>
+              <TableCell>{car.Release_Year_car}</TableCell>
               <TableCell>
                 <Tooltip title="Click to change state">
                   <Chip 
-                    label={car.state} 
-                    color={car.state === 'online' ? 'success' : 'error'}
+                    label={car.State_of_car} 
+                    color={car.State_of_car === 'online' ? 'success' : 'error'}
                     size="small"
-                    onClick={() => onStatusChange(car, car.state === 'online' ? 'offline' : 'online')}
+                    onClick={() => onStatusChange(car, car.State_of_car === 'online' ? 'offline' : 'online')}
                     sx={{ 
                       cursor: 'pointer',
                       '&:hover': {
@@ -99,7 +99,7 @@ export const CarCustomersTable = ({
                   />
                 </Tooltip>
               </TableCell>
-              <TableCell>{car.deviceId}</TableCell>
+              <TableCell>{car.device_id}</TableCell>
               <TableCell align="right">
                 <Tooltip title="Edit">
                   <IconButton

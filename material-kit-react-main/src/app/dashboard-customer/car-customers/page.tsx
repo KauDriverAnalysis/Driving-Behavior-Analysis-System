@@ -108,12 +108,12 @@ const CarCustomersPage = () => {
     
     // Create request data
     const requestData = {
-      Model_of_car: updatedCar.model,
-      TypeOfCar: updatedCar.type,
-      Plate_number: updatedCar.plateNumber,
-      Release_Year_car: updatedCar.releaseYear,
-      State_of_car: updatedCar.state,
-      device_id: updatedCar.deviceId,
+      Model_of_car: updatedCar.Model_of_car,
+      TypeOfCar: updatedCar.TypeOfCar,
+      Plate_number: updatedCar.Plate_number,
+      Release_Year_car: updatedCar.Release_Year_car,
+      State_of_car: updatedCar.State_of_car,
+      device_id: updatedCar.device_id,
       customer_id: customerId // Add customer ID to the update request
     };
     
@@ -232,16 +232,16 @@ const CarCustomersPage = () => {
   // Filter logic for the table
   const filteredCars = cars.filter(car => {
     // First check if all required properties exist and have values
-    const model = car.model || car.Model_of_car || '';
-    const plateNumber = car.plateNumber || car.Plate_number || '';
-    const type = car.type || car.TypeOfCar || '';
+    const model =car.Model_of_car || '';
+    const plateNumber =car.Plate_number || '';
+    const type = car.TypeOfCar || '';
     
     const matchesSearch = 
       model.toLowerCase().includes(searchTerm.toLowerCase()) ||
       plateNumber.toLowerCase().includes(searchTerm.toLowerCase()) ||
       type.toLowerCase().includes(searchTerm.toLowerCase());
       
-    const matchesStatus = statusFilter === 'all' || car.state === statusFilter;
+    const matchesStatus = statusFilter === 'all' || car.State_of_car === statusFilter;
     
     return matchesSearch && matchesStatus;
   });
@@ -380,7 +380,7 @@ const CarCustomersPage = () => {
         <DialogTitle>Confirm Delete</DialogTitle>
         <DialogContent>
           <DialogContentText>
-            Are you sure you want to delete the car {carToDelete?.model} with plate number {carToDelete?.plateNumber}?
+            Are you sure you want to delete the car {carToDelete?.Model_of_car} with plate number {carToDelete?.Plate_number}?
           </DialogContentText>
         </DialogContent>
         <DialogActions>

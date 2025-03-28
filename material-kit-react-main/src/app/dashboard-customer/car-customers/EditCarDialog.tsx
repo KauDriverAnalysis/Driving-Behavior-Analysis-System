@@ -11,7 +11,7 @@ import {
   Grid,
   MenuItem,
   Select,
-  SelectChangeEvent, // Add this import
+  SelectChangeEvent,
   Typography
 } from '@mui/material';
 import { useTheme } from '@mui/material/styles';
@@ -48,11 +48,10 @@ export default function EditCarDialog({
     const value = event.target.value;
     setFormData(prev => ({
       ...prev!,
-      [field]: field === 'releaseYear' ? Number(value) : value
+      [field]: field === 'Release_Year_car' ? Number(value) : value
     }));
   };
 
-  // Add a new handler for Select components
   const handleSelectChange = (field: keyof Car) => (
     event: SelectChangeEvent<string>
   ) => {
@@ -103,8 +102,8 @@ export default function EditCarDialog({
                 <InputLabel>Model</InputLabel>
                 <OutlinedInput
                   label="Model"
-                  value={formData.model}
-                  onChange={handleChange('model')}
+                  value={formData.Model_of_car}
+                  onChange={handleChange('Model_of_car')}
                 />
               </FormControl>
             </Grid>
@@ -114,8 +113,8 @@ export default function EditCarDialog({
                 <InputLabel>Type</InputLabel>
                 <OutlinedInput
                   label="Type"
-                  value={formData.type}
-                  onChange={handleChange('type')}
+                  value={formData.TypeOfCar}
+                  onChange={handleChange('TypeOfCar')}
                 />
               </FormControl>
             </Grid>
@@ -125,8 +124,8 @@ export default function EditCarDialog({
                 <InputLabel>Plate Number</InputLabel>
                 <OutlinedInput
                   label="Plate Number"
-                  value={formData.plateNumber}
-                  onChange={handleChange('plateNumber')}
+                  value={formData.Plate_number}
+                  onChange={handleChange('Plate_number')}
                 />
               </FormControl>
             </Grid>
@@ -137,8 +136,8 @@ export default function EditCarDialog({
                 <OutlinedInput
                   label="Release Year"
                   type="number"
-                  value={formData.releaseYear}
-                  onChange={handleChange('releaseYear')}
+                  value={formData.Release_Year_car}
+                  onChange={handleChange('Release_Year_car')}
                 />
               </FormControl>
             </Grid>
@@ -147,9 +146,9 @@ export default function EditCarDialog({
               <FormControl fullWidth>
                 <InputLabel>State</InputLabel>
                 <Select
-                  value={formData.state}
+                  value={formData.State_of_car}
                   label="State"
-                  onChange={handleSelectChange('state')} // Use the new handler here
+                  onChange={handleSelectChange('State_of_car')}
                 >
                   <MenuItem value="online">Online</MenuItem>
                   <MenuItem value="offline">Offline</MenuItem>
@@ -162,8 +161,8 @@ export default function EditCarDialog({
                 <InputLabel>Device ID</InputLabel>
                 <OutlinedInput
                   label="Device ID"
-                  value={formData.deviceId}
-                  onChange={handleChange('deviceId')}
+                  value={formData.device_id}
+                  onChange={handleChange('device_id')}
                 />
               </FormControl>
             </Grid>

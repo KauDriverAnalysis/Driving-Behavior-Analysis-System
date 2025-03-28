@@ -1,4 +1,4 @@
-import React from 'react';
+import React, { useEffect, useState } from 'react';
 import { Box, Grid } from '@mui/material';
 import StatCard from '../cards/StatCard';
 import DrivingScoreChart from '../charts/DrivingScoreChart';
@@ -10,7 +10,33 @@ import NotificationsIcon from '@mui/icons-material/Notifications';
 // Mock data will be imported from a separate file in the full implementation
 import { drivingHistoryData } from '../data/mockData';
 
-const OverviewTab: React.FC = () => {
+// Add interface for component props
+interface OverviewTabProps {
+  selectedCar: string;
+}
+
+// Update component to receive selectedCar prop
+const OverviewTab: React.FC<OverviewTabProps> = ({ selectedCar }) => {
+  // Add state for car data
+  const [carData, setCarData] = useState(drivingHistoryData);
+  
+  // Add effect to fetch data when selectedCar changes
+  useEffect(() => {
+    // In a real implementation, you would fetch data for the selected car
+    console.log(`Fetching overview data for car: ${selectedCar}`);
+    
+    // Example API call (commented out)
+    // if (selectedCar) {
+    //   fetch(`https://driving-behavior-analysis-system.onrender.com/api/car-driving-data/${selectedCar}/`)
+    //     .then(response => response.json())
+    //     .then(data => {
+    //       // Transform API data to match component needs
+    //       setCarData(data);
+    //     })
+    //     .catch(error => console.error('Error fetching car overview data:', error));
+    // }
+  }, [selectedCar]);
+
   return (
     <Box sx={{ mt: 3, width: '100%' }}>
       {/* Stats Cards */}
@@ -50,8 +76,8 @@ const OverviewTab: React.FC = () => {
       </Grid>
       
       {/* Charts */}
-      <DrivingScoreChart data={drivingHistoryData} />
-      <DrivingMetricsChart data={drivingHistoryData} />
+      <DrivingScoreChart data={carData} />
+      <DrivingMetricsChart data={carData} />
     </Box>
   );
 };

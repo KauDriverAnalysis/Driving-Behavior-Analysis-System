@@ -40,6 +40,21 @@ interface Car {
   Type?: string;
 }
 
+interface PerformanceTrendData {
+  hours: string[];
+  days: string[];
+  weeks: string[];
+  scores: number[];
+}
+
+interface TripHistoryItem {
+  start: string;
+  destination: string;
+  time: string;
+  score: number;
+  miles: number;
+}
+
 export default function CustomerOverview(): React.JSX.Element {
   const [timeFrame, setTimeFrame] = useState<'1d' | '7d' | '30d'>('1d');
   const [stats, setStats] = useState({
@@ -58,13 +73,15 @@ export default function CustomerOverview(): React.JSX.Element {
     swerving: 0,
     speeding: 0
   });
-  const [performanceTrend, setPerformanceTrend] = useState({
+
+  const [performanceTrend, setPerformanceTrend] = useState<PerformanceTrendData>({
     hours: [],
     days: [],
     weeks: [],
     scores: []
   });
-  const [tripHistory, setTripHistory] = useState([]);
+
+  const [tripHistory, setTripHistory] = useState<TripHistoryItem[]>([]);
   const [cars, setCars] = useState<Car[]>([]);
   const [selectedCar, setSelectedCar] = useState('');
   const [loading, setLoading] = useState(true);
@@ -180,6 +197,7 @@ export default function CustomerOverview(): React.JSX.Element {
           weeks: timeFrame === '30d' ? trendLabels : [],
           scores: scores
         });
+        
         
         // Set a simple trip history based on the time frame
         // In a real implementation, this would come from the API

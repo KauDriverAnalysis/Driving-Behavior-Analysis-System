@@ -56,14 +56,14 @@ export default function AddCarCustomerDialog({
   const [validationErrors, setValidationErrors] = React.useState<ValidationErrors>({});
   
   const [formData, setFormData] = React.useState<NewCar>({
-    model: '',          // Model_of_car
-    type: '',           // TypeOfCar
-    plateNumber: '',    // Plate_number
-    releaseYear: new Date().getFullYear(), // Release_Year_car
-    state: 'offline',   // State_of_car
-    deviceId: '',       // device_id
-    customerId: null,   // customer_id
-    companyId: null     // company_id
+    Model_of_car: '',          // Model_of_car
+    TypeOfCar: '',           // TypeOfCar
+    Plate_number: '',    // Plate_number
+    Release_Year_car: new Date().getFullYear(), // Release_Year_car
+    State_of_car: 'offline',   // State_of_car
+    device_id: '',       // device_id
+    customer_id: null,   // customer_id
+    company_id: null     // company_id
   });
 
   // Reset form and errors when dialog opens/closes
@@ -80,14 +80,14 @@ export default function AddCarCustomerDialog({
     const value = event.target.value;
     setFormData(prev => ({
       ...prev,
-      [field]: field === 'releaseYear' ? Number(value) : value
+      [field]: field === 'Release_Year_car' ? Number(value) : value
     }));
     
-    // Clear validation error for the field that's being changed
-    if (validationErrors[mapFieldToApiName(field)]) {
+    // Clear validation error using the field name directly
+    if (validationErrors[field]) {
       setValidationErrors(prev => {
         const newErrors = { ...prev };
-        delete newErrors[mapFieldToApiName(field)];
+        delete newErrors[field];
         return newErrors;
       });
     }
@@ -102,29 +102,14 @@ export default function AddCarCustomerDialog({
       [field]: event.target.value
     }));
     
-    // Clear validation error for the field that's being changed
-    if (validationErrors[mapFieldToApiName(field)]) {
+    // Clear validation error using the field name directly
+    if (validationErrors[field]) {
       setValidationErrors(prev => {
         const newErrors = { ...prev };
-        delete newErrors[mapFieldToApiName(field)];
+        delete newErrors[field];
         return newErrors;
       });
     }
-  };
-
-  // Map frontend field names to backend API field names
-  const mapFieldToApiName = (field: keyof NewCar): string => {
-    const mapping: Record<string, string> = {
-      model: 'Model_of_car',
-      type: 'TypeOfCar',
-      plateNumber: 'Plate_number',
-      releaseYear: 'Release_Year_car',
-      state: 'State_of_car',
-      deviceId: 'device_id',
-      customerId: 'customer_id',
-      companyId: 'company_id'
-    };
-    return mapping[field] || field.toString();
   };
 
   const validatePlateNumber = (plateNumber: string): boolean => {
@@ -152,11 +137,11 @@ export default function AddCarCustomerDialog({
     // Client-side validation
     let clientErrors: ValidationErrors = {};
 
-    if (!validatePlateNumber(formData.plateNumber)) {
+    if (!validatePlateNumber(formData.Plate_number)) {
       clientErrors.Plate_number = ['Invalid car plate number format. It should be 3 letters followed by 4 digits (e.g., "ABC 1234").'];
     }
 
-    if (!formData.deviceId.trim()) {
+    if (!formData.device_id.trim()) {
       clientErrors.device_id = ['This field is required.'];
     }
 
@@ -201,12 +186,12 @@ export default function AddCarCustomerDialog({
       
       // Format the data to match the backend API expectations
       const apiData: ApiCarData = {
-        Model_of_car: formData.model,
-        TypeOfCar: formData.type,
-        Plate_number: formatPlateNumber(formData.plateNumber), // Format plate number
-        Release_Year_car: formData.releaseYear,
-        State_of_car: formData.state,
-        device_id: formData.deviceId
+        Model_of_car: formData.Model_of_car,
+        TypeOfCar: formData.TypeOfCar,
+        Plate_number: formatPlateNumber(formData.Plate_number), // Format plate number
+        Release_Year_car: formData.Release_Year_car,
+        State_of_car: formData.State_of_car,
+        device_id: formData.device_id
       };
       
       // Only add customer_id if it exists
@@ -245,14 +230,14 @@ export default function AddCarCustomerDialog({
       
       // Reset form
       setFormData({
-        model: '',
-        type: '',
-        plateNumber: '',
-        releaseYear: new Date().getFullYear(),
-        state: 'offline',
-        deviceId: '',
-        customerId: null,
-        companyId: null
+        Model_of_car: '',
+        TypeOfCar: '',
+        Plate_number: '',
+        Release_Year_car: new Date().getFullYear(),
+        State_of_car: 'offline',
+        device_id: '',
+        customer_id: null,
+        company_id: null
       });
     } catch (error) {
       console.error('Error submitting form:', error);
@@ -262,11 +247,11 @@ export default function AddCarCustomerDialog({
 
   const isFormValid = () => {
     return (
-      formData.model.trim() !== '' &&
-      formData.type.trim() !== '' &&
-      formData.plateNumber.trim() !== '' &&
-      formData.releaseYear > 0 &&
-      formData.deviceId.trim() !== '' &&
+      formData.Model_of_car.trim() !== '' &&
+      formData.TypeOfCar.trim() !== '' &&
+      formData.Plate_number.trim() !== '' &&
+      formData.Release_Year_car > 0 &&
+      formData.device_id.trim() !== '' &&
       Object.keys(validationErrors).length === 0
     );
   };
@@ -314,8 +299,8 @@ export default function AddCarCustomerDialog({
                 <InputLabel>Model</InputLabel>
                 <OutlinedInput 
                   label="Model" 
-                  value={formData.model}
-                  onChange={handleChange('model')}
+                  value={formData.Model_of_car}
+                  onChange={handleChange('Model_of_car')} // Update this parameter
                 />
                 {validationErrors.Model_of_car && (
                   <FormHelperText error>{validationErrors.Model_of_car[0]}</FormHelperText>
@@ -328,8 +313,8 @@ export default function AddCarCustomerDialog({
                 <InputLabel>Type</InputLabel>
                 <OutlinedInput 
                   label="Type" 
-                  value={formData.type}
-                  onChange={handleChange('type')}
+                  value={formData.TypeOfCar}
+                  onChange={handleChange('TypeOfCar')}
                 />
                 {validationErrors.TypeOfCar && (
                   <FormHelperText error>{validationErrors.TypeOfCar[0]}</FormHelperText>
@@ -342,8 +327,8 @@ export default function AddCarCustomerDialog({
                 <InputLabel>Plate Number</InputLabel>
                 <OutlinedInput 
                   label="Plate Number" 
-                  value={formData.plateNumber}
-                  onChange={handleChange('plateNumber')}
+                  value={formData.Plate_number}
+                  onChange={handleChange('Plate_number')}
                   placeholder="ABC 1234"
                 />
                 {validationErrors.Plate_number && (
@@ -358,8 +343,8 @@ export default function AddCarCustomerDialog({
                 <OutlinedInput 
                   label="Release Year" 
                   type="number"
-                  value={formData.releaseYear}
-                  onChange={handleChange('releaseYear')}
+                  value={formData.Release_Year_car}
+                  onChange={handleChange('Release_Year_car')}
                 />
                 {validationErrors.Release_Year_car && (
                   <FormHelperText error>{validationErrors.Release_Year_car[0]}</FormHelperText>
@@ -371,9 +356,9 @@ export default function AddCarCustomerDialog({
               <FormControl fullWidth error={!!validationErrors.State_of_car}>
                 <InputLabel>State</InputLabel>
                 <Select
-                  value={formData.state}
+                  value={formData.State_of_car}
                   label="State"
-                  onChange={handleSelectChange('state')}
+                  onChange={handleSelectChange('State_of_car')}
                 >
                   <MenuItem value="online">Online</MenuItem>
                   <MenuItem value="offline">Offline</MenuItem>
@@ -389,8 +374,8 @@ export default function AddCarCustomerDialog({
                 <InputLabel>Device ID</InputLabel>
                 <OutlinedInput 
                   label="Device ID" 
-                  value={formData.deviceId}
-                  onChange={handleChange('deviceId')}
+                  value={formData.device_id}
+                  onChange={handleChange('device_id')}
                 />
                 {validationErrors.device_id && (
                   <FormHelperText error>{validationErrors.device_id[0]}</FormHelperText>
