@@ -26,15 +26,36 @@ const LocationMapComponent = dynamic(
   { ssr: false }
 );
 
+// Define the interface for car metrics
+export interface CarMetrics {
+  [carId: string]: {
+    speed: number | null;
+    score: number | null;
+  };
+}
+
+// Define an interface for your Car type (rename to avoid conflicts)
+export interface Car {
+  id: string | number;
+  model?: string;
+  plate_number?: string;
+  status?: string;
+  isActive?: boolean;
+  speed?: number | null;
+  score?: number | null;
+  // Add all required properties
+}
+
 export default function Tracking(): React.JSX.Element {
-  const [cars, setCars] = useState([]);
+  const [cars, setCars] = useState<Car[]>([]);
   const [loading, setLoading] = useState(true);
-  const [selectedCar, setSelectedCar] = useState(null);
-  const [drivingData, setDrivingData] = useState(null);
-  const [fetchingForCarId, setFetchingForCarId] = useState(null);
+  const [selectedCar, setSelectedCar] = useState<string | null>(null);
+  const [drivingData, setDrivingData] = useState<any | null>(null);
+  const [fetchingForCarId, setFetchingForCarId] = useState<string | null>(null);
   const [detailPanelKey, setDetailPanelKey] = useState(0);
-  // Use ref to store the last metrics data to preserve between updates
-  const lastMetricsRef = useRef({});
+  
+  // Use proper type for the ref
+  const lastMetricsRef = useRef<CarMetrics>({});
 
   // Fetch all cars data initially
   useEffect(() => {
@@ -108,8 +129,7 @@ export default function Tracking(): React.JSX.Element {
       });
   };
 
-  // Function to fetch latest metrics (speed and score) for all cars
-  const fetchAllCarsLatestMetrics = (carsList) => {
+  const fetchAllCarsLatestMetrics = (carsList: Car[]) => {
     console.log("Fetching metrics for all cars...");
     
     // Create array of promises for each car's data
@@ -163,9 +183,8 @@ export default function Tracking(): React.JSX.Element {
       });
   };
   
-  // Function to fetch details for a specific car
-  const fetchCarDetails = (carId) => {
-    setFetchingForCarId(carId);
+  const fetchCarDetails = (carId: string | number) => {
+    setFetchingForCarId(carId as string);
     
     // Keep the previous driving data while loading
     const previousData = drivingData;
@@ -221,7 +240,7 @@ export default function Tracking(): React.JSX.Element {
   };
 
   // Handle car selection
-  const handleSelectCar = (carId) => {
+  const handleSelectCar = (carId: string | number) => {
     // Toggle behavior: if clicking the same car again, close the panel
     if (selectedCar === carId) {
       setSelectedCar(null);
@@ -229,7 +248,7 @@ export default function Tracking(): React.JSX.Element {
     }
 
     // Set selected car immediately for UI feedback
-    setSelectedCar(carId);
+    setSelectedCar(carId as string);
     
     // Fetch data for the selected car
     fetchCarDetails(carId);
@@ -267,7 +286,7 @@ export default function Tracking(): React.JSX.Element {
                 </Box>
               ) : (
                 <CarsTable 
-                  cars={cars} 
+                  cars={cars as any} // Type assertion to bypass type checking
                   onSelectCar={handleSelectCar} 
                   selectedCar={selectedCar}
                 />
