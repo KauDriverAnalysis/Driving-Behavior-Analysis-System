@@ -47,7 +47,7 @@ def get_latest_data(request):
     
     response = JsonResponse(data_list, safe=False)
     # Add CORS headers manually if needed
-    response["Access-Control-Allow-Origin"] = "http://localhost:3000"
+    response["Access-Control-Allow-Origin"] = "http://https://driving-analysis.netlify.app/"
     response["Access-Control-Allow-Methods"] = "GET, OPTIONS"
     response["Access-Control-Allow-Headers"] = "Content-Type, Authorization"
     return response
@@ -1227,7 +1227,7 @@ def reset_password(request):
             user.save()
             
             # Create reset URL for frontend
-            reset_url = f"http://localhost:3000/auth/reset-password/confirm?token={reset_token}&email={email}&userType={user_type}"
+            reset_url = f"http://https://driving-analysis.netlify.app//auth/reset-password/confirm?token={reset_token}&email={email}&userType={user_type}"
             
             try:
                 
@@ -1822,7 +1822,7 @@ def get_car_location(request, car_id=None):
             
             response = JsonResponse(car_locations, safe=False)
             # Add CORS headers
-            response["Access-Control-Allow-Origin"] = "http://localhost:3000"
+            response["Access-Control-Allow-Origin"] = "http://https://driving-analysis.netlify.app/"
             response["Access-Control-Allow-Methods"] = "GET, OPTIONS"
             response["Access-Control-Allow-Headers"] = "Content-Type, Authorization"
             return response
