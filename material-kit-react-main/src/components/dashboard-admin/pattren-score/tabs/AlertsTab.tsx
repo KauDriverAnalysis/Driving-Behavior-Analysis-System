@@ -18,9 +18,29 @@ import NotListedLocationIcon from '@mui/icons-material/NotListedLocation';
 import TrendingDownIcon from '@mui/icons-material/TrendingDown';
 import TrendingUpIcon from '@mui/icons-material/TrendingUp';
 import SearchIcon from '@mui/icons-material/Search';
-import { Alert } from '@/types/alert';
+import type { Alert } from '@/types/alert';
 
-const AlertsTab: React.FC = () => {
+interface Car {
+  id: string;
+  Model_of_car?: string;
+  model?: string;
+  Plate_number?: string;
+  plateNumber?: string;
+}
+
+interface CarData {
+  current?: {
+    speed: number;
+    harsh_braking_events: number;
+    harsh_acceleration_events: number;
+    swerving_events: number;
+    accident_detected: boolean;
+    latitude?: number;
+    longitude?: number;
+  };
+}
+
+function AlertsTab(): React.JSX.Element {
   const [alerts, setAlerts] = useState<Alert[]>([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
@@ -34,13 +54,13 @@ const AlertsTab: React.FC = () => {
   });
 
   // Handle search input change
-  const handleSearchChange = (event: React.ChangeEvent<HTMLInputElement>) => {
+  const handleSearchChange = (event: React.ChangeEvent<HTMLInputElement>): void => {
     setSearchTerm(event.target.value);
   };
 
   // Fetch alerts from API
   useEffect(() => {
-    const fetchAlerts = async () => {
+    const fetchAlerts = async (): Promise<void> => {
       try {
         setLoading(true);
         
@@ -54,8 +74,6 @@ const AlertsTab: React.FC = () => {
           throw new Error('No company ID found');
         }
         
-        console.log("Using company ID:", companyId);
-        
         // Get all cars for this company
         const carsResponse = await fetch(`https://driving-behavior-analysis-system.onrender.com/api/cars/?userType=company&userId=${companyId}`);
         
@@ -63,9 +81,7 @@ const AlertsTab: React.FC = () => {
           throw new Error(`Failed to fetch cars: ${carsResponse.status} ${carsResponse.statusText}`);
         }
         
-        const cars = await carsResponse.json();
-        
-        console.log("Cars fetched:", cars);
+        const cars = await carsResponse.json() as Car[];
         
         if (!Array.isArray(cars) || cars.length === 0) {
           setAlerts([]);
@@ -82,16 +98,13 @@ const AlertsTab: React.FC = () => {
             const dataResponse = await fetch(`https://driving-behavior-analysis-system.onrender.com/api/car-driving-data/${car.id}/`);
             
             if (!dataResponse.ok) {
-              console.warn(`Failed to fetch data for car ${car.id}: ${dataResponse.status}`);
               continue;
             }
             
-            const carData = await dataResponse.json();
+            const carData = await dataResponse.json() as CarData;
             
-            console.log(`Car ${car.id} data:`, carData);
-            
-            // Instead of looking for records array, check the current data
-            if (!carData || !carData.current) continue;
+            // Check if car data and current data exists
+            if (!carData?.current) continue;
             
             // Process current data - this contains the latest metrics
             const record = carData.current;
@@ -109,8 +122,8 @@ const AlertsTab: React.FC = () => {
                 timestamp: new Date().toISOString(),
                 carInfo: {
                   id: car.id,
-                  model: car.Model_of_car || car.model,
-                  plateNumber: car.Plate_number || car.plateNumber
+                  model: car.Model_of_car || car.model || 'Unknown Model',
+                  plateNumber: car.Plate_number || car.plateNumber || 'Unknown'
                 }
               });
             }
@@ -126,8 +139,8 @@ const AlertsTab: React.FC = () => {
                 timestamp: new Date().toISOString(),
                 carInfo: {
                   id: car.id,
-                  model: car.Model_of_car || car.model,
-                  plateNumber: car.Plate_number || car.plateNumber
+                  model: car.Model_of_car || car.model || 'Unknown Model',
+                  plateNumber: car.Plate_number || car.plateNumber || 'Unknown'
                 }
               });
             }
@@ -143,8 +156,8 @@ const AlertsTab: React.FC = () => {
                 timestamp: new Date().toISOString(),
                 carInfo: {
                   id: car.id,
-                  model: car.Model_of_car || car.model,
-                  plateNumber: car.Plate_number || car.plateNumber
+                  model: car.Model_of_car || car.model || 'Unknown Model',
+                  plateNumber: car.Plate_number || car.plateNumber || 'Unknown'
                 }
               });
             }
@@ -160,34 +173,32 @@ const AlertsTab: React.FC = () => {
                 timestamp: new Date().toISOString(),
                 carInfo: {
                   id: car.id,
-                  model: car.Model_of_car || car.model,
-                  plateNumber: car.Plate_number || car.plateNumber
+                  model: car.Model_of_car || car.model || 'Unknown Model',
+                  plateNumber: car.Plate_number || car.plateNumber || 'Unknown'
                 }
               });
             }
           } catch (carError) {
-            console.error(`Error processing car ${car.id}:`, carError);
+            // Error handled silently for individual cars
           }
         }
         
         // Sort alerts by timestamp (newest first)
         allAlerts.sort((a, b) => new Date(b.timestamp).getTime() - new Date(a.timestamp).getTime());
         
-        console.log("Alerts found:", allAlerts.length);
         setAlerts(allAlerts);
         setLoading(false);
       } catch (err) {
-        console.error('Error fetching alerts:', err);
         setError('Failed to load alerts');
         setLoading(false);
       }
     };
 
-    fetchAlerts();
+    void fetchAlerts(); // Use void operator to handle the Promise
   }, []);
   
   // Handle alert setting toggling
-  const handleSettingChange = (setting: string) => (event: React.ChangeEvent<HTMLInputElement>) => {
+  const handleSettingChange = (setting: string) => (event: React.ChangeEvent<HTMLInputElement>): void => {
     setAlertSettings({
       ...alertSettings,
       [setting]: event.target.checked
@@ -204,7 +215,7 @@ const AlertsTab: React.FC = () => {
   });
 
   // Format timestamp to relative time
-  const formatTimestamp = (timestamp: string) => {
+  const formatTimestamp = (timestamp: string): string => {
     const date = new Date(timestamp);
     const now = new Date();
     const diffMs = now.getTime() - date.getTime();
@@ -217,7 +228,7 @@ const AlertsTab: React.FC = () => {
   };
   
   // Get icon for alert type
-  const getAlertIcon = (type: string) => {
+  const getAlertIcon = (type: string): React.ReactNode => {
     switch (type) {
       case 'speeding':
         return <SpeedIcon />;
@@ -233,7 +244,7 @@ const AlertsTab: React.FC = () => {
   };
   
   // Get color for alert severity
-  const getAlertColor = (severity: string) => {
+  const getAlertColor = (severity: string): string => {
     switch (severity) {
       case 'error':
         return 'error.main';
@@ -271,17 +282,17 @@ const AlertsTab: React.FC = () => {
       }}>
         <Typography variant="h6" fontWeight="medium" sx={{ mb: 2 }}>Fleet Alerts</Typography>
         
-        {loading && (
+        {loading ? (
           <Box sx={{ display: 'flex', justifyContent: 'center', my: 4 }}>
             <CircularProgress />
           </Box>
-        )}
+        ) : null}
         
-        {!loading && error && (
+        {!loading && error ? (
           <Typography color="error" sx={{ textAlign: 'center', my: 4 }}>
             {error}
           </Typography>
-        )}
+        ) : null}
         
         {!loading && !error && filteredAlerts.length === 0 && (
           <Typography sx={{ textAlign: 'center', my: 4, color: 'text.secondary' }}>
@@ -373,7 +384,7 @@ const AlertsTab: React.FC = () => {
       </Paper>
     </Box>
   );
-};
+}
 
 // Alert Setting Item Component
 interface AlertSettingItemProps {
@@ -383,7 +394,7 @@ interface AlertSettingItemProps {
   onChange: (event: React.ChangeEvent<HTMLInputElement>) => void;
 }
 
-const AlertSettingItem: React.FC<AlertSettingItemProps> = ({ title, description, checked, onChange }) => {
+function AlertSettingItem({ title, description, checked, onChange }: AlertSettingItemProps): React.JSX.Element {
   return (
     <ListItem sx={{ bgcolor: '#f5f5f5', borderRadius: 1, mb: 1 }}>
       <ListItemText 
@@ -393,6 +404,6 @@ const AlertSettingItem: React.FC<AlertSettingItemProps> = ({ title, description,
       <Switch checked={checked} onChange={onChange} edge="end" />
     </ListItem>
   );
-};
+}
 
 export default AlertsTab;

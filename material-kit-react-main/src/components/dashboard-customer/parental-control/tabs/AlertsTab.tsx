@@ -1,11 +1,34 @@
 import React, { useState, useEffect } from 'react';
-import { Box, Paper, Typography, List, ListItem, ListItemIcon, ListItemText, Switch, CircularProgress, FormControl, InputLabel, Select, MenuItem, SelectChangeEvent } from '@mui/material';
+import { 
+  Box, 
+  Paper, 
+  Typography, 
+  List, 
+  ListItem, 
+  ListItemIcon, 
+  ListItemText, 
+  Switch, 
+  CircularProgress 
+} from '@mui/material';
 import WarningIcon from '@mui/icons-material/Warning';
 import SpeedIcon from '@mui/icons-material/Speed';
 import NotListedLocationIcon from '@mui/icons-material/NotListedLocation';
 import TrendingDownIcon from '@mui/icons-material/TrendingDown';
 import TrendingUpIcon from '@mui/icons-material/TrendingUp';
-import { Alert } from '@/types/alert';
+import type { Alert } from '@/types/alert';
+
+// Interface for car driving data
+interface CarDrivingData {
+  current?: {
+    speed: number;
+    harsh_braking_events: number;
+    harsh_acceleration_events: number;
+    swerving_events: number;
+    accident_detected: boolean;
+    latitude?: number;
+    longitude?: number;
+  };
+}
 
 // Add props interface
 interface AlertsTabProps {
@@ -16,8 +39,8 @@ interface AlertsTabProps {
   };
 }
 
-// Update component to accept props
-const AlertsTab: React.FC<AlertsTabProps> = ({ selectedCar, carDetails }) => {
+// Update component to use function declaration
+function AlertsTab({ selectedCar, carDetails }: AlertsTabProps): React.JSX.Element {
   const [alerts, setAlerts] = useState<Alert[]>([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
@@ -31,7 +54,7 @@ const AlertsTab: React.FC<AlertsTabProps> = ({ selectedCar, carDetails }) => {
 
   // Fetch alerts for the selected car only
   useEffect(() => {
-    const fetchAlerts = async () => {
+    const fetchAlerts = async (): Promise<void> => {
       if (!selectedCar || selectedCar === 'all') {
         setAlerts([]);
         setLoading(false);
@@ -44,14 +67,14 @@ const AlertsTab: React.FC<AlertsTabProps> = ({ selectedCar, carDetails }) => {
         
         // Fetch driving data only for the selected car
         const dataResponse = await fetch(`https://driving-behavior-analysis-system.onrender.com/api/car-driving-data/${selectedCar}/`);
-        const carData = await dataResponse.json();
+        const carData = await dataResponse.json() as CarDrivingData;
         
-        console.log(`Selected car ${selectedCar} data:`, carData);
+        // Remove console.log for production
         
         const allAlerts: Alert[] = [];
         
         // Check the current data for this car
-        if (carData && carData.current) {
+        if (carData?.current) {
           const record = carData.current;
           const recordId = new Date().getTime();
           
@@ -141,31 +164,31 @@ const AlertsTab: React.FC<AlertsTabProps> = ({ selectedCar, carDetails }) => {
                 model: carModel,
                 plateNumber: carPlateNumber
               },
-              location: record.latitude && record.longitude ? {
-                lat: record.latitude,
-                lng: record.longitude
-              } : undefined
+              location: record.latitude && record.longitude 
+                ? {
+                    lat: record.latitude,
+                    lng: record.longitude
+                  } 
+                : undefined
             });
           }
         }
         
         setAlerts(allAlerts);
         setLoading(false);
-        if (allAlerts.length === 0) {
-          console.log("No alerts found for selected car");
-        }
+        // Remove console.log for production
       } catch (err) {
-        console.error('Error fetching alerts:', err);
+        // Remove console.error for production
         setError('Failed to load alerts');
         setLoading(false);
       }
     };
 
-    fetchAlerts();
+    void fetchAlerts(); // Use void operator to handle the Promise
   }, [selectedCar, carDetails]);
   
   // Handle alert setting toggling
-  const handleSettingChange = (setting: string) => (event: React.ChangeEvent<HTMLInputElement>) => {
+  const handleSettingChange = (setting: string) => (event: React.ChangeEvent<HTMLInputElement>): void => {
     setAlertSettings({
       ...alertSettings,
       [setting]: event.target.checked
@@ -173,7 +196,7 @@ const AlertsTab: React.FC<AlertsTabProps> = ({ selectedCar, carDetails }) => {
   };
   
   // Format timestamp to relative time
-  const formatTimestamp = (timestamp: string) => {
+  const formatTimestamp = (timestamp: string): string => {
     const date = new Date(timestamp);
     const now = new Date();
     const diffMs = now.getTime() - date.getTime();
@@ -186,7 +209,7 @@ const AlertsTab: React.FC<AlertsTabProps> = ({ selectedCar, carDetails }) => {
   };
   
   // Get icon for alert type
-  const getAlertIcon = (type: string) => {
+  const getAlertIcon = (type: string): React.ReactNode => {
     switch (type) {
       case 'speeding':
         return <SpeedIcon />;
@@ -202,7 +225,7 @@ const AlertsTab: React.FC<AlertsTabProps> = ({ selectedCar, carDetails }) => {
   };
   
   // Get color for alert severity
-  const getAlertColor = (severity: string) => {
+  const getAlertColor = (severity: string): string => {
     switch (severity) {
       case 'error':
         return 'error.main';
@@ -224,17 +247,17 @@ const AlertsTab: React.FC<AlertsTabProps> = ({ selectedCar, carDetails }) => {
       }}>
         <Typography variant="h6" fontWeight="medium" sx={{ mb: 2 }}>Recent Alerts</Typography>
         
-        {loading && (
+        {loading ? (
           <Box sx={{ display: 'flex', justifyContent: 'center', my: 4 }}>
             <CircularProgress />
           </Box>
-        )}
+        ) : null}
         
-        {!loading && error && (
+        {!loading && error ? (
           <Typography color="error" sx={{ textAlign: 'center', my: 4 }}>
             {error}
           </Typography>
-        )}
+        ) : null}
         
         {!loading && !error && alerts.length === 0 && (
           <Typography sx={{ textAlign: 'center', my: 4, color: 'text.secondary' }}>
@@ -327,7 +350,7 @@ const AlertsTab: React.FC<AlertsTabProps> = ({ selectedCar, carDetails }) => {
       </Paper>
     </Box>
   );
-};
+}
 
 // Alert Setting Item Component
 interface AlertSettingItemProps {
@@ -337,7 +360,7 @@ interface AlertSettingItemProps {
   onChange: (event: React.ChangeEvent<HTMLInputElement>) => void;
 }
 
-const AlertSettingItem: React.FC<AlertSettingItemProps> = ({ title, description, checked, onChange }) => {
+function AlertSettingItem({ title, description, checked, onChange }: AlertSettingItemProps): React.JSX.Element {
   return (
     <ListItem sx={{ bgcolor: '#f5f5f5', borderRadius: 1, mb: 1 }}>
       <ListItemText 
@@ -347,6 +370,6 @@ const AlertSettingItem: React.FC<AlertSettingItemProps> = ({ title, description,
       <Switch checked={checked} onChange={onChange} edge="end" />
     </ListItem>
   );
-};
+}
 
 export default AlertsTab;

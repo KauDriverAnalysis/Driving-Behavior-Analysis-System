@@ -1,6 +1,21 @@
 'use client';
 import type { User } from '@/types/user';
 
+// Define interfaces for API responses
+interface AuthResponse {
+  token?: string;
+  userType?: string;
+  userId?: string | number;
+  id?: string | number;
+  role?: string;
+  Admin?: boolean | string;
+  Company_name?: string;
+  Name?: string;
+  name?: string;
+  company_id?: string | number;
+  error?: string;
+}
+
 function generateToken(): string {
   const arr = new Uint8Array(12);
   window.crypto.getRandomValues(arr);
@@ -81,7 +96,7 @@ class AuthClient {
         }),
       });
 
-      const data = await response.json();
+      const data = await response.json() as AuthResponse;
       
       if (!response.ok) {
         return { error: data.error || 'Authentication failed' };
@@ -93,17 +108,17 @@ class AuthClient {
       }
       
       // Debug the raw response data to diagnose issues
-      console.log('Raw response data:', data);
+      // Remove console.log for production
       
       // Store the user type and user ID directly from the response
       if (data.userType && data.userId) {
         localStorage.setItem('userType', data.userType);
-        localStorage.setItem('userId', data.userId.toString());
+        localStorage.setItem('userId', String(data.userId));
       }
       
       // Determine user role from response
       let userRole = data.role || accountType;
-      const userId = data.id?.toString() || '';
+      const userId = data.id ? String(data.id) : '';
       
       // Check if this is an employee with admin privileges
       const isAdmin = 
@@ -116,7 +131,7 @@ class AuthClient {
       if (isAdmin) {
         userRole = 'admin';
         localStorage.setItem('is-admin', 'true');
-        console.log('Admin user detected - setting role to admin');
+        // Remove console.log for production
       }
       
       // Store consistent role information
@@ -139,28 +154,28 @@ class AuthClient {
         
         // Also ensure employee data is stored for admin users
         localStorage.setItem('employee-id', userId);
-        console.log('Admin keys set in localStorage');
+        // Remove console.log for production
       } else if (accountType === 'employee') {
         localStorage.setItem('employee-id', userId);
         localStorage.setItem('employee-name', data.name || '');
         
         // Store the company ID if available
         if (data.company_id) {
-          localStorage.setItem('employee-company-id', data.company_id.toString());
-          console.log('Employee\'s company ID stored:', data.company_id);
+          localStorage.setItem('employee-company-id', String(data.company_id));
+          // Remove console.log for production
         }
       }
       
       // In your login success handler:
       if (data.company_id) {
-        localStorage.setItem('employee-company-id', data.company_id.toString());
+        localStorage.setItem('employee-company-id', String(data.company_id));
         // Also store it under a few alternative keys to be safe
-        localStorage.setItem('companyId', data.company_id.toString());
-        localStorage.setItem('company_id', data.company_id.toString());
-        console.log('Stored company ID in multiple keys:', data.company_id);
+        localStorage.setItem('companyId', String(data.company_id));
+        localStorage.setItem('company_id', String(data.company_id));
+        // Remove console.log for production
       }
       
-      console.log(`User logged in - ID: ${userId}, Type: ${userRole}, Admin: ${isAdmin}`);
+      // Remove console.log for production
       
       // Return consistent userType
       return { 
@@ -169,7 +184,7 @@ class AuthClient {
         error: null 
       };
     } catch (error) {
-      console.error('Authentication error:', error);
+      // Remove console.error for production
       return { 
         error: 'Connection error. Please try again later.',
         userId: undefined,
@@ -191,7 +206,7 @@ class AuthClient {
         body: JSON.stringify({ email }),
       });
   
-      const data = await response.json();
+      const data = await response.json() as { error?: string };
       
       if (!response.ok) {
         return { error: data.error || 'Password reset request failed' };
@@ -201,7 +216,7 @@ class AuthClient {
         success: true
       };
     } catch (error) {
-      console.error('Password reset error:', error);
+      // Remove console.error for production
       return { error: 'Connection error. Please try again later.' };
     }
   }
@@ -211,7 +226,7 @@ class AuthClient {
     const { email, token, newPassword } = params;
     
     try {
-      console.log(`Attempting to reset password for ${email} with token ${token.substring(0, 6)}...`);
+      // Remove console.log for production
       
       const response = await fetch('https://driving-behavior-analysis-system.onrender.com/api/update_password/', {
         method: 'POST',
@@ -225,9 +240,9 @@ class AuthClient {
         }),
       });
   
-      const data = await response.json();
+      const data = await response.json() as { error?: string };
       
-      console.log('Password reset response:', response.status, data);
+      // Remove console.log for production
       
       if (!response.ok) {
         return { error: data.error || 'Password update failed' };
@@ -237,19 +252,21 @@ class AuthClient {
         success: true
       };
     } catch (error) {
-      console.error('Password update error:', error);
+      // Remove console.error for production
       return { error: 'Connection error. Please try again later.' };
     }
   }
 
   async getUser(): Promise<{ data?: User | null; error?: string }> {
-    // Add debug logging
+    // Add debug logging - Remove for production
+    /* 
     console.log('Auth Debug - User information:');
     console.log('auth-token:', localStorage.getItem('auth-token'));
     console.log('user-type:', localStorage.getItem('user-type'));
     console.log('userType:', localStorage.getItem('userType'));
     console.log('role from login:', localStorage.getItem('userType'));
     console.log('is-admin flag:', localStorage.getItem('is-admin'));
+    */
     
     // Change this line to check for auth-token instead of custom-auth-token
     const token = localStorage.getItem('auth-token');
@@ -272,19 +289,18 @@ class AuthClient {
   }
 
   async signOut(): Promise<{ error?: string }> {
-    // Make sure to clear all auth related items
-      // Clear all auth related items
-      localStorage.removeItem('auth-token');
-      localStorage.removeItem('user-type');
-      localStorage.removeItem('user-id');
-      localStorage.removeItem('userType');
-      localStorage.removeItem('userId');
-      localStorage.removeItem('company-id');
-      localStorage.removeItem('company-name');
-      localStorage.removeItem('customer-id');
-      localStorage.removeItem('customer-name');
-      localStorage.removeItem('employee-id');
-      localStorage.removeItem('is-admin');
+    // Clear all auth related items
+    localStorage.removeItem('auth-token');
+    localStorage.removeItem('user-type');
+    localStorage.removeItem('user-id');
+    localStorage.removeItem('userType');
+    localStorage.removeItem('userId');
+    localStorage.removeItem('company-id');
+    localStorage.removeItem('company-name');
+    localStorage.removeItem('customer-id');
+    localStorage.removeItem('customer-name');
+    localStorage.removeItem('employee-id');
+    localStorage.removeItem('is-admin');
     return {};
   }
 }
