@@ -1,3 +1,12 @@
+/*
+ * MPUrawgpssdcard with GSM MQTT and bulk data transmission
+ * Modified version that replaces WiFi with GSM and optimizes for bulk data transmission
+ */
+
+// GSM Configuration
+#define TINY_GSM_MODEM_SIM7600  // Modem is SIM7600
+#include <TinyGsmClient.h>
+#include <SSLClient.h>
 #include <HardwareSerial.h>
 #include <Wire.h>
 #include <SD.h>
@@ -5,62 +14,42 @@
 #include <TinyGPS++.h>
 #include "MPU6050_6Axis_MotionApps20.h"
 #include "I2Cdev.h"
-#include <WiFi.h>
-#include <WiFiClientSecure.h>
 #include <PubSubClient.h>  // MQTT library
+#include "ca_cert.h"        // Using the existing CA certificate file
 
 // Device identification
 const String DEVICE_NAME = "DBAS-001"; // Unique identifier for this device
 
-// WiFi and MQTT Server credentials
-const char* ssid = "hj";
-const char* password = "noobnoob";
+// MQTT Server credentials
 const char* mqtt_server = "af626fdebdec42bfa3ef70e692bf0d69.s1.eu.hivemq.cloud";
-const int mqtt_port = 8883;  // Use 1883 for non-TLS
+const int mqtt_port = 8883;  // Use 8883 for TLS
 const char* mqtt_topic = "data";
-const char *mqtt_username = "team22";
-const char *mqtt_password = "KauKau123";
+const char* mqtt_username = "team22";
+const char* mqtt_password = "KauKau123";
 
-const char *root_ca = \
-"-----BEGIN CERTIFICATE-----\n" \
-"MIIFBjCCAu6gAwIBAgIRAIp9PhPWLzDvI4a9KQdrNPgwDQYJKoZIhvcNAQELBQAw\n" \
-"TzELMAkGA1UEBhMCVVMxKTAnBgNVBAoTIEludGVybmV0IFNlY3VyaXR5IFJlc2Vh\n" \
-"cmNoIEdyb3VwMRUwEwYDVQQDEwxJU1JHIFJvb3QgWDEwHhcNMjQwMzEzMDAwMDAw\n" \
-"WhcNMjcwMzEyMjM1OTU5WjAzMQswCQYDVQQGEwJVUzEWMBQGA1UEChMNTGV0J3Mg\n" \
-"RW5jcnlwdDEMMAoGA1UEAxMDUjExMIIBIjANBgkqhkiG9w0BAQEFAAOCAQ8AMIIB\n" \
-"CgKCAQEAuoe8XBsAOcvKCs3UZxD5ATylTqVhyybKUvsVAbe5KPUoHu0nsyQYOWcJ\n" \
-"DAjs4DqwO3cOvfPlOVRBDE6uQdaZdN5R2+97/1i9qLcT9t4x1fJyyXJqC4N0lZxG\n" \
-"AGQUmfOx2SLZzaiSqhwmej/+71gFewiVgdtxD4774zEJuwm+UE1fj5F2PVqdnoPy\n" \
-"6cRms+EGZkNIGIBloDcYmpuEMpexsr3E+BUAnSeI++JjF5ZsmydnS8TbKF5pwnnw\n" \
-"SVzgJFDhxLyhBax7QG0AtMJBP6dYuC/FXJuluwme8f7rsIU5/agK70XEeOtlKsLP\n" \
-"Xzze41xNG/cLJyuqC0J3U095ah2H2QIDAQABo4H4MIH1MA4GA1UdDwEB/wQEAwIB\n" \
-"hjAdBgNVHSUEFjAUBggrBgEFBQcDAgYIKwYBBQUHAwEwEgYDVR0TAQH/BAgwBgEB\n" \
-"/wIBADAdBgNVHQ4EFgQUxc9GpOr0w8B6bJXELbBeki8m47kwHwYDVR0jBBgwFoAU\n" \
-"ebRZ5nu25eQBc4AIiMgaWPbpm24wMgYIKwYBBQUHAQEEJjAkMCIGCCsGAQUFBzAC\n" \
-"hhZodHRwOi8veDEuaS5sZW5jci5vcmcvMBMGA1UdIAQMMAowCAYGZ4EMAQIBMCcG\n" \
-"A1UdHwQgMB4wHKAaoBiGFmh0dHA6Ly94MS5jLmxlbmNyLm9yZy8wDQYJKoZIhvcN\n" \
-"AQELBQADggIBAE7iiV0KAxyQOND1H/lxXPjDj7I3iHpvsCUf7b632IYGjukJhM1y\n" \
-"v4Hz/MrPU0jtvfZpQtSlET41yBOykh0FX+ou1Nj4ScOt9ZmWnO8m2OG0JAtIIE38\n" \
-"01S0qcYhyOE2G/93ZCkXufBL713qzXnQv5C/viOykNpKqUgxdKlEC+Hi9i2DcaR1\n" \
-"e9KUwQUZRhy5j/PEdEglKg3l9dtD4tuTm7kZtB8v32oOjzHTYw+7KdzdZiw/sBtn\n" \
-"UfhBPORNuay4pJxmY/WrhSMdzFO2q3Gu3MUBcdo27goYKjL9CTF8j/Zz55yctUoV\n" \
-"aneCWs/ajUX+HypkBTA+c8LGDLnWO2NKq0YD/pnARkAnYGPfUDoHR9gVSp/qRx+Z\n" \
-"WghiDLZsMwhN1zjtSC0uBWiugF3vTNzYIEFfaPG7Ws3jDrAMMYebQ95JQ+HIBD/R\n" \
-"PBuHRTBpqKlyDnkSHDHYPiNX3adPoPAcgdF3H2/W0rmoswMWgTlLn1Wu0mrks7/q\n" \
-"pdWfS6PJ1jty80r2VKsM/Dj3YIDfbjXKdaFU5C+8bhfJGqU3taKauuz0wHVGT3eo\n" \
-"6FlWkWYtbt4pgdamlwVeZEW+LM7qZEJEsMNPrfC03APKmZsJgpWCDWOKZvkZcvjV\n" \
-"uYkQ4omYCTX5ohy+knMjdOmdH9c7SpqEWBDC86fiNex+O0XOMEZSa8DA\n" \
-"-----END CERTIFICATE-----\n";
+// GSM Modem configuration
+#define MODEM_UART_BAUD 115200
+#define MODEM_DTR 25
+#define MODEM_TX 17
+#define MODEM_RX 16
+#define MODEM_PWRKEY 4
+#define LED_PIN 12
 
+// GPRS credentials
+const char apn[] = "jawalnet.com.sa";  // Your APN
+const char gprs_user[] = "";          // User
+const char gprs_pass[] = "";          // Password
+const char simPIN[] = "";             // SIM card PIN code, if any
 
 // Hardware Defines
-#define RX_PIN 16
-#define TX_PIN 17
+#define RX_PIN 16  // Same as MODEM_RX
+#define TX_PIN 17  // Same as MODEM_TX
 #define CS_PIN 5
 
 // Update intervals
 #define WRITE_INTERVAL 2000
-#define MQTT_INTERVAL 2000  // Interval to send data to MQTT server (ms)
+#define MQTT_INTERVAL 10000     // Increased to 10 seconds for GSM optimization
+#define BULK_DATA_SIZE 4096     // Maximum size for bulk data transmission (4KB)
 
 // Sensor objects
 HardwareSerial GPS(1);
@@ -89,9 +78,11 @@ unsigned long lastWriteTime = 0;
 unsigned long dataWriteCounter = 0;
 unsigned long lastMQTTTime = 0;
 
-// WiFi and MQTT objects
-WiFiClientSecure espClient;
-PubSubClient client(espClient);
+// GSM and MQTT objects
+TinyGsm modem(Serial1);
+TinyGsmClient gsmClient(modem);
+SSLClient secureClient(&gsmClient);
+PubSubClient client(secureClient);
 
 // GPS formatting functions
 String formatGPS(String coord, int length) {
@@ -150,50 +141,90 @@ void parseNMEA(String line) {
   }
 }
 
-// WiFi and MQTT setup
-void setup_wifi() {
-  delay(10);
-  Serial.println();
-  Serial.print("Connecting to ");
-  Serial.println(ssid);
-
-  WiFi.begin(ssid, password);
-  while (WiFi.status() != WL_CONNECTED) {
-    delay(500);
-    Serial.print(".");
-  }
-
-  Serial.println("");
-  Serial.println("WiFi connected");
-  Serial.println("IP address: ");
-  Serial.println(WiFi.localIP());
+// GSM Modem functions
+void turnModemOn() {
+  digitalWrite(LED_PIN, LOW);
+  pinMode(MODEM_PWRKEY, OUTPUT);
+  digitalWrite(MODEM_PWRKEY, LOW);
+  delay(1000); // Datasheet Ton minutes = 1S
+  digitalWrite(MODEM_PWRKEY, HIGH);
 }
 
+void turnModemOff() {
+  digitalWrite(MODEM_PWRKEY, LOW);
+  delay(1500); // Datasheet Ton minutes = 1.2S
+  digitalWrite(MODEM_PWRKEY, HIGH);
+  digitalWrite(LED_PIN, LOW);
+}
+
+void setupModem() {
+  pinMode(LED_PIN, OUTPUT);
+  pinMode(MODEM_PWRKEY, OUTPUT);
+  
+  Serial.println("Initializing modem...");
+  turnModemOff();
+  delay(1000);
+  turnModemOn();
+  delay(5000);
+  
+  Serial1.begin(MODEM_UART_BAUD, SERIAL_8N1, MODEM_RX, MODEM_TX);
+  delay(3000);
+  
+  Serial.print("Modem init...");
+  if (!modem.init()) {
+    Serial.println("failed. Restarting modem...");
+    turnModemOff();
+    delay(1000);
+    turnModemOn();
+    delay(5000);
+    if (!modem.restart()) {
+      Serial.println("Modem restart failed!");
+      return;
+    }
+  }
+  Serial.println("OK");
+  
+  String name = modem.getModemName();
+  Serial.println("Modem Name: " + name);
+  
+  Serial.print("Waiting for network...");
+  if (!modem.waitForNetwork()) {
+    Serial.println("fail!");
+    return;
+  }
+  Serial.println("OK");
+  
+  Serial.print("Connecting to APN: " + String(apn));
+  if (!modem.gprsConnect(apn, gprs_user, gprs_pass)) {
+    Serial.println("fail!");
+    return;
+  }
+  Serial.println("OK");
+  
+  digitalWrite(LED_PIN, HIGH); // Turn on LED to show connected
+}
+
+// Simplified MQTT reconnect function (publishing only)
 void reconnect() {
-  while (!client.connected()) {
+  int retries = 0;
+  while (!client.connected() && retries < 5) {
     Serial.print("Attempting MQTT connection...");
     String clientId = "ESP32Client-" + String(random(0xffff));
     if (client.connect(clientId.c_str(), mqtt_username, mqtt_password)) {
       Serial.println("connected");
-      // Subscribe to topic
-      client.subscribe(mqtt_topic);
     } else {
       Serial.print("failed, rc=");
       Serial.print(client.state());
-      Serial.println(" try again in 5 seconds");
+      Serial.println(" retry in 5s");
       delay(5000);
+      retries++;
     }
   }
 }
+
+// Minimal callback function (not used but required by PubSubClient)
 void callback(char* topic, byte* payload, unsigned int length) {
-  Serial.print("Message arrived in topic: ");
-  Serial.println(topic);
-  Serial.print("Message: ");
-  for (int i = 0; i < length; i++) {
-    Serial.print((char)payload[i]);
-  }
-  Serial.println();
-  Serial.println("-----------------------");
+  // We're not subscribing to any topics, so this function is minimized
 }
 
 // FreeRTOS handles
@@ -201,9 +232,6 @@ TaskHandle_t sensorTaskHandle;
 TaskHandle_t mqttTaskHandle;
 TaskHandle_t sdCardTaskHandle;
 SemaphoreHandle_t dataMutex;
-
-// Shared data buffer
-String dataBuffer = "";
 
 // Separate buffers for MQTT and SD card
 String mqttBuffer = "";
@@ -246,9 +274,31 @@ void sensorTask(void *parameter) {
   }
 }
 
-// Task for MQTT publishing
+// Modified MQTT task for bulk data transmission
 void mqttTask(void *parameter) {
+  unsigned long lastConnectionCheck = 0;
+  
   while (true) {
+    unsigned long currentMillis = millis();
+    
+    // Periodically check GSM and MQTT connection status
+    if (currentMillis - lastConnectionCheck > 60000) {
+      lastConnectionCheck = currentMillis;
+      
+      // Check if GSM is still connected
+      if (!modem.isGprsConnected()) {
+        Serial.println("GPRS disconnected. Reconnecting...");
+        modem.gprsConnect(apn, gprs_user, gprs_pass);
+      }
+      
+      // Print connection details periodically
+      IPAddress ip = modem.localIP();
+      Serial.println("Local IP: " + String(ip[0]) + "." + String(ip[1]) + "." + 
+                    String(ip[2]) + "." + String(ip[3]));
+      int csq = modem.getSignalQuality();
+      Serial.println("Signal quality: " + String(csq));
+    }
+    
     if (!client.connected()) {
       reconnect();
     }
@@ -256,21 +306,40 @@ void mqttTask(void *parameter) {
 
     // Protect MQTT buffer with mutex
     if (xSemaphoreTake(dataMutex, portMAX_DELAY)) {
-      if (mqttBuffer.length() > 0) {
-        int startIndex = 0;
-        int endIndex = mqttBuffer.indexOf('\n');
-        while (endIndex != -1) {
-          String line = mqttBuffer.substring(startIndex, endIndex);
-          client.publish(mqtt_topic, line.c_str());
-          startIndex = endIndex + 1;
-          endIndex = mqttBuffer.indexOf('\n', startIndex);
+      // Send data in bulk if we have enough data or enough time has passed
+      if (mqttBuffer.length() > 0 && 
+         (mqttBuffer.length() >= BULK_DATA_SIZE || 
+          currentMillis - lastMQTTTime >= MQTT_INTERVAL)) {
+        
+        // Send accumulated data in a single MQTT message
+        Serial.println("Publishing " + String(mqttBuffer.length()) + " bytes of data");
+        
+        // For larger payloads, we might need to chunk the data
+        if (mqttBuffer.length() > 5000) {
+          // Split into chunks of 5000 bytes
+          int chunks = (mqttBuffer.length() / 5000) + 1;
+          for (int i = 0; i < chunks; i++) {
+            int startPos = i * 5000;
+            int endPos = min((i + 1) * 5000, (int)mqttBuffer.length());
+            String chunk = mqttBuffer.substring(startPos, endPos);
+            
+            // Add chunk number to topic for proper reassembly
+            String chunkTopic = String(mqtt_topic) + "/chunk/" + String(i+1) + "/" + String(chunks);
+            client.publish(chunkTopic.c_str(), chunk.c_str());
+            delay(200); // Small delay between chunks
+          }
+        } else {
+          // Send as a single message
+          client.publish(mqtt_topic, mqttBuffer.c_str());
         }
+        
         mqttBuffer = "";  // Clear MQTT buffer after publishing
+        lastMQTTTime = currentMillis;
       }
       xSemaphoreGive(dataMutex);
     }
 
-    vTaskDelay(MQTT_INTERVAL / portTICK_PERIOD_MS);
+    vTaskDelay(1000 / portTICK_PERIOD_MS);  // Check every second
   }
 }
 
@@ -296,13 +365,19 @@ void sdCardTask(void *parameter) {
 
 void setup() {
   Serial.begin(115200);
+  delay(5000);
+  Serial.println("\nStarting MPUraw with GSM and bulk data transmission");
   
-  setup_wifi();
+  // Initialize GSM modem first
+  setupModem();
+  
+  // Setup MQTT client
+  secureClient.setCACert(root_ca); // Using the CA certificate
   client.setServer(mqtt_server, mqtt_port);
   client.setCallback(callback);
-  espClient.setCACert(root_ca);
-  reconnect();
   
+  // Initialize GPS at lower baud rate first
+  Serial.println("Initializing GPS...");
   GPS.begin(9600, SERIAL_8N1, RX_PIN, TX_PIN);
   delay(100); 
   GPS.print("$PCAS03,1,0,0,0,0,1,0,0*02\r\n"); // Enable only the GGA and VTG sentences
@@ -316,7 +391,10 @@ void setup() {
   GPS.print("$PCAS03,1,0,0,0,0,1,0,0*02\r\n"); // Enable only the GGA and VTG sentences
   GPS.print("$PCAS01,5*19\r\n"); // Set GPS to 115200 bps
   GPS.print("$PCAS02,100*1E\r\n"); // Set GPS update rate to 10Hz
+  Serial.println("GPS initialized");
 
+  // Initialize I2C for MPU6050
+  Serial.println("Initializing MPU6050...");
   Wire.begin();
   Wire.setClock(400000);
   mpu.initialize();
@@ -326,7 +404,7 @@ void setup() {
     while(1);
   }
 
-  // Replace the current dmpInitialize section in setup() with this enhanced version
+  // Initialize DMP on the MPU6050
   devStatus = mpu.dmpInitialize();
   if (devStatus == 0) {
     // Enhanced calibration for better accuracy
@@ -351,6 +429,8 @@ void setup() {
     Serial.println("DMP initialization failed!");
   }
 
+  // Initialize SD card
+  Serial.println("Initializing SD card...");
   if (!SD.begin(CS_PIN)) {
     Serial.println("SD card initialization failed!");
     while(1);
@@ -369,13 +449,14 @@ void setup() {
   // Create mutex
   dataMutex = xSemaphoreCreateMutex();
 
-  // Create FreeRTOS tasks
-  xTaskCreatePinnedToCore(sensorTask, "Sensor Task", 4096, NULL, 3, &sensorTaskHandle, 1);
-  xTaskCreatePinnedToCore(mqttTask, "MQTT Task", 4096, NULL, 2, &mqttTaskHandle, 0);
-  xTaskCreatePinnedToCore(sdCardTask, "SD Card Task", 4096, NULL, 2, &sdCardTaskHandle, 0);
+  // Create FreeRTOS tasks with adjusted priorities
+  xTaskCreatePinnedToCore(sensorTask, "Sensor Task", 8192, NULL, 3, &sensorTaskHandle, 1);
+  xTaskCreatePinnedToCore(mqttTask, "MQTT Task", 8192, NULL, 2, &mqttTaskHandle, 0);
+  xTaskCreatePinnedToCore(sdCardTask, "SD Card Task", 4096, NULL, 1, &sdCardTaskHandle, 0);
+  
+  Serial.println("Setup complete, tasks running");
 }
 
 void loop() {
   // Empty loop as tasks handle all functionality
 }
-
