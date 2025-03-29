@@ -46,9 +46,6 @@ def cleanse_data(buffer):
         if 'speed' in data.columns:
             data['speed'] = data['speed'].clip(lower=0, upper=200)
 
-        # 4. Remove duplicates while keeping first occurrence
-        data = data.drop_duplicates(subset=['timestamp'], keep='first')
-
         # Reset index after cleaning
         data = data.reset_index(drop=True)
 

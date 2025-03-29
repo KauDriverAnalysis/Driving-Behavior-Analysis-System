@@ -129,6 +129,7 @@ void parseNMEA(String line) {
     timeG = formattedTime;
     latitude = formattedLat;
     longitude = formattedLon;
+
   } else if (line.startsWith("$GNVTG")) {
     int idx1 = 0, idx2 = 0, fieldCount = 0;
     
@@ -376,25 +377,13 @@ void setup() {
   client.setServer(mqtt_server, mqtt_port);
   client.setCallback(callback);
   
-  // Initialize GPS at lower baud rate first
-  Serial.println("Initializing GPS...");
-  GPS.begin(9600, SERIAL_8N1, RX_PIN, TX_PIN);
-  delay(100); 
-  GPS.print("$PCAS03,1,0,0,0,0,1,0,0*02\r\n"); // Enable only the GGA and VTG sentences
-  GPS.print("$PCAS01,5*19\r\n"); // Set GPS to 115200 bps
-  GPS.print("$PCAS02,100*1E\r\n"); // Set GPS update rate to 10Hz
+
   delay(100);
   GPS.end();
   delay(100); 
   GPS.begin(115200, SERIAL_8N1, RX_PIN, TX_PIN);
   delay(100); 
-  GPS.print("$PCAS03,1,0,0,0,0,1,0,0*02\r\n"); // Enable only the GGA and VTG sentences
-  GPS.print("$PCAS01,5*19\r\n"); // Set GPS to 115200 bps
-  GPS.print("$PCAS02,100*1E\r\n"); // Set GPS update rate to 10Hz
-  Serial.println("GPS initialized");
 
-  // Initialize I2C for MPU6050
-  Serial.println("Initializing MPU6050...");
   Wire.begin();
   Wire.setClock(400000);
   mpu.initialize();
@@ -449,12 +438,7 @@ void setup() {
   // Create mutex
   dataMutex = xSemaphoreCreateMutex();
 
-  // Create FreeRTOS tasks with adjusted priorities
-  xTaskCreatePinnedToCore(sensorTask, "Sensor Task", 8192, NULL, 3, &sensorTaskHandle, 1);
-  xTaskCreatePinnedToCore(mqttTask, "MQTT Task", 8192, NULL, 2, &mqttTaskHandle, 0);
-  xTaskCreatePinnedToCore(sdCardTask, "SD Card Task", 4096, NULL, 1, &sdCardTaskHandle, 0);
-  
-  Serial.println("Setup complete, tasks running");
+
 }
 
 void loop() {
