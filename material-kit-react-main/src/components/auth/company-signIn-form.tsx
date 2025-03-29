@@ -52,7 +52,8 @@ export function CompanySignInForm(): React.JSX.Element {
 
       try {
         const { userType: authUserType, error } = await authClient.signInWithPassword({
-          ...values,
+          email: values.email,
+          password: values.password,
           accountType: 'company'
         });
         

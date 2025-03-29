@@ -88,7 +88,7 @@ export function CompanySignUpForm(): React.JSX.Element {
           if (data.errors) {
             // Display specific field errors if available
             const errorMessage = Object.entries(data.errors)
-              .map(([field, errors]) => `${field}: ${errors}`)
+              .map(([field, errors]) => `Some error message ${JSON.stringify(errors)}`)
               .join('\n');
             throw new Error(errorMessage || 'Validation failed');
           }

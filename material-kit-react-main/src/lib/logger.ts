@@ -1,4 +1,3 @@
-/* eslint-disable no-console -- Allow */
 
 // NOTE: A tracking system such as Sentry should replace the console
 

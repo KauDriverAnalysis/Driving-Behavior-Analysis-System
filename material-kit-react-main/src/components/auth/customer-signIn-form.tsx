@@ -52,10 +52,11 @@ export function CustomerSignInForm(): React.JSX.Element {
 
       try {
         console.log('Attempting customer login with:', values.email);
-        
+
         const { userType: authUserType, error } = await authClient.signInWithPassword({
-          ...values,
-          accountType: 'customer'
+          email: values.email,
+          password: values.password,
+          accountType: 'customer',
         });
 
         if (error) {
@@ -70,17 +71,17 @@ export function CustomerSignInForm(): React.JSX.Element {
         if (authUserType === 'customer') {
           router.push(paths.dashboardCustomer.overview);
         } else {
-          setError('root', { 
-            type: 'server', 
-            message: 'Invalid account type. Please use the correct form.' 
+          setError('root', {
+            type: 'server',
+            message: 'Invalid account type. Please use the correct form.',
           });
           setIsPending(false);
         }
       } catch (error) {
         console.error('Login error:', error);
-        setError('root', { 
-          type: 'server', 
-          message: error instanceof Error ? error.message : 'Authentication failed' 
+        setError('root', {
+          type: 'server',
+          message: error instanceof Error ? error.message : 'Authentication failed',
         });
         setIsPending(false);
       }
@@ -90,8 +91,10 @@ export function CustomerSignInForm(): React.JSX.Element {
 
   return (
     <Box sx={{ width: '100%' }}>
-      <Typography variant="h5" sx={{ mb: 3, textAlign: 'center' }}>Customer Sign In</Typography>
-      
+      <Typography variant="h5" sx={{ mb: 3, textAlign: 'center' }}>
+        Customer Sign In
+      </Typography>
+
       <form onSubmit={handleSubmit(onSubmit)}>
         <Stack spacing={3}>
           <Controller
@@ -100,10 +103,10 @@ export function CustomerSignInForm(): React.JSX.Element {
             render={({ field }) => (
               <FormControl fullWidth error={Boolean(errors.email)}>
                 <InputLabel>Email address</InputLabel>
-                <OutlinedInput 
-                  {...field} 
-                  label="Email address" 
-                  type="email" 
+                <OutlinedInput
+                  {...field}
+                  label="Email address"
+                  type="email"
                   placeholder="customer@example.com"
                 />
                 {errors.email ? <FormHelperText>{errors.email.message}</FormHelperText> : null}
@@ -147,19 +150,29 @@ export function CustomerSignInForm(): React.JSX.Element {
           <Box sx={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
             <Typography variant="body2" color="text.secondary">
               Don&apos;t have an account?{' '}
-              <Link component={RouterLink} href={paths.auth.signUp} underline="hover" fontWeight="medium">
+              <Link
+                component={RouterLink}
+                href={paths.auth.signUp}
+                underline="hover"
+                fontWeight="medium"
+              >
                 Sign up
               </Link>
             </Typography>
-            <Link component={RouterLink} href={paths.auth.resetPassword} variant="body2" fontWeight="medium">
+            <Link
+              component={RouterLink}
+              href={paths.auth.resetPassword}
+              variant="body2"
+              fontWeight="medium"
+            >
               Forgot password?
             </Link>
           </Box>
           {errors.root ? <Alert severity="error">{errors.root.message}</Alert> : null}
-          <Button 
-            disabled={isPending} 
-            type="submit" 
-            variant="contained" 
+          <Button
+            disabled={isPending}
+            type="submit"
+            variant="contained"
             fullWidth
             size="large"
             sx={{ py: 1.2 }}
@@ -169,9 +182,7 @@ export function CustomerSignInForm(): React.JSX.Element {
         </Stack>
       </form>
 
-      <Box sx={{ mt: 3, textAlign: 'center' }}>
-        
-      </Box>
+      <Box sx={{ mt: 3, textAlign: 'center' }}></Box>
     </Box>
   );
 }

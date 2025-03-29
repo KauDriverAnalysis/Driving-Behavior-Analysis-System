@@ -147,7 +147,6 @@ function PerformanceTrend({ timeFrame, data }: PerformanceTrendProps) {
           
           <Box sx={{ height: 300 }}>
             {hasValidData ? (
-              // @ts-ignore - ApexCharts types can be problematic
               <ReactApexChart 
                 height={300}
                 options={chartOptions}
@@ -155,18 +154,8 @@ function PerformanceTrend({ timeFrame, data }: PerformanceTrendProps) {
                 type="line"
               />
             ) : (
-              <Box 
-                sx={{ 
-                  display: 'flex', 
-                  alignItems: 'center', 
-                  justifyContent: 'center',
-                  height: '100%',
-                  flexDirection: 'column'
-                }}
-              >
-                <Typography color="text.secondary" variant="body2" sx={{ mb: 1 }}>
-                  No data available for this time period
-                </Typography>
+              <Box sx={{ height: 300, display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
+                <Typography color="text.secondary">No data available</Typography>
               </Box>
             )}
           </Box>

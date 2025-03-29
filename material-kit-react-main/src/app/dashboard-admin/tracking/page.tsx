@@ -110,8 +110,8 @@ export default function Tracking(): React.JSX.Element {
             ...car,
             status: stateValue === 'online' ? 'Active' : 'Non-Active',
             isActive: stateValue === 'online',
-            speed: existingMetrics.speed !== undefined ? existingMetrics.speed : null,
-            score: existingMetrics.score !== undefined ? existingMetrics.score : null
+            speed: (existingMetrics as any).speed !== undefined ? (existingMetrics as any).speed : null,
+            score: (existingMetrics as any).score !== undefined ? (existingMetrics as any).score : null
           };
         });
 
