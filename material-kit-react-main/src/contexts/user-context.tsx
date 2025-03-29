@@ -27,7 +27,8 @@ export function UserProvider({ children }: UserProviderProps): React.JSX.Element
   const [isLoading, setIsLoading] = useState<boolean>(false);
   const [isMounted, setIsMounted] = useState<boolean>(false);
 
-  const state = useState(null);
+  const [state, setState] = useState('loading');
+  const [auth, setAuth] = useState(null);
 
   // Use useEffect to handle localStorage operations after component mount
   useEffect(() => {
