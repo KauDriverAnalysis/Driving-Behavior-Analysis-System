@@ -29,17 +29,18 @@ ALLOWED_HOSTS = ['driving-behavior-analysis-system.onrender.com']
 
 # settings.py
 
+# In driving_analysis/settings.py
 CORS_ORIGIN_WHITELIST = [
-    'http://localhost:3000',  # React app running locally
-    'http://https://driving-analysis.netlify.app/',  # Add your Netlify URL here
+    'http://localhost:3000',
+    'https://driving-analysis.netlify.app'  # Corrected format (no trailing slash)
 ]
 
 CSRF_TRUSTED_ORIGINS = [
-    'http://localhost:3000',  # React app running locally
-    'http://https://driving-analysis.netlify.app/',  # Add your Netlify URL here
+    'http://localhost:3000',
+    'https://driving-analysis.netlify.app'  # Corrected format (no trailing slash)
 ]
 
-# Application definition
+# Make sure you have this too:
 CORS_ALLOW_CREDENTIALS = True
 CORS_ALLOW_ALL_ORIGINS = False  # Keep this false for security
 CORS_ALLOW_METHODS = ['GET', 'POST', 'PUT', 'PATCH', 'DELETE', 'OPTIONS']
