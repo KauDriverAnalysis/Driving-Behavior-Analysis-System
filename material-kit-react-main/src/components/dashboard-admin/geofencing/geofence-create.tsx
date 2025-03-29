@@ -13,6 +13,7 @@ import {
   FormHelperText
 } from '@mui/material';
 import type { Geofence } from '@/app/dashboard-admin/geofencing/page';
+import type { SelectChangeEvent } from '@mui/material/Select';
 
 interface GeometryData {
   center?: [number, number];
@@ -180,10 +181,12 @@ export function GeofenceCreate({
     }
   };
 
-  const handleColorChange = (e: any) => {
+  const handleColorChange = (e: SelectChangeEvent): void => {
     const newColor = e.target.value;
     setColor(newColor);
-    onColorChange?.(newColor);
+    if (onColorChange) {
+      onColorChange(newColor);
+    }
   };
 
   return (
@@ -232,7 +235,7 @@ export function GeofenceCreate({
               </Select>
             </FormControl>
             
-            {formErrors.geometry && (
+            {Boolean(formErrors.geometry) && (
               <FormHelperText error>{formErrors.geometry}</FormHelperText>
             )}
             
