@@ -25,10 +25,37 @@ SECRET_KEY = 'django-insecure-z9^fxn4*(ba#6ei0g7+@u188!)o4_()$za=62t2!&rn$0tm%=i
 # SECURITY WARNING: don't run with debug turned on in production!
 DEBUG = True
 
-ALLOWED_HOSTS = []
+ALLOWED_HOSTS = ['driving-behavior-analysis-system.onrender.com']
 
+# settings.py
 
-# Application definition
+# In driving_analysis/settings.py
+CORS_ORIGIN_WHITELIST = [
+    'http://localhost:3000',
+    'https://driving-analysis.netlify.app'  # Corrected format (no trailing slash)
+]
+
+CSRF_TRUSTED_ORIGINS = [
+    'http://localhost:3000',
+    'https://driving-analysis.netlify.app'  # Corrected format (no trailing slash)
+]
+
+# Make sure you have this too:
+CORS_ALLOW_CREDENTIALS = True
+CORS_ALLOW_ALL_ORIGINS = False  # Keep this false for security
+CORS_ALLOW_METHODS = ['GET', 'POST', 'PUT', 'PATCH', 'DELETE', 'OPTIONS']
+CORS_ALLOW_HEADERS = [
+    'accept',
+    'accept-encoding',
+    'authorization',
+    'content-type',
+    'dnt',
+    'origin',
+    'user-agent',
+    'x-csrftoken',  # This is what's missing
+    'x-requested-with',
+]
+CORS_EXPOSE_HEADERS = ['Content-Type', 'X-Requested-With']
 
 INSTALLED_APPS = [
     'django.contrib.admin',
@@ -38,9 +65,11 @@ INSTALLED_APPS = [
     'django.contrib.messages',
     'django.contrib.staticfiles',
     'api',
+    'corsheaders',
 ]
 
 MIDDLEWARE = [
+    'corsheaders.middleware.CorsMiddleware',  # Add this at the top
     'django.middleware.security.SecurityMiddleware',
     'django.contrib.sessions.middleware.SessionMiddleware',
     'django.middleware.common.CommonMiddleware',
@@ -48,7 +77,10 @@ MIDDLEWARE = [
     'django.contrib.auth.middleware.AuthenticationMiddleware',
     'django.contrib.messages.middleware.MessageMiddleware',
     'django.middleware.clickjacking.XFrameOptionsMiddleware',
+    'whitenoise.middleware.WhiteNoiseMiddleware',
+
 ]
+
 
 ROOT_URLCONF = 'driving_analysis.urls'
 
@@ -138,3 +170,19 @@ STATIC_URL = 'static/'
 # https://docs.djangoproject.com/en/5.1/ref/settings/#default-auto-field
 
 DEFAULT_AUTO_FIELD = 'django.db.models.BigAutoField'
+
+# Email settings
+# Comment out or remove this line
+# EMAIL_BACKEND = 'django.core.mail.backends.console.EmailBackend'
+
+# Add these settings for a real email provider (Gmail example)
+EMAIL_BACKEND = 'django.core.mail.backends.smtp.EmailBackend'
+EMAIL_HOST = 'smtp.gmail.com'  # SMTP server for Gmail
+EMAIL_PORT = 587
+EMAIL_USE_TLS = True
+EMAIL_HOST_USER = 'drivingbehavior2@gmail.com'  # Your Gmail address
+EMAIL_HOST_PASSWORD = 'gvod epqd tihq fnbe'  # Use an App Password for Gmail
+DEFAULT_FROM_EMAIL = 'Driving Behavior System <drivingbehavior2@gmail.com>'  # The "from" address
+
+
+

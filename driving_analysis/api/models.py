@@ -2,6 +2,9 @@ import os
 os.environ.setdefault('DJANGO_SETTINGS_MODULE', 'driving_analysis.settings')
 
 from django.db import models
+from django.contrib.postgres.fields import ArrayField
+import json
+from django.core.exceptions import ValidationError
 
 class Customer(models.Model):
     Name = models.CharField(max_length=255)
@@ -10,6 +13,8 @@ class Customer(models.Model):
     address = models.CharField(max_length=255, blank=True, null=True)
     Email = models.EmailField(unique=True)
     Password = models.CharField(max_length=255)
+    reset_token = models.CharField(max_length=100, null=True, blank=True)
+    reset_token_expires = models.DateTimeField(null=True, blank=True)
 
 class Company(models.Model):
     Company_name = models.CharField(max_length=255)
@@ -17,6 +22,8 @@ class Company(models.Model):
     Email = models.EmailField(unique=True)
     location = models.CharField(max_length=255)
     Password = models.CharField(max_length=255)
+    reset_token = models.CharField(max_length=100, null=True, blank=True)
+    reset_token_expires = models.DateTimeField(null=True, blank=True)
 
 class Car(models.Model):
     Model_of_car = models.CharField(max_length=255, default='Unknown Model')
@@ -33,6 +40,7 @@ class Driver(models.Model):
     gender = models.CharField(max_length=6, choices=[('male', 'Male'), ('female', 'Female')])
     phone_number = models.CharField(max_length=20, unique=True)
     company_id = models.ForeignKey('Company', on_delete=models.CASCADE)
+    car_id = models.ForeignKey('Car', on_delete=models.CASCADE)  # Ensure correct relation
 
 class DrivingData(models.Model):
     speed = models.FloatField()
@@ -54,4 +62,59 @@ class Employee(models.Model):
     address = models.CharField(max_length=255, blank=True, null=True)
     Email = models.EmailField(unique=True)
     Password = models.CharField(max_length=255)
-    company_id = models.ForeignKey('Company', on_delete=models.CASCADE)
+    Admin = models.BooleanField(default=False)  # `New Admin field``
+    reset_token = models.CharField(max_length=100, null=True, blank=True)
+    reset_token_expires = models.DateTimeField(null=True, blank=True)
+    company_id = models.ForeignKey(Company, on_delete=models.CASCADE, null=True, blank=True)
+
+
+class Geofence(models.Model):
+    GEOFENCE_TYPES = (
+        ('circle', 'Circle'),
+        ('polygon', 'Polygon'),
+    )
+    
+    id = models.AutoField(primary_key=True)
+    name = models.CharField(max_length=100)
+    description = models.TextField(blank=True, null=True)
+    type = models.CharField(max_length=10, choices=GEOFENCE_TYPES)
+    coordinates_json = models.TextField()
+    radius = models.FloatField(null=True, blank=True)  # Only for circle type
+    color = models.CharField(max_length=20, default='#ff4444')
+    active = models.BooleanField(default=True)
+    created_at = models.DateTimeField(auto_now_add=True)
+    customer_id = models.ForeignKey(Customer, on_delete=models.CASCADE, null=True, blank=True)
+    company_id = models.ForeignKey(Company, on_delete=models.CASCADE, null=True, blank=True)
+
+    def set_coordinates(self, coordinates):
+        self.coordinates_json = json.dumps(coordinates)
+        
+    def get_coordinates(self):
+        return json.loads(self.coordinates_json)
+    
+ # Add this to your existing models.py file
+class ScorePattern(models.Model):
+    # Foreign keys - one of these must be set
+    customer_id = models.ForeignKey(Customer, on_delete=models.CASCADE, null=True, blank=True)
+    company_id = models.ForeignKey(Company, on_delete=models.CASCADE, null=True, blank=True)
+    
+    # Scoring weights (percentages)
+    harsh_braking_weight = models.IntegerField(default=20)
+    harsh_acceleration_weight = models.IntegerField(default=10)
+    swerving_weight = models.IntegerField(default=30)
+    over_speed_weight = models.IntegerField(default=20)
+    potential_swerving_weight = models.IntegerField(default=0)  # Not used by default
+    
+    # Timestamps
+    created_at = models.DateTimeField(auto_now_add=True)
+    updated_at = models.DateTimeField(auto_now=True)
+    
+    class Meta:
+        constraints = [
+            models.CheckConstraint(
+                check=models.Q(customer_id__isnull=False) | models.Q(company_id__isnull=False),
+                name='score_pattern_customer_or_company'
+            )
+        ]
+        
+   
