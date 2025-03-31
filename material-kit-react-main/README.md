@@ -6,7 +6,7 @@
 
 > Free React Admin Dashboard made with [MUI's](https://mui.com) components, [React](https://reactjs.org) and of course [Next.js](https://github.com/vercel/next.js) to boost your app development process!
 
-## Pages 
+## Pages
 
 - [Dashboard](https://material-kit-react.devias.io)
 - [Customers](https://material-kit-react.devias.io/dashboard/customers)
@@ -29,11 +29,11 @@ to save more time and design efforts :)
 | Free Version (this one)  | [Devias Kit Pro](https://mui.com/store/items/devias-kit-pro/)                |
 | ------------------------ | :--------------------------------------------------------------------------- |
 | **8** Pages              | **80+** Pages                                                                |
-| ✔ Custom Authentication  | ✔ Authentication with **Amplify**, **Auth0**, **Firebase** and **Supabase**  |
-| -                        | ✔ Vite Version                                                               |
-| -                        | ✔ Dark Mode Support                                                          |
-| -                        | ✔ Complete Users Flows                                                       |
-| -                        | ✔ Premium Technical Support                                                  |
+| ✔ Custom Authentication | ✔ Authentication with **Amplify**, **Auth0**, **Firebase** and **Supabase** |
+| -                        | ✔ Vite Version                                                              |
+| -                        | ✔ Dark Mode Support                                                         |
+| -                        | ✔ Complete Users Flows                                                      |
+| -                        | ✔ Premium Technical Support                                                 |
 
 ## Quick start
 
@@ -41,7 +41,7 @@ to save more time and design efforts :)
 - Make sure your Node.js and npm versions are up to date
 - Install dependencies: `npm install` or `yarn`
 - Start the server: `npm run dev` or `yarn dev`
-- Open browser: `http://https://driving-analysis.netlify.app/`
+- Open browser: `http://http://localhost:3000/`
 
 ## File Structure
 
