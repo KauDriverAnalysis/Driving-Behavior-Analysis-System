@@ -412,9 +412,10 @@ def car_list(request):
         # Apply filtering based on user type and ID
         if user_type and user_id:
             if user_type == 'customer':
-                # Filter cars by customer_id
+                # Debug logging
+                print(f"Filtering cars for customer ID: {user_id}")
                 cars_queryset = Car.objects.filter(customer_id=user_id)
-                print(f"Filtering cars for customer ID: {user_id}, found {cars_queryset.count()} cars")
+                print(f"Found {cars_queryset.count()} cars")
                 
                 # Debug: Check if there are any cars with this customer_id
                 all_customer_ids = set(Car.objects.values_list('customer_id', flat=True).distinct())

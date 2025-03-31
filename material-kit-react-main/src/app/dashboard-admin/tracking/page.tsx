@@ -91,9 +91,26 @@ export default function Tracking(): React.JSX.Element {
     return () => clearInterval(detailsInterval);
   }, [selectedCar]);
   
-  // Function to fetch all cars (basic data only)
+  // Update the fetchCars function to never fetch all cars
   const fetchCars = () => {
-    fetch('https://driving-behavior-analysis-system.onrender.com/api/cars/')
+    // Get the company ID from local storage
+    const company_id = localStorage.getItem('company_id') || 
+                     localStorage.getItem('companyId') || 
+                     localStorage.getItem('employee-company-id');
+                     
+    // Add this debugging line right after getting the company_id
+    
+    // Only fetch if we have a company ID
+    if (!company_id) {
+      console.error('No company ID found. Cannot fetch cars.');
+      setLoading(false);
+      setCars([]);
+      return;
+    }
+    
+    // Only use the company-filtered URL
+    const apiUrl = `https://driving-behavior-analysis-system.onrender.com/api/cars/?userType=company&userId=${company_id}`;
+    fetch(apiUrl)
       .then(response => response.json())
       .then(data => {
         console.log('Car data received:', data);

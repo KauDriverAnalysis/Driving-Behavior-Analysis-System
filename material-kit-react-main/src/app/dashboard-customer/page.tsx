@@ -84,6 +84,7 @@ export default function CustomerOverview(): React.JSX.Element {
   const [tripHistory, setTripHistory] = useState<TripHistoryItem[]>([]);
   const [cars, setCars] = useState<Car[]>([]);
   const [selectedCar, setSelectedCar] = useState('');
+  const [isViewingAllCars, setIsViewingAllCars] = useState(false);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
   const [carLocation, setCarLocation] = useState<any>(null);
@@ -138,13 +139,32 @@ export default function CustomerOverview(): React.JSX.Element {
 
   // Fetch data based on selected car and time frame
   useEffect(() => {
-    if (!selectedCar) return;
+    if (!selectedCar && cars.length === 0) return;
     
     setLoading(true);
     setError(null);
     
-    // Fetch car driving data
-    fetch(`https://driving-behavior-analysis-system.onrender.com/api/car-driving-data/${selectedCar}/`)
+    if (selectedCar === 'all') {
+      // Handle "all cars" view - could aggregate data from all cars
+      // or fetch summary data from a different endpoint
+      if (cars.length > 0) {
+        // Option 1: Fetch data for the first car as a fallback
+        fetchCarData(cars[0].id);
+        
+        // Option 2 (ideal): Fetch aggregate data from all cars
+        // fetchAggregateCarData();
+      } else {
+        setLoading(false);
+      }
+    } else {
+      // Fetch data for the specific selected car
+      fetchCarData(selectedCar);
+    }
+  }, [selectedCar, timeFrame]);
+
+  // Extract the data fetching logic to a separate function
+  const fetchCarData = (carId: string) => {
+    fetch(`https://driving-behavior-analysis-system.onrender.com/api/car-driving-data/${carId}/`)
       .then(response => {
         if (!response.ok) {
           throw new Error(`HTTP error! status: ${response.status}`);
@@ -222,7 +242,7 @@ export default function CustomerOverview(): React.JSX.Element {
         setError('Failed to fetch car data. Please try again later.');
         setLoading(false);
       });
-  }, [selectedCar, timeFrame]);
+  };
   
   // Set up real-time location tracking for the selected car
   useEffect(() => {
@@ -269,7 +289,9 @@ export default function CustomerOverview(): React.JSX.Element {
   };
 
   const handleCarChange = (event: React.ChangeEvent<HTMLInputElement>) => {
-    setSelectedCar(event.target.value);
+    const newValue = event.target.value;
+    setSelectedCar(newValue);
+    setIsViewingAllCars(newValue === 'all');
   };
 
   return (
@@ -296,6 +318,7 @@ export default function CustomerOverview(): React.JSX.Element {
               label="Select Car"
               sx={{ minWidth: 200 }}
             >
+              <MenuItem value="all">All Cars</MenuItem>
               {cars.map((car) => (
                 <MenuItem key={car.id} value={car.id}>
                   {car.Model} - {car.plate_number}

@@ -21,9 +21,9 @@ interface Notification {
 // Define interface for car objects
 interface Car {
   id: string;
-  Model: string;
-  Type: string;
-  plate_number: string;
+  Model_of_car: string;
+  TypeOfCar: string;
+  Plate_number: string;
 }
 
 const ParentalControlDashboard = (): React.JSX.Element => {
@@ -55,14 +55,31 @@ const ParentalControlDashboard = (): React.JSX.Element => {
   // Add useEffect for fetching cars
   React.useEffect(() => {
     setLoading(true);
-    fetch('https://driving-behavior-analysis-system.onrender.com/api/cars/')
+    
+    // Get customer ID from localStorage - similar to how you get company ID elsewhere
+    const customer_id = localStorage.getItem('customer_id') || 
+                     localStorage.getItem('customerId') || 
+                     localStorage.getItem('userId');
+    
+    if (!customer_id) {
+      console.error('No customer ID found in localStorage');
+      setLoading(false);
+      return;
+    }
+    
+    // Add customer ID as filter parameter
+    const apiUrl = `https://driving-behavior-analysis-system.onrender.com/api/cars/?userType=customer&userId=${customer_id}`;
+    
+    fetch(apiUrl)
       .then((response) => response.json())
       .then((data) => {
+        console.log('Cars data received:', data);
+        
         const mappedCars = Array.isArray(data) ? data.map((item: any) => ({
           id: item.id || '',
-          Model: item.Model_of_car || item.Model_of_car || '',
-          Type: item.TypeOfCar || item.TypeOfCar || '',
-          plate_number: item.Plate_number || ''
+          Model_of_car: item.Model_of_car || item.Model_of_car || '',
+          TypeOfCar: item.TypeOfCar || item.TypeOfCar || '',
+          Plate_number: item.Plate_number || ''
         })) : [];
         
         setCars(mappedCars);
@@ -116,7 +133,7 @@ const ParentalControlDashboard = (): React.JSX.Element => {
               <MenuItem value="all">All Cars</MenuItem>
               {cars.map((car) => (
                 <MenuItem key={car.id} value={car.id}>
-                  {car.Model} - {car.plate_number}
+                  {car.Model_of_car} - {car.Plate_number}
                 </MenuItem>
               ))}
             </TextField>

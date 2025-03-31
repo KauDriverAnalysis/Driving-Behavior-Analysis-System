@@ -17,8 +17,7 @@ import {
   Menu,
   MenuItem,
   Button,
-  Typography,
-  Select
+  Typography
 } from '@mui/material';
 import EditIcon from '@mui/icons-material/Edit';
 import DeleteIcon from '@mui/icons-material/Delete';
@@ -118,20 +117,52 @@ export function DriversTable({
                 <TableCell>{driver.gender}</TableCell>
                 <TableCell>{driver.phone_number}</TableCell>
                 <TableCell>
-                  <Select
-                    value={driver.car?.id || ''}
-                    onChange={(e) => handleCarSelect(e.target.value === 'none' ? null : e.target.value)}
-                    displayEmpty
+                  <Button
+                    endIcon={<KeyboardArrowDownIcon />}
+                    onClick={(e) => handleClick(e, driver.id)}
+                    sx={{ 
+                      textAlign: 'left',
+                      justifyContent: 'flex-start',
+                      color: 'text.primary'
+                    }}
                   >
-                    <MenuItem value="none">
-                      <em>No car assigned</em>
-                    </MenuItem>
-                    {availableCars.map((car) => (
-                      <MenuItem key={car.id} value={car.id}>
-                        {car.model} ({car.plateNumber})
-                      </MenuItem>
-                    ))}
-                  </Select>
+                    {driver.car ? 
+                      `${driver.car.Model_of_car} (${driver.car.Plate_number})` : 
+                      'No car assigned'
+                    }
+                  </Button>
+                  <Menu
+                    anchorEl={anchorEl}
+                    open={Boolean(anchorEl) && selectedDriverId === driver.id}
+                    onClose={handleClose}
+                  >
+                    {loading ? (
+                      <Box sx={{ p: 2, display: 'flex', alignItems: 'center' }}>
+                        <CircularProgress size={20} sx={{ mr: 1 }} />
+                        <Typography>Updating...</Typography>
+                      </Box>
+                    ) : (
+                      <>
+                        {/* Add the unassign option at the top with matching styling */}
+                        <MenuItem 
+                          onClick={() => handleCarSelect(null)}
+                          selected={!driver.car}
+                        >
+                          No car assigned
+                        </MenuItem>
+                        {/* Keep existing car options */}
+                        {availableCars.map((car) => (
+                          <MenuItem 
+                            key={car.id} 
+                            onClick={() => handleCarSelect(car.id)}
+                            selected={driver.car?.id === car.id}
+                          >
+                            {car.model} ({car.plateNumber})
+                          </MenuItem>
+                        ))}
+                      </>
+                    )}
+                  </Menu>
                 </TableCell>
                 <TableCell align="right">
                   <Tooltip title="Edit">
