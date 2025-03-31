@@ -694,18 +694,27 @@ def update_driver(request, driver_id):
 
             # Check if this is only a car assignment update
             if len(data.keys()) == 1 and 'car_id' in data:
-                try:
-                    car = Car.objects.get(pk=data['car_id'])
-                    driver.car_id = car
+                # Handle null car_id (unassign car)
+                if data['car_id'] is None:
+                    driver.car_id = None
                     driver.save()
                     return JsonResponse({
                         'success': True,
-                        'message': 'Car assigned successfully'
+                        'message': 'Car unassigned successfully'
                     })
-                except Car.DoesNotExist:
-                    return JsonResponse({
-                        'error': 'Car not found'
-                    }, status=404)
+                else:
+                    try:
+                        car = Car.objects.get(pk=data['car_id'])
+                        driver.car_id = car
+                        driver.save()
+                        return JsonResponse({
+                            'success': True,
+                            'message': 'Car assigned successfully'
+                        })
+                    except Car.DoesNotExist:
+                        return JsonResponse({
+                            'error': 'Car not found'
+                        }, status=404)
 
             # For full updates, use the form
             form = DriverForm(data, instance=driver)

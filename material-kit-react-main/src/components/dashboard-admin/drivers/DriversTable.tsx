@@ -17,7 +17,8 @@ import {
   Menu,
   MenuItem,
   Button,
-  Typography
+  Typography,
+  Select
 } from '@mui/material';
 import EditIcon from '@mui/icons-material/Edit';
 import DeleteIcon from '@mui/icons-material/Delete';
@@ -52,7 +53,7 @@ interface DriversTableProps {
   onRowsPerPageChange: (newRowsPerPage: number) => void;
   onEdit: (driver: Driver) => void;
   onDelete: (driver: Driver) => void;
-  onCarAssign: (driverId: string, carId: string) => Promise<void>;
+  onCarAssign: (driverId: string, carId: string | null) => Promise<void>;
   availableCars: Car[];
 }
 
@@ -83,7 +84,7 @@ export function DriversTable({
     setSelectedDriverId(null);
   };
 
-  const handleCarSelect = async (carId: string) => {
+  const handleCarSelect = async (carId: string | null) => {
     if (selectedDriverId) {
       setLoading(true);
       try {
@@ -117,42 +118,20 @@ export function DriversTable({
                 <TableCell>{driver.gender}</TableCell>
                 <TableCell>{driver.phone_number}</TableCell>
                 <TableCell>
-                  <Button
-                    endIcon={<KeyboardArrowDownIcon />}
-                    onClick={(e) => handleClick(e, driver.id)}
-                    sx={{ 
-                      textAlign: 'left',
-                      justifyContent: 'flex-start',
-                      color: 'text.primary'
-                    }}
+                  <Select
+                    value={driver.car?.id || ''}
+                    onChange={(e) => handleCarSelect(e.target.value === 'none' ? null : e.target.value)}
+                    displayEmpty
                   >
-                    {driver.car ? 
-                      `${driver.car.Model_of_car} (${driver.car.Plate_number})` : 
-                      'No car assigned'
-                    }
-                  </Button>
-                  <Menu
-                    anchorEl={anchorEl}
-                    open={Boolean(anchorEl) && selectedDriverId === driver.id}
-                    onClose={handleClose}
-                  >
-                    {loading ? (
-                      <Box sx={{ p: 2, display: 'flex', alignItems: 'center' }}>
-                        <CircularProgress size={20} sx={{ mr: 1 }} />
-                        <Typography>Updating...</Typography>
-                      </Box>
-                    ) : (
-                      availableCars.map((car) => (
-                        <MenuItem 
-                          key={car.id} 
-                          onClick={() => handleCarSelect(car.id)}
-                          selected={driver.car?.id === car.id}
-                        >
-                          {car.model} ({car.plateNumber})
-                        </MenuItem>
-                      ))
-                    )}
-                  </Menu>
+                    <MenuItem value="none">
+                      <em>No car assigned</em>
+                    </MenuItem>
+                    {availableCars.map((car) => (
+                      <MenuItem key={car.id} value={car.id}>
+                        {car.model} ({car.plateNumber})
+                      </MenuItem>
+                    ))}
+                  </Select>
                 </TableCell>
                 <TableCell align="right">
                   <Tooltip title="Edit">

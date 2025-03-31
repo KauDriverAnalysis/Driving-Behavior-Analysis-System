@@ -122,7 +122,7 @@ export default function DriversPage(): React.JSX.Element {
     setEditDialogOpen(true);
   };
 
-  const handleCarAssign = async (driverId: string, carId: string) => {
+  const handleCarAssign = async (driverId: string, carId: string | null) => {
     try {
       const response = await fetch(`https://driving-behavior-analysis-system.onrender.com/api/update_driver/${driverId}/`, {
         method: 'POST',

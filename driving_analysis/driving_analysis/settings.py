@@ -35,6 +35,11 @@ CORS_ORIGIN_WHITELIST = [
     'https://driving-analysis.netlify.app'  # Corrected format (no trailing slash)
 ]
 
+CORS_ALLOWED_ORIGINS = [
+    "http://localhost:3000",
+    "https://driving-analysis.netlify.app"
+]
+
 CSRF_TRUSTED_ORIGINS = [
     'http://localhost:3000',
     'https://driving-analysis.netlify.app'  # Corrected format (no trailing slash)
