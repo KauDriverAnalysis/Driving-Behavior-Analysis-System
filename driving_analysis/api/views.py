@@ -2078,7 +2078,7 @@ def get_fleet_overview(request):
         return JsonResponse({'error': str(e)}, status=500)
     
 
-def score_chunk(chunk_df, chunk_results, car_id=None):None):
+def score_chunk(chunk_df, results, car_id=None):
     """Score the driving behavior with custom weights if available"""
     from .models import Car, ScorePattern
     
@@ -2118,11 +2118,11 @@ def score_chunk(chunk_df, chunk_results, car_id=None):None):
         potential_swerving_weight = 0
 
     # Apply scoring deductions based on detected events
-    score -= chunk_results['harsh_braking_events'] * harsh_braking_weight / 100 / 100
-    score -= chunk_results['harsh_acceleration_events'] * harsh_acceleration_weight / 100 / 100
-    score -= chunk_results['swerving_events'] * swerving_weight / 100 / 100
-    score -= chunk_results['over_speed_events'] * overspeed_weight / 100 / 100
-    score -= chunk_results['potential_swerving_events'] * potential_swerving_weight / 100 / 100
+    score -= results['harsh_braking_events'] * harsh_braking_weight / 100
+    score -= results['harsh_acceleration_events'] * harsh_acceleration_weight / 100
+    score -= results['swerving_events'] * swerving_weight / 100
+    score -= results['over_speed_events'] * overspeed_weight / 100
+    score -= results['potential_swerving_events'] * potential_swerving_weight / 100
 
     # Ensure the score doesn't go below 0%
     score = max(score, 0)
