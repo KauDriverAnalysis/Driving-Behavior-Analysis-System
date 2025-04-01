@@ -19,8 +19,7 @@ SECRET_KEY = os.environ.get('SECRET_KEY')
 DEBUG = True
 
 # Allow hosts based on environment - convert string to list
-ALLOWED_HOSTS = os.environ.get('ALLOWED_HOSTS', '').split(',')
-
+ALLOWED_HOSTS = os.environ.get('ALLOWED_HOSTS', '').split(',') if os.environ.get('ALLOWED_HOSTS') else ['localhost', '127.0.0.1', 'driving-behavior-analysis-system.onrender.com']
 # SECURITY SETTINGS FOR PRODUCTION
 if not DEBUG:
     # HTTPS/SSL
