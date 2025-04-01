@@ -10,22 +10,38 @@ For the full list of settings and their values, see
 https://docs.djangoproject.com/en/5.1/ref/settings/
 """
 import os
-from pathlib import Path
 
-# Build paths inside the project like this: BASE_DIR / 'subdir'.
-BASE_DIR = Path(__file__).resolve().parent.parent
+# SECURITY SETTINGS
+# Use environment variables for sensitive information
+SECRET_KEY = os.environ.get('SECRET_KEY')
 
-
-# Quick-start development settings - unsuitable for production
-# See https://docs.djangoproject.com/en/5.1/howto/deployment/checklist/
-
-# SECURITY WARNING: keep the secret key used in production secret!
-SECRET_KEY = 'django-insecure-z9^fxn4*(ba#6ei0g7+@u188!)o4_()$za=62t2!&rn$0tm%=i'
-
-# SECURITY WARNING: don't run with debug turned on in production!
+# Set DEBUG based on environment variable
 DEBUG = True
 
-ALLOWED_HOSTS = ['driving-behavior-analysis-system.onrender.com']
+# Allow hosts based on environment or use default
+ALLOWED_HOSTS = os.environ.get('ALLOWED_HOSTS')
+
+# SECURITY SETTINGS FOR PRODUCTION
+if not DEBUG:
+    # HTTPS/SSL
+    SECURE_SSL_REDIRECT = True
+    SECURE_PROXY_SSL_HEADER = ('HTTP_X_FORWARDED_PROTO', 'https')
+    
+    # HSTS settings
+    SECURE_HSTS_SECONDS = 31536000  # 1 year
+    SECURE_HSTS_INCLUDE_SUBDOMAINS = True
+    SECURE_HSTS_PRELOAD = True
+    
+    # Cookie settings
+    SESSION_COOKIE_SECURE = True
+    CSRF_COOKIE_SECURE = True
+    CSRF_COOKIE_HTTPONLY = True
+    SESSION_COOKIE_HTTPONLY = True
+    
+    # Content security
+    SECURE_CONTENT_TYPE_NOSNIFF = True
+    SECURE_BROWSER_XSS_FILTER = True
+    X_FRAME_OPTIONS = 'DENY'  # Or 'SAMEORIGIN' if you need iframes
 
 # settings.py
 
@@ -109,15 +125,13 @@ WSGI_APPLICATION = 'driving_analysis.wsgi.application'
 DATABASES = {
     'default': {
         'ENGINE': 'django.db.backends.mysql',
-        'NAME': 'database1',
-        'USER': 'admin',
-        'PASSWORD': '12ABDo34',
-        'HOST': 'database-1.cj26egwukn4n.us-east-1.rds.amazonaws.com',
-        'PORT': '3306',
-        #'CONN_MAX_AGE': 600,  # Adjust as needed
+        'NAME': os.environ.get('DB_NAME'),
+        'USER': os.environ.get('DB_USER'),
+        'PASSWORD': os.environ.get('DB_PASSWORD'),
+        'HOST': os.environ.get('DB_HOST'),
+        'PORT': os.environ.get('DB_PORT'),
         'OPTIONS': {
             'init_command': "SET sql_mode='STRICT_TRANS_TABLES'"
-            
         }
     }
 }
@@ -125,7 +139,7 @@ DATABASES = {
 CACHES = {
     'default': {
         'BACKEND': 'django.core.cache.backends.filebased.FileBasedCache',
-        'LOCATION': os.path.join(BASE_DIR, 'django_cache'),
+        #'LOCATION': os.path.join(BASE_DIR, 'django_cache'),
     }
 }
 
@@ -172,17 +186,13 @@ STATIC_URL = 'static/'
 DEFAULT_AUTO_FIELD = 'django.db.models.BigAutoField'
 
 # Email settings
-# Comment out or remove this line
-# EMAIL_BACKEND = 'django.core.mail.backends.console.EmailBackend'
-
-# Add these settings for a real email provider (Gmail example)
 EMAIL_BACKEND = 'django.core.mail.backends.smtp.EmailBackend'
-EMAIL_HOST = 'smtp.gmail.com'  # SMTP server for Gmail
-EMAIL_PORT = 587
-EMAIL_USE_TLS = True
-EMAIL_HOST_USER = 'drivingbehavior2@gmail.com'  # Your Gmail address
-EMAIL_HOST_PASSWORD = 'gvod epqd tihq fnbe'  # Use an App Password for Gmail
-DEFAULT_FROM_EMAIL = 'Driving Behavior System <drivingbehavior2@gmail.com>'  # The "from" address
+EMAIL_HOST = os.environ.get('EMAIL_HOST')  
+EMAIL_PORT = int(os.environ.get('EMAIL_PORT'))  
+EMAIL_USE_TLS = os.environ.get('EMAIL_USE_TLS')  
+EMAIL_HOST_USER = os.environ.get('EMAIL_HOST_USER')  
+EMAIL_HOST_PASSWORD = os.environ.get('EMAIL_HOST_PASSWORD')  
+DEFAULT_FROM_EMAIL = os.environ.get('DEFAULT_FROM_EMAIL')
 
 
 
