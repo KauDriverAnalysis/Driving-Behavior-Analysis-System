@@ -128,6 +128,33 @@ class EmployeeForm(forms.ModelForm):
         if not re.match(r'^(?:\+966|05)\d{8}$', phone_number):
             raise ValidationError('Invalid phone number format for Saudi Arabia')
         return phone_number
+        
+    def clean_Password(self):
+        password = self.cleaned_data.get('Password')
+        
+        # Check password length
+        if len(password) < 10:
+            raise ValidationError('Password must be at least 10 characters long')
+        
+        # Check for complexity requirements
+        if not any(char.isdigit() for char in password):
+            raise ValidationError('Password must contain at least one number')
+            
+        if not any(char.isupper() for char in password):
+            raise ValidationError('Password must contain at least one uppercase letter')
+            
+        if not any(char.islower() for char in password):
+            raise ValidationError('Password must contain at least one lowercase letter')
+            
+        if not any(char in '!@#$%^&*()-_=+[]{}|;:,.<>?/~`' for char in password):
+            raise ValidationError('Password must contain at least one special character')
+            
+        # Check for common passwords (could use a larger list in production)
+        common_passwords = ['password123', 'admin123', 'qwerty123', '123456789', 'company123']
+        if password.lower() in common_passwords:
+            raise ValidationError('This password is too common')
+        
+        return password
 
     def save(self, commit=True):
         employee = super(EmployeeForm, self).save(commit=False)
