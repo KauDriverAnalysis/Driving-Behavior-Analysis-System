@@ -13,13 +13,20 @@ import os
 
 # SECURITY SETTINGS
 # Use environment variables for sensitive information
-SECRET_KEY = os.environ.get('SECRET_KEY')
+SECRET_KEY = os.environ.get('SECRET_KEY', 'django-insecure-default-dev-only-key')
 
 # Set DEBUG based on environment variable
-DEBUG = True
+DEBUG = os.environ.get('DJANGO_DEBUG', 'True') == 'True'
+
+# Frontend URL configuration
+FRONTEND_URL = os.environ.get(
+    'FRONTEND_URL', 
+    'http://localhost:3000' if DEBUG else 'https://driving-analysis.netlify.app'
+)
 
 # Allow hosts based on environment - convert string to list
 ALLOWED_HOSTS = os.environ.get('ALLOWED_HOSTS', '').split(',') if os.environ.get('ALLOWED_HOSTS') else ['localhost', '127.0.0.1', 'driving-behavior-analysis-system.onrender.com']
+
 # SECURITY SETTINGS FOR PRODUCTION
 if not DEBUG:
     # HTTPS/SSL
