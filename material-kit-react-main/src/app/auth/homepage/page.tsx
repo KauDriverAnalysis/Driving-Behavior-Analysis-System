@@ -870,7 +870,7 @@ export default function HomePage() {
               }}
               onClick={() => router.push('/')}
             >
-              Driving Behavior Analysis
+              SafeMotion
             </Typography>
           </Box>
           <Box sx={{ flexGrow: 1 }} />
@@ -1005,7 +1005,7 @@ export default function HomePage() {
         }
       }}
     >
-      Driving Behavior Analysis System
+      SafeMotion
     </MotionTypography>
 
     <MotionTypography 
@@ -1671,7 +1671,7 @@ export default function HomePage() {
           <Grid container spacing={4}>
             <Grid item xs={12} md={4}>
               <Typography variant="h6" sx={{ color: 'white', fontWeight: 700, mb: 3 }}>
-                Driving Behavior Analysis System
+                SafeMotion
               </Typography>
               <Typography variant="body2" sx={{ color: 'rgba(255,255,255,0.7)', mb: 3 }}>
                 Advanced technology for safer roads and better driving habits through real-time monitoring and analysis.
@@ -1802,7 +1802,7 @@ export default function HomePage() {
           <Divider sx={{ my: 4, borderColor: 'rgba(255,255,255,0.1)' }} />
           <Box sx={{ display: 'flex', justifyContent: 'space-between', flexWrap: 'wrap' }}>
             <Typography variant="body2" sx={{ color: 'rgba(255,255,255,0.5)' }}>
-              © {new Date().getFullYear()} Driving Behavior Analysis System. All rights reserved.
+              © {new Date().getFullYear()} SafeMotion. All rights reserved.
             </Typography>
             <Stack direction="row" spacing={2}>
               <Typography variant="body2" sx={{ color: 'rgba(255,255,255,0.5)' }}>
