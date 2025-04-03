@@ -2,12 +2,16 @@ import os
 import logging
 import sys
 
-# Configure logging to display on console
+# Configure logging with more verbose DEBUG level
 logging.basicConfig(
-    level=logging.INFO,
+    level=logging.DEBUG,  # Changed from INFO to DEBUG
     format='[MQTT] %(asctime)s - %(levelname)s - %(message)s',
     stream=sys.stdout
 )
+
+# Configure the mqtt_client logger specifically
+logger = logging.getLogger('mqtt_client')
+logger.setLevel(logging.DEBUG)
 
 os.environ.setdefault('DJANGO_SETTINGS_MODULE', 'driving_analysis.settings')
 

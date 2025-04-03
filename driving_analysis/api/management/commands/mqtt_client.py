@@ -1,8 +1,12 @@
 import paho.mqtt.client as mqtt
 import ssl
+import logging
 from django.core.cache import cache
 from django.core.management.base import BaseCommand
 #from api.cleansing_data import cleanse_data
+
+# Create a logger for this module
+logger = logging.getLogger('mqtt_client')
 
 class Command(BaseCommand):
     help = 'Starts the MQTT client to receive data from the MQTT server'
@@ -10,13 +14,13 @@ class Command(BaseCommand):
     def handle(self, *args, **kwargs):
         def on_connect(client, userdata, flags, rc):
             if rc == 0:
-                print("Connected to MQTT broker")
+                logger.info("Connected to MQTT broker")
                 client.subscribe("data")
             else:
-                print(f"Failed to connect, return code {rc}")
+                logger.error(f"Failed to connect, return code {rc}")
 
         def on_message(client, userdata, msg):
-            print(f"Message received: {msg.payload.decode()}")
+            logger.info(f"Message received: {msg.payload.decode()}")
             data = msg.payload.decode()
             data_list = data.split(',')
 
@@ -52,7 +56,7 @@ class Command(BaseCommand):
                 
                 # When buffer reaches threshold, automatically cleanse and analyze
                 if len(buffer) >= 1000:  # You can adjust this threshold
-                    print(f"Buffer reached 1000 data points - triggering automatic cleansing")
+                    logger.info(f"Buffer reached 1000 data points - triggering automatic cleansing")
                     
                     # Cleansing
                     from api.cleansing_data import cleanse_data
@@ -77,7 +81,7 @@ class Command(BaseCommand):
                     # Find the car with this device_id
                     try:
                         car = Car.objects.get(device_id=device_id)
-                        print(f"Found car with ID {car.id} for device {device_id}")
+                        logger.info(f"Found car with ID {car.id} for device {device_id}")
                         
                         # Create DrivingData record with car_id
                         DrivingData.objects.create(
@@ -90,9 +94,9 @@ class Command(BaseCommand):
                             over_speed_events=analysis_results.get('over_speed_events', 0),
                             score=analysis_results.get('score', 100)
                         )
-                        print(f"Data saved to database and linked to car ID {car.id}")
+                        logger.info(f"Data saved to database and linked to car ID {car.id}")
                     except Car.DoesNotExist:
-                        print(f"Warning: No car found with device_id {device_id}")
+                        logger.warning(f"No car found with device_id {device_id}")
                         # Save data without car association as fallback
                         DrivingData.objects.create(
                             distance=analysis_results.get('distance_km', 0.1),
@@ -103,16 +107,16 @@ class Command(BaseCommand):
                             over_speed_events=analysis_results.get('over_speed_events', 0),
                             score=analysis_results.get('score', 100)
                         )
-                        print("Data saved to database without car association")
+                        logger.info("Data saved to database without car association")
                     
-                    print("Data saved to database")
+                    logger.info("Data saved to database")
                     
                     # Clear buffer after processing
                     cache.set('buffer', [], timeout=None)
-                    print("Automatic cleansing and analysis complete")
+                    logger.info("Automatic cleansing and analysis complete")
             except Exception as e:
-                print(f"Error processing message: {e}")
-                print(f"Raw message data: {data}")
+                logger.exception(f"Error processing message: {e}")
+                logger.error(f"Raw message data: {data}")
 
         client = mqtt.Client()
         client.username_pw_set("team22", "KauKau123")
@@ -120,6 +124,6 @@ class Command(BaseCommand):
         client.on_connect = on_connect
         client.on_message = on_message
 
-        print("Connecting to MQTT broker...")
+        logger.info("Connecting to MQTT broker...")
         client.connect("af626fdebdec42bfa3ef70e692bf0d69.s1.eu.hivemq.cloud", 8883, 60)
         client.loop_forever()
