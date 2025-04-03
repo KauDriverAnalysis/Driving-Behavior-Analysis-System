@@ -20,24 +20,33 @@ class Command(BaseCommand):
                 logger.error(f"Failed to connect, return code {rc}")
 
         def on_message(client, userdata, msg):
-            logger.info(f"Message received: {msg.payload.decode()}")
-            data = msg.payload.decode()
-            data_list = data.split(',')
-
             try:
+                # Log the raw message first
+                data = msg.payload.decode()
+                logger.info(f"Message received: {data}")
+                
+                # Check if this is a valid data packet
+                data_list = data.split(',')
+                
+                # Validate message format
+                if len(data_list) < 10:
+                    logger.warning(f"Received incomplete data format (expected 10+ values, got {len(data_list)}): {data}")
+                    return
+                    
+                # Now process the data safely
                 data_dict = {
                     'device_name': data_list[0],
-                    'counter': int(data_list[1]) if data_list[1] else 0,
+                    'counter': int(data_list[1] if data_list[1] else 0),
                     'timestamp': data_list[2],
-                    'latitude': float(data_list[3]) if data_list[3] else 0.0,
-                    'longitude': float(data_list[4]) if data_list[4] else 0.0,
-                    'speed': float(data_list[5]) if data_list[5] else 0.0,
-                    'ax': float(data_list[6]) if data_list[6] else 0,
-                    'ay': float(data_list[7]) if data_list[7] else 0,
-                    'az': float(data_list[8]) if data_list[8] else 0,
-                    'yaw': float(data_list[9]) if data_list[9] else 0.0
+                    'latitude': float(data_list[3] if data_list[3] else 0.0),
+                    'longitude': float(data_list[4] if data_list[4] else 0.0),
+                    'speed': float(data_list[5] if data_list[5] else 0.0),
+                    'ax': float(data_list[6] if data_list[6] else 0),
+                    'ay': float(data_list[7] if data_list[7] else 0),
+                    'az': float(data_list[8] if data_list[8] else 0),
+                    'yaw': float(data_list[9] if data_list[9] else 0.0)
                 }
-
+                
                 # Store the latest location and speed in the cache
                 latest_location = {
                     'latitude': data_dict['latitude'],
