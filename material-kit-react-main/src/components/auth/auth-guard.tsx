@@ -1,54 +1,64 @@
 'use client';
 
-import * as React from 'react';
-import { useRouter } from 'next/navigation';
-import Alert from '@mui/material/Alert';
-
+import { useEffect, useState } from 'react';
+import { useRouter, usePathname } from 'next/navigation';
+import { CircularProgress, Box } from '@mui/material';
+import { useUser } from '@/contexts/user-context';
 import { paths } from '@/paths';
-import { logger } from '@/lib/default-logger';
-import { useUser } from '@/hooks/use-user';
 
-export interface AuthGuardProps {
-  children: React.ReactNode;
-}
-
-export function AuthGuard({ children }: AuthGuardProps): React.JSX.Element | null {
+export function AuthGuard({ children }: { children: React.ReactNode }) {
   const router = useRouter();
-  const { user, error, isLoading } = useUser();
-  const [isChecking, setIsChecking] = React.useState<boolean>(true);
+  const pathname = usePathname();
+  const { user, userType, setUserType, isLoading } = useUser();
+  const [isChecking, setIsChecking] = useState(true);
 
-  const checkPermissions = async (): Promise<void> => {
-    if (isLoading) {
-      return;
-    }
-
-    if (error) {
+  useEffect(() => {
+    // Skip authentication check for these public routes
+    const publicPaths = [
+      paths.auth.signIn,
+      paths.auth.signUp,
+      paths.auth.resetPassword,
+      paths.auth.homepage,
+      '/',
+      ''
+    ];
+    
+    if (publicPaths.includes(pathname)) {
       setIsChecking(false);
       return;
     }
 
-    if (!user) {
-      logger.debug('[AuthGuard]: User is not logged in, redirecting to sign in');
-      router.replace(paths.auth.signIn);
-      return;
+    // Check if user is authenticated from localStorage
+    const storedUserType = localStorage.getItem('userType');
+    const storedUserId = localStorage.getItem('userId');
+    
+    if (storedUserType && storedUserId) {
+      // Restore user session from localStorage
+      setUserType(storedUserType);
+      setIsChecking(false);
+    } else {
+      // No stored authentication, redirect to login
+      console.log('No authentication found, redirecting to login');
+      router.push(paths.auth.signIn);
     }
+  }, [pathname, router, setUserType]);
 
-    setIsChecking(false);
-  };
-
-  React.useEffect(() => {
-    checkPermissions().catch(() => {
-      // noop
-    });
-  }, [user, error, isLoading]);
-
-  if (isChecking) {
-    return null;
+  // Show loading while checking authentication
+  if (isLoading || isChecking) {
+    return (
+      <Box
+        sx={{
+          display: 'flex',
+          height: '100vh',
+          width: '100%',
+          alignItems: 'center',
+          justifyContent: 'center',
+        }}
+      >
+        <CircularProgress />
+      </Box>
+    );
   }
 
-  if (error) {
-    return <Alert color="error">{error}</Alert>;
-  }
-
-  return <React.Fragment>{children}</React.Fragment>;
+  return <>{children}</>;
 }

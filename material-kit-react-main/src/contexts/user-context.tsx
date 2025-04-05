@@ -1,46 +1,49 @@
 'use client';
 
 import * as React from 'react';
-import { createContext, useContext, useState, useCallback, useMemo, useEffect } from 'react';
-import { authClient } from '@/lib/auth/client';
+import { useEffect, useState, useCallback } from 'react';
 
-export interface UserContextType {
-  user: any | null;
+import type { User } from '@/types/user';
+import { authClient } from '@/lib/auth/client';
+import { logger } from '@/lib/default-logger';
+
+export interface UserContextValue {
+  user: User | null;
   userType: string | null;
-  setUserType: (type: string | null) => void;
+  setUserType: (userType: string | null) => void;
+  error: string | null;
+  isLoading: boolean;
   checkSession?: () => Promise<void>;
-  error?: string | null;
-  isLoading?: boolean;
 }
 
-// Create and export the context
-export const UserContext = createContext<UserContextType | undefined>(undefined);
+export const UserContext = React.createContext<UserContextValue | undefined>(undefined);
 
 export interface UserProviderProps {
   children: React.ReactNode;
 }
 
 export function UserProvider({ children }: UserProviderProps): React.JSX.Element {
-  const [user, setUser] = useState<any | null>(null);
+  const [state, setState] = useState<{ user: User | null; error: string | null; isLoading: boolean }>({
+    user: null,
+    error: null,
+    isLoading: true,
+  });
   const [userType, setUserTypeState] = useState<string | null>(null);
-  const [error, setError] = useState<string | null>(null);
-  const [isLoading, setIsLoading] = useState<boolean>(false);
-  const [isMounted, setIsMounted] = useState<boolean>(false);
+  const [isMounted, setIsMounted] = useState(false);
 
-  const [state, setState] = useState('loading');
-  const [auth, setAuth] = useState(null);
-
-  // Use useEffect to handle localStorage operations after component mount
+  // Set mounted flag on client side
   useEffect(() => {
     setIsMounted(true);
-    // Try to get userType from localStorage on mount
-    const storedUserType = typeof window !== 'undefined' ? localStorage.getItem('userType') : null;
-    if (storedUserType) {
-      setUserTypeState(storedUserType);
+    
+    // Try to restore authentication from localStorage on first load
+    if (typeof window !== 'undefined') {
+      const storedUserType = localStorage.getItem('userType');
+      if (storedUserType) {
+        setUserTypeState(storedUserType);
+      }
     }
   }, []);
 
-  // Safe localStorage wrapper function
   const setUserType = useCallback((type: string | null): void => {
     setUserTypeState(type);
     
@@ -57,52 +60,51 @@ export function UserProvider({ children }: UserProviderProps): React.JSX.Element
   const checkSession = useCallback(async (): Promise<void> => {
     if (typeof window === 'undefined') return; // Skip on server
     
-    setIsLoading(true);
+    setState(prev => ({ ...prev, isLoading: true }));
     try {
       const { data, error: sessionError } = await authClient.getUser();
+      
       if (sessionError) {
-        setError(sessionError);
-        setUser(null);
+        logger.error(sessionError);
+        setState(prev => ({ ...prev, user: null, error: 'Session expired', isLoading: false }));
+        
+        // Clear localStorage on session error
+        localStorage.removeItem('userType');
+        localStorage.removeItem('userId');
+        setUserTypeState(null);
       } else {
-        setUser(data);
-        if (data?.userType && typeof data.userType === 'string') {
-          setUserType(data.userType);
-        } else {
-          setUserType(null);
+        setState(prev => ({ ...prev, user: data ?? null, error: null, isLoading: false }));
+        
+        // If we have a user but no userType in localStorage, try to get it from the user data
+        if (data && !localStorage.getItem('userType') && data.role) {
+          setUserType(data.role);
         }
       }
     } catch (err) {
-      setError(err instanceof Error ? err.message : 'An error occurred');
-      setUser(null);
-    } finally {
-      setIsLoading(false);
+      logger.error(err);
+      setState(prev => ({ ...prev, user: null, error: 'Something went wrong', isLoading: false }));
     }
   }, [setUserType]);
 
-  // Memoize the context value
-  const value = useMemo(() => ({
-    user,
-    userType,
-    setUserType,
-    checkSession,
-    error,
-    isLoading
-  }), [user, userType, setUserType, checkSession, error, isLoading]);
+  useEffect(() => {
+    if (isMounted) {
+      checkSession().catch(err => {
+        logger.error(err);
+      });
+    }
+  }, [checkSession, isMounted]);
 
   return (
-    <UserContext.Provider value={value}>
+    <UserContext.Provider value={{ ...state, userType, setUserType, checkSession }}>
       {children}
     </UserContext.Provider>
   );
 }
 
-// Custom hook for accessing the user context
-export function useUserContext() {
-  const context = useContext(UserContext);
-  
-  if (context === undefined) {
-    throw new Error('useUserContext must be used within a UserProvider');
+export const useUser = (): UserContextValue => {
+  const context = React.useContext(UserContext);
+  if (!context) {
+    throw new Error('useUser must be used within a UserProvider');
   }
-  
   return context;
-}
+};
