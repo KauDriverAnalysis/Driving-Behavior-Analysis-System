@@ -310,7 +310,7 @@ const CarCustomersPage = () => {
           </Box>
         ) : (
           <>
-            {cars.length === 0 && !loading && (
+            {filteredCars.length === 0 && (
               <Paper 
                 sx={{ 
                   p: 4, 
@@ -323,36 +323,50 @@ const CarCustomersPage = () => {
               >
                 <Box sx={{ mb: 2 }}>
                   <Typography variant="h6" color="text.secondary">
-                    No cars found for your account
+                    {cars.length === 0 
+                      ? "No cars found for your account" 
+                      : "No cars match your search"}
                   </Typography>
                   <Typography variant="body2" color="text.secondary" sx={{ mb: 3 }}>
-                    Start by adding your first car to track and manage it
+                    {cars.length === 0 
+                      ? "Start by adding your first car to track and manage it"
+                      : "Try adjusting your search or filter criteria"}
                   </Typography>
                 </Box>
                 
-                <Button
-                  variant="contained"
-                  color="primary"
-                  startIcon={<AddIcon />}
-                  onClick={handleOpenDialog}
-                  size="large"
-                >
-                  Add First Car
-                </Button>
+                {cars.length === 0 && (
+                  <Button
+                    variant="contained"
+                    color="primary"
+                    startIcon={<AddIcon />}
+                    onClick={handleOpenDialog}
+                    size="large"
+                    sx={{
+                      minWidth: 200,
+                      py: 1
+                    }}
+                  >
+                    Add First Car
+                  </Button>
+                )}
               </Paper>
             )}
-            <CarCustomersTable
-              count={filteredCars.length}
-              items={paginatedCars}
-              onPageChange={setPage}
-              onRowsPerPageChange={setRowsPerPage}
-              page={page}
-              rowsPerPage={rowsPerPage}
-              onEdit={handleEdit}
-              onDelete={handleDelete}
-              onStatusChange={handleStatusChange}
-              loading={loading}
-            />
+            
+            {/* Only render the table when there are cars to display */}
+            {filteredCars.length > 0 && (
+              <CarCustomersTable
+                count={filteredCars.length}
+                items={paginatedCars}
+                onPageChange={setPage}
+                onRowsPerPageChange={setRowsPerPage}
+                page={page}
+                rowsPerPage={rowsPerPage}
+                onEdit={handleEdit}
+                onDelete={handleDelete}
+                onStatusChange={handleStatusChange}
+                loading={loading}
+              />
+            )}
           </>
         )}
       </Card>

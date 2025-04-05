@@ -11,7 +11,8 @@ import {
   Chip,
   IconButton,
   Tooltip,
-  CircularProgress
+  CircularProgress,
+  Typography
 } from '@mui/material';
 import EditIcon from '@mui/icons-material/Edit';
 import DeleteIcon from '@mui/icons-material/Delete';
@@ -60,6 +61,11 @@ export const CarCustomersTable = ({
         <CircularProgress />
       </Box>
     );
+  }
+
+  // If there are no items, don't render the table at all
+  if (items.length === 0) {
+    return null;
   }
 
   return (
