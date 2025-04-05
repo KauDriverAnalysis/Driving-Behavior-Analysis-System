@@ -7,7 +7,6 @@ import WarningIcon from '@mui/icons-material/Warning';
 import CheckCircleIcon from '@mui/icons-material/CheckCircle';
 import DashboardTabs from '@/components/dashboard-customer/parental-control/DashboardTabs';
 import OverviewTab from '@/components/dashboard-customer/parental-control/tabs/OverviewTab';
-import EmergencyContactsTab from '@/components/dashboard-customer/parental-control/tabs/EmergencyContactsTab';
 import AlertsTab from '@/components/dashboard-customer/parental-control/tabs/AlertsTab';
 import PatternScoreTab from '@/components/dashboard-customer/parental-control/tabs/PatternScoreTab';
 import { TextField, MenuItem, Stack, CircularProgress } from '@mui/material';
@@ -139,8 +138,6 @@ const ParentalControlDashboard = (): React.JSX.Element => {
             </TextField>
           )}
         </Stack>
-        
-
       </Box>
 
       {/* Notification */}
@@ -157,11 +154,10 @@ const ParentalControlDashboard = (): React.JSX.Element => {
       {/* Tabs */}
       <DashboardTabs tabValue={tabValue} handleTabChange={handleTabChange} />
 
-      {/* Tab Content */}
+      {/* Tab Content - Updated tab indices */}
       {tabValue === 0 && <OverviewTab selectedCar={selectedCar} />}
-      {tabValue === 1 && <EmergencyContactsTab showNotification={adaptShowNotification} selectedCar={selectedCar} />}
-      {tabValue === 2 && <AlertsTab selectedCar={selectedCar} />}
-      {tabValue === 3 && <PatternScoreTab showNotification={adaptShowNotification} selectedCar={selectedCar} />}
+      {tabValue === 1 && <AlertsTab selectedCar={selectedCar} />}
+      {tabValue === 2 && <PatternScoreTab showNotification={adaptShowNotification} selectedCar={selectedCar} />}
     </Box>
   );
 };

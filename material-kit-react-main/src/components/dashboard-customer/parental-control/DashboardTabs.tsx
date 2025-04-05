@@ -20,7 +20,6 @@ const DashboardTabs: React.FC<DashboardTabsProps> = ({ tabValue, handleTabChange
         variant="fullWidth"
       >
         <Tab label="Overview" />
-        <Tab label="Emergency Contacts" />
         <Tab label="Alerts" />
         <Tab label="Pattern Score" />
       </Tabs>
