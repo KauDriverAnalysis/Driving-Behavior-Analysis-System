@@ -24,7 +24,7 @@ import {
   IconButton
 } from '@mui/material';
 import { styled } from '@mui/material/styles';
-import { motion, useReducedMotion, useScroll, useTransform } from 'framer-motion';
+import { motion } from 'framer-motion';
 import ArrowForwardIcon from '@mui/icons-material/ArrowForward';
 import SpeedIcon from '@mui/icons-material/Speed';
 import SecurityIcon from '@mui/icons-material/Security';
@@ -54,6 +54,9 @@ const HeroSection = styled(Box)(({ theme }) => ({
   flexDirection: 'column',
   justifyContent: 'center',
   alignItems: 'center',
+  background: `linear-gradient(135deg, #0a192f 0%, #112240 100%)`,
+  backgroundSize: 'cover',
+  backgroundPosition: 'center',
   color: theme.palette.common.white,
   textAlign: 'center',
   padding: theme.spacing(4),
@@ -66,175 +69,165 @@ const HeroSection = styled(Box)(({ theme }) => ({
     left: 0,  
     right: 0,
     bottom: 0,
-    background: 'radial-gradient(circle at 50% 50%, rgba(25, 118, 210, 0.15) 0%, rgba(25, 118, 210, 0.05) 70%)', // Reduced opacity
+    background: 'radial-gradient(circle at 50% 50%, rgba(25, 118, 210, 0.1) 0%, rgba(25, 118, 210, 0) 70%)',
     zIndex: 0,
     animation: 'pulse 8s ease-in-out infinite'
   },
-  // Make the overlay lighter to match other sections
-  '&::after': {
-    content: '""',
-    position: 'absolute',
-    top: 0,
-    left: 0,
-    right: 0,
-    bottom: 0,
-    background: 'rgba(255, 255, 255, 0.2)', // Change from dark to light overlay
-    zIndex: -1,
-  },
   '@keyframes pulse': {
     '0%': { opacity: 0.5 },
-    '50%': { opacity: 0.7 },
+    '50%': { opacity: 0.8 },
     '100%': { opacity: 0.5 }
   }
 }));
 
 // Animated Gradient Mesh Background Component
 const AnimatedBackgroundMesh = () => {
-  return (
-    <Box
-      sx={{
-        position: 'absolute',
-        top: 0,
-        left: 0,
-        right: 0,
-        bottom: 0,
-        zIndex: 0,
-        opacity: 0.9, // Increased from 0.7
-        overflow: 'hidden'
-      }}
-    >
-      <svg width="100%" height="100%" xmlns="http://www.w3.org/2000/svg">
-        <defs>
-          <linearGradient id="gradient1" x1="0%" y1="0%" x2="100%" y2="100%">
-            <stop offset="0%" stopColor="#0A1A5A" stopOpacity="0.8"> {/* Darker blue, increased opacity */}
-              <animate attributeName="stopColor" 
-                values="#0A1A5A; #0E2988; #0D2EB8; #0A1A5A" 
-                dur="15s" repeatCount="indefinite" />
-            </stop>
-            <stop offset="100%" stopColor="#1543BB" stopOpacity="0.6"> {/* Darker blue, increased opacity */}
-              <animate attributeName="stopColor" 
-                values="#1543BB; #2862D6; #4085EA; #1543BB" 
-                dur="15s" repeatCount="indefinite" />
-            </stop>
-          </linearGradient>
+    return (
+      <Box
+        sx={{
+          position: 'absolute',
+          top: 0,
+          left: 0,
+          right: 0,
+          bottom: 0,
+          zIndex: 0,
+          opacity: 0.7,
+          overflow: 'hidden'
+        }}
+      >
+        <svg width="100%" height="100%" xmlns="http://www.w3.org/2000/svg">
+          <defs>
+            <linearGradient id="gradient1" x1="0%" y1="0%" x2="100%" y2="100%">
+              <stop offset="0%" stopColor="#1E3A8A" stopOpacity="0.5">
+                <animate attributeName="stopColor" 
+                  values="#1E3A8A; #1E40AF; #1D4ED8; #1E3A8A" 
+                  dur="15s" repeatCount="indefinite" />
+              </stop>
+              <stop offset="100%" stopColor="#2563EB" stopOpacity="0.3">
+                <animate attributeName="stopColor" 
+                  values="#2563EB; #3B82F6; #60A5FA; #2563EB" 
+                  dur="15s" repeatCount="indefinite" />
+              </stop>
+            </linearGradient>
+            
+            <filter id="glow" x="-50%" y="-50%" width="200%" height="200%">
+              <feGaussianBlur stdDeviation="15" result="blur" />
+              <feComposite in="SourceGraphic" in2="blur" operator="over" />
+            </filter>
+          </defs>
           
-          <filter id="glow" x="-50%" y="-50%" width="200%" height="200%">
-            <feGaussianBlur stdDeviation="20" result="blur" /> {/* Increased blur */}
-            <feComposite in="SourceGraphic" in2="blur" operator="over" />
-          </filter>
-        </defs>
-        
-        {/* Animated mesh grid lines */}
-        <g>
-          <path d="M0,100 Q250,150 500,100 T1000,100" stroke="url(#gradient1)" strokeWidth="1" fill="none">
-            <animate attributeName="d" 
-              values="M0,100 Q250,150 500,100 T1000,100;
-                     M0,110 Q250,80 500,120 T1000,110;
-                     M0,100 Q250,150 500,100 T1000,100" 
-              dur="20s" repeatCount="indefinite" />
-          </path>
+          {/* Animated mesh grid lines */}
+          <g>
+            <path d="M0,100 Q250,150 500,100 T1000,100" stroke="url(#gradient1)" strokeWidth="1" fill="none">
+              <animate attributeName="d" 
+                values="M0,100 Q250,150 500,100 T1000,100;
+                       M0,110 Q250,80 500,120 T1000,110;
+                       M0,100 Q250,150 500,100 T1000,100" 
+                dur="20s" repeatCount="indefinite" />
+            </path>
+            
+            <path d="M0,200 Q250,250 500,200 T1000,200" stroke="url(#gradient1)" strokeWidth="1" fill="none">
+              <animate attributeName="d" 
+                values="M0,200 Q250,250 500,200 T1000,200;
+                       M0,220 Q250,180 500,230 T1000,220;
+                       M0,200 Q250,250 500,200 T1000,200" 
+                dur="25s" repeatCount="indefinite" />
+            </path>
+            
+            <path d="M0,300 Q250,350 500,300 T1000,300" stroke="url(#gradient1)" strokeWidth="1" fill="none">
+              <animate attributeName="d" 
+                values="M0,300 Q250,350 500,300 T1000,300;
+                       M0,320 Q250,280 500,340 T1000,320;
+                       M0,300 Q250,350 500,300 T1000,300" 
+                dur="22s" repeatCount="indefinite" />
+            </path>
+          </g>
           
-          <path d="M0,200 Q250,250 500,200 T1000,200" stroke="url(#gradient1)" strokeWidth="1" fill="none">
-            <animate attributeName="d" 
-              values="M0,200 Q250,250 500,200 T1000,200;
-                     M0,220 Q250,180 500,230 T1000,220;
-                     M0,200 Q250,250 500,200 T1000,200" 
-              dur="25s" repeatCount="indefinite" />
-          </path>
+          {/* Floating highlights */}
+          <circle cx="20%" cy="30%" r="80" fill="url(#gradient1)" filter="url(#glow)" opacity="0.15">
+            <animate attributeName="cy" values="30%;32%;30%" dur="15s" repeatCount="indefinite" />
+          </circle>
           
-          <path d="M0,300 Q250,350 500,300 T1000,300" stroke="url(#gradient1)" strokeWidth="1" fill="none">
-            <animate attributeName="d" 
-              values="M0,300 Q250,350 500,300 T1000,300;
-                     M0,320 Q250,280 500,340 T1000,320;
-                     M0,300 Q250,350 500,300 T1000,300" 
-              dur="22s" repeatCount="indefinite" />
-          </path>
-        </g>
-        
-        {/* Floating highlights */}
-        <circle cx="20%" cy="30%" r="80" fill="url(#gradient1)" filter="url(#glow)" opacity="0.15">
-          <animate attributeName="cy" values="30%;32%;30%" dur="15s" repeatCount="indefinite" />
-        </circle>
-        
-        <circle cx="80%" cy="70%" r="120" fill="url(#gradient1)" filter="url(#glow)" opacity="0.1">
-          <animate attributeName="cy" values="70%;65%;70%" dur="18s" repeatCount="indefinite" />
-        </circle>
-      </svg>
-    </Box>
-  );
-};
-
-// Digital Data Flow Animation Component
+          <circle cx="80%" cy="70%" r="120" fill="url(#gradient1)" filter="url(#glow)" opacity="0.1">
+            <animate attributeName="cy" values="70%;65%;70%" dur="18s" repeatCount="indefinite" />
+          </circle>
+        </svg>
+      </Box>
+    );
+  };
+  // Digital Data Flow Animation Component
 const DataFlowAnimation = () => {
-  return (
-    <Box
-      sx={{
-        position: 'absolute',
-        top: 0,
-        left: 0,
-        right: 0,
-        bottom: 0,
-        zIndex: 0,
-        opacity: 0.7 // Increased from 0.4
-      }}
-    >
-      <svg width="100%" height="100%" xmlns="http://www.w3.org/2000/svg">
-        <defs>
-          <radialGradient id="dotGradient" cx="50%" cy="50%" r="50%" fx="50%" fy="50%">
-            <stop offset="0%" stopColor="#1565C0" stopOpacity="0.9" /> {/* Darker blue */}
-            <stop offset="100%" stopColor="#0D47A1" stopOpacity="0.5" /> {/* Darker blue */}
-          </radialGradient>
-        </defs>
-        
-        {/* Animated data points */}
-        <g className="data-points">
-          {Array.from({ length: 8 }).map((_, i) => (
-            <circle key={i} r="2" fill="#60A5FA">
-              <animate 
-                attributeName="cx" 
-                values={`${Math.random() * 20}%;${Math.random() * 100}%;${Math.random() * 20}%`} 
-                dur={`${15 + Math.random() * 20}s`} 
-                repeatCount="indefinite" 
-              />
-              <animate 
-                attributeName="cy" 
-                values={`${Math.random() * 100}%;${Math.random() * 20}%;${Math.random() * 100}%`} 
-                dur={`${15 + Math.random() * 20}s`} 
-                repeatCount="indefinite" 
-              />
-            </circle>
-          ))}
-        </g>
-        
-        {/* Increase the strokeWidth and opacity of data lines */}
-        <g className="data-lines" stroke="#0D47A1" strokeWidth="1" opacity="0.7">
-          <line x1="10%" y1="20%" x2="30%" y2="80%">
-            <animate attributeName="x2" values="30%;40%;30%" dur="15s" repeatCount="indefinite" />
-            <animate attributeName="y2" values="80%;60%;80%" dur="15s" repeatCount="indefinite" />
-          </line>
-          <line x1="70%" y1="10%" x2="90%" y2="60%">
-            <animate attributeName="x2" values="90%;80%;90%" dur="18s" repeatCount="indefinite" />
-            <animate attributeName="y2" values="60%;80%;60%" dur="18s" repeatCount="indefinite" />
-          </line>
-          <line x1="20%" y1="70%" x2="60%" y2="40%">
-            <animate attributeName="x2" values="60%;50%;60%" dur="20s" repeatCount="indefinite" />
-            <animate attributeName="y2" values="40%;50%;40%" dur="20s" repeatCount="indefinite" />
-          </line>
-        </g>
-      </svg>
-    </Box>
-  );
-};
+    return (
+      <Box
+        sx={{
+          position: 'absolute',
+          top: 0,
+          left: 0,
+          right: 0,
+          bottom: 0,
+          zIndex: 0,
+          opacity: 0.4
+        }}
+      >
+        <svg width="100%" height="100%" xmlns="http://www.w3.org/2000/svg">
+          <defs>
+            <radialGradient id="dotGradient" cx="50%" cy="50%" r="50%" fx="50%" fy="50%">
+              <stop offset="0%" stopColor="#60A5FA" stopOpacity="0.8" />
+              <stop offset="100%" stopColor="#3B82F6" stopOpacity="0" />
+            </radialGradient>
+          </defs>
+          
+          {/* Animated data points */}
+          <g className="data-points">
+            {Array.from({ length: 8 }).map((_, i) => (
+              <circle key={i} r="2" fill="#60A5FA">
+                <animate 
+                  attributeName="cx" 
+                  values={`${Math.random() * 20}%;${Math.random() * 100}%;${Math.random() * 20}%`} 
+                  dur={`${15 + Math.random() * 20}s`} 
+                  repeatCount="indefinite" 
+                />
+                <animate 
+                  attributeName="cy" 
+                  values={`${Math.random() * 100}%;${Math.random() * 20}%;${Math.random() * 100}%`} 
+                  dur={`${15 + Math.random() * 20}s`} 
+                  repeatCount="indefinite" 
+                />
+              </circle>
+            ))}
+          </g>
+          
+          {/* Connecting lines representing data flow */}
+          <g className="data-lines" stroke="#3B82F6" strokeWidth="0.5" opacity="0.5">
+            <line x1="10%" y1="20%" x2="30%" y2="80%">
+              <animate attributeName="x2" values="30%;40%;30%" dur="15s" repeatCount="indefinite" />
+              <animate attributeName="y2" values="80%;60%;80%" dur="15s" repeatCount="indefinite" />
+            </line>
+            <line x1="70%" y1="10%" x2="90%" y2="60%">
+              <animate attributeName="x2" values="90%;80%;90%" dur="18s" repeatCount="indefinite" />
+              <animate attributeName="y2" values="60%;80%;60%" dur="18s" repeatCount="indefinite" />
+            </line>
+            <line x1="20%" y1="70%" x2="60%" y2="40%">
+              <animate attributeName="x2" values="60%;50%;60%" dur="20s" repeatCount="indefinite" />
+              <animate attributeName="y2" values="40%;50%;40%" dur="20s" repeatCount="indefinite" />
+            </line>
+          </g>
+        </svg>
+      </Box>
+    );
+  };
+  
+  
 
 // Animated particles for hero section background
 const ParticleBackground = () => {
-  // Darker particle colors
+  // Array of colors that complement your theme
   const particleColors = [
-    'rgba(255, 208, 141, 0.9)',  // Darker moccasin
-    'rgba(235, 65, 140, 0.8)',   // Darker hot pink
-    'rgba(107, 72, 179, 0.9)',   // Darker purple
-    'rgba(24, 184, 168, 0.8)',   // Darker turquoise
-    'rgba(215, 125, 0, 0.9)',    // Darker orange
+    'rgba(255, 228, 181, 0.8)', // Moccasin
+    'rgba(255, 105, 180, 0.6)', // Hot pink
+    'rgba(147, 112, 219, 0.7)', // Medium purple
+    'rgba(64, 224, 208, 0.5)',  // Turquoise
+    'rgba(255, 165, 0, 0.6)',   // Orange
   ];
 
   return (
@@ -245,7 +238,7 @@ const ParticleBackground = () => {
       right: 0,
       bottom: 0,
       zIndex: 0,
-      opacity: 0.6, // Increased from 0.3
+      opacity: 0.3, // Slightly increased opacity
     }}>
       {[...Array(30)].map((_, i) => { // Increased particle count
         const size = Math.random() * 12 + 4; // More varied sizes
@@ -281,36 +274,28 @@ const ParticleBackground = () => {
   );
 };
 
-// Modern 3D hover effect for feature cards
 const FeatureCard = styled(Paper)(({ theme }) => ({
   padding: theme.spacing(4),
   height: '100%',
   display: 'flex',
   flexDirection: 'column',
-  borderRadius: theme.spacing(3), // Increased roundness
-  transition: 'all 0.4s cubic-bezier(0.175, 0.885, 0.32, 1.275)',
+  borderRadius: theme.spacing(2),
+  transition: 'transform 0.3s ease-in-out, box-shadow 0.3s ease-in-out',
   '&:hover': {
-    transform: 'translateY(-12px) rotateX(5deg)',
-    boxShadow: '0 15px 35px rgba(0, 0, 0, 0.1), 0 5px 15px rgba(0, 0, 0, 0.07)',
-    '&::before': {
-      opacity: 1,
-    }
+    transform: 'translateY(-8px)',
+    boxShadow: theme.shadows[10],
   },
   position: 'relative',
   overflow: 'hidden',
-  background: 'rgba(255, 255, 255, 0.9)',
-  backdropFilter: 'blur(10px)',
-  boxShadow: '0 10px 30px rgba(0, 0, 0, 0.05)',
-  '&::before': {
+  background: theme.palette.mode === 'light' ? 'white' : theme.palette.background.paper,
+  '&::after': {
     content: '""',
     position: 'absolute',
     top: 0,
     left: 0,
     right: 0,
     height: '4px',
-    background: 'linear-gradient(90deg, #6B46C1, #9F7AEA)',
-    opacity: 0.7,
-    transition: 'opacity 0.3s ease',
+    background: theme.palette.primary.main,
     borderRadius: '4px 4px 0 0',
   }
 }));
@@ -319,16 +304,12 @@ const PricingCard = styled(Card)(({ theme }) => ({
   height: '100%',
   display: 'flex',
   flexDirection: 'column',
-  borderRadius: theme.spacing(3), // Increased roundness
+  borderRadius: theme.spacing(2),
   overflow: 'hidden',
   transition: 'transform 0.3s ease-in-out, box-shadow 0.3s ease-in-out',
-  background: 'rgba(255, 255, 255, 0.8)',
-  backdropFilter: 'blur(10px)',
-  border: '1px solid rgba(255, 255, 255, 0.18)',
-  boxShadow: '0 8px 32px rgba(0, 0, 0, 0.1)',
   '&:hover': {
     transform: 'translateY(-8px)',
-    boxShadow: '0 15px 30px rgba(0, 0, 0, 0.12)',
+    boxShadow: theme.shadows[10],
   },
 }));
 
@@ -336,31 +317,26 @@ const TeamMemberCard = styled(Card)(({ theme }) => ({
   display: 'flex',
   flexDirection: 'column',
   alignItems: 'center',
-  padding: theme.spacing(5), // More padding
-  borderRadius: theme.spacing(3), // More rounded
-  transition: 'all 0.4s cubic-bezier(0.175, 0.885, 0.32, 1.275)',
-  background: 'rgba(255, 255, 255, 0.85)',
-  backdropFilter: 'blur(10px)',
-  border: '1px solid rgba(255, 255, 255, 0.18)',
-  boxShadow: '0 10px 30px rgba(0, 0, 0, 0.05)',
+  padding: theme.spacing(4),
+  borderRadius: theme.spacing(2),
+  transition: 'all 0.3s ease',
   '&:hover': {
-    transform: 'translateY(-15px)',
-    boxShadow: '0 20px 40px rgba(107, 70, 193, 0.2)',
+    transform: 'translateY(-8px)',
+    boxShadow: theme.shadows[10],
     '& .MuiAvatar-root': {
-      transform: 'scale(1.1) translateY(-10px)',
-      boxShadow: '0 20px 30px rgba(107, 70, 193, 0.3)',
-      border: `4px solid #9F7AEA`,
+      transform: 'scale(1.05)',
+      border: `4px solid ${theme.palette.secondary.main}`,
     }
   },
 }));
 
 const StyledAvatar = styled(Avatar)(({ theme }) => ({
-  width: 160, // Larger
-  height: 160, // Larger
-  marginBottom: theme.spacing(3),
-  border: `4px solid #6B46C1`,
-  transition: 'all 0.5s cubic-bezier(0.175, 0.885, 0.32, 1.275)',
-  boxShadow: '0 15px 25px rgba(107, 70, 193, 0.2)',
+  width: 140,
+  height: 140,
+  marginBottom: theme.spacing(2),
+  border: `4px solid ${theme.palette.primary.main}`,
+  transition: 'all 0.3s ease',
+  boxShadow: theme.shadows[3],
   backgroundColor: theme.palette.primary.main,
   '& img': {
     width: '100%',
@@ -389,20 +365,6 @@ const FloatingElement = styled(motion.div)(({ theme }) => ({
   borderRadius: '50%',
   background: 'linear-gradient(135deg, rgba(25, 118, 210, 0.2), rgba(25, 118, 210, 0))',
   backdropFilter: 'blur(8px)',
-}));
-
-// Add this to the cards and content boxes to improve text readability
-const ContentCard = styled(Card)(({ theme }) => ({
-  boxShadow: '0 8px 32px rgba(0, 0, 0, 0.1)',
-  background: 'rgba(255, 255, 255, 0.9)',
-  backdropFilter: 'blur(8px)',
-  borderRadius: theme.spacing(2),
-  overflow: 'hidden',
-  transition: 'transform 0.3s ease-in-out, box-shadow 0.3s ease-in-out',
-  '&:hover': {
-    transform: 'translateY(-8px)',
-    boxShadow: '0 12px 40px rgba(0, 0, 0, 0.15)',
-  },
 }));
 
 // Add this new component for a modern circuit-board style background
@@ -721,229 +683,6 @@ const DrivingAnalyticsBackground = () => {
   );
 };
 
-// Add this new component at the top of your HomePage component
-const PageBackgroundAnimation = () => {
-  const { scrollYProgress } = useScroll();
-  const scaleX = useTransform(scrollYProgress, [0, 1], [0, 1]);
-
-  return (
-    <Box
-      sx={{
-        position: 'fixed',
-        top: 0,
-        left: 0,
-        right: 0,
-        bottom: 0,
-        zIndex: -10,
-        overflow: 'hidden',
-        pointerEvents: 'none', // Makes the background non-interactive
-        background: 'linear-gradient(to bottom, rgba(255,255,255,0.95) 0%, rgba(240,245,255,0.9) 100%)', // Lighter background
-      }}
-    >
-      {/* Circuit board pattern background */}
-      <Box sx={{
-        position: 'absolute',
-        top: 0,
-        left: 0,
-        right: 0,
-        bottom: 0,
-        opacity: 0.6,
-        filter: 'contrast(1.1) brightness(1.05)', // Brighter
-      }}>
-        <CircuitBoardBackground />
-      </Box>
-      
-      {/* Driving analytics with cars */}
-      <Box sx={{
-        position: 'absolute',
-        top: 0,
-        left: 0,
-        right: 0,
-        bottom: 0,
-        opacity: 0.7,
-        filter: 'contrast(1.1) brightness(1)', // Brighter
-      }}>
-        <DrivingAnalyticsBackground />
-      </Box>
-      
-      {/* Animated mesh background */}
-      <Box sx={{
-        position: 'absolute',
-        top: 0,
-        left: 0,
-        right: 0,
-        bottom: 0,
-        opacity: 0.7, // Reduced from 1.0 for consistency
-        filter: 'contrast(1.1) brightness(1)', // Brighter
-      }}>
-        <AnimatedBackgroundMesh />
-      </Box>
-      
-      <DataFlowAnimation />
-      <ParticleBackground />
-      
-      {/* Add moving cars throughout the page */}
-      {[...Array(3)].map((_, i) => (
-        <motion.div
-          key={`car-${i}`}
-          style={{
-            position: 'absolute',
-            width: 40,
-            height: 20,
-            backgroundColor: '#1976d2',
-            borderRadius: '8px 12px 8px 8px',
-            left: -50,
-            top: `${20 + i * 30}%`,
-            zIndex: 5,
-            opacity: 0.5,
-          }}
-          animate={{
-            x: [window.innerWidth + 100],
-          }}
-          transition={{
-            duration: 15 + i * 5,
-            repeat: Infinity,
-            ease: "linear",
-            delay: i * 3
-          }}
-        >
-          {/* Car lights */}
-          <Box sx={{
-            position: 'absolute',
-            right: 0,
-            top: 5,
-            width: 5,
-            height: 5,
-            borderRadius: '50%',
-            backgroundColor: '#ffeb3b',
-            boxShadow: '0 0 10px #ffeb3b'
-          }} />
-        </motion.div>
-      ))}
-      
-      {/* Floating data points */}
-      {[...Array(8)].map((_, i) => (
-        <motion.div
-          key={`data-${i}`}
-          style={{
-            position: 'absolute',
-            width: 8,
-            height: 8,
-            borderRadius: '50%',
-            background: i % 2 === 0 ? '#2196f3' : '#6B46C1',
-            boxShadow: i % 2 === 0 ? '0 0 15px #2196f3' : '0 0 15px #6B46C1',
-            opacity: 0.6,
-          }}
-          animate={{
-            x: [
-              Math.random() * window.innerWidth,
-              Math.random() * window.innerWidth,
-              Math.random() * window.innerWidth
-            ],
-            y: [
-              Math.random() * window.innerHeight,
-              Math.random() * window.innerHeight,
-              Math.random() * window.innerHeight
-            ],
-            scale: [1, 1.2, 1]
-          }}
-          transition={{
-            duration: 20 + i * 2,
-            repeat: Infinity,
-            ease: "linear"
-          }}
-        />
-      ))}
-      
-      {/* Floating elements with more consistent opacity */}
-      {[...Array(5)].map((_, i) => (
-        <FloatingElement
-          key={i}
-          initial={{ opacity: 0, scale: 0 }}
-          animate={{ 
-            opacity: [0.4, 0.5, 0.4], // More subtle
-            scale: [1, 1.1, 1],
-            x: [0, Math.random() * 60 , 0],
-            y: [0, Math.random() * 60, 0],
-          }}
-          transition={{ 
-            duration: 10 + i * 2,
-            repeat: Infinity,
-            ease: "easeInOut"
-          }}
-          sx={{
-            width: 120 + i * 60,
-            height: 120 + i * 60,
-            top: `${Math.random() * 80}%`,
-            left: `${Math.random() * 80}%`,
-            filter: 'blur(5px)',
-            background: 'linear-gradient(135deg, rgba(25, 118, 210, 0.2), rgba(25, 118, 210, 0.1))', // Lighter gradient
-          }}
-        />
-      ))}
-      
-      {/* Horizontal light streaks */}
-      <motion.div
-        style={{
-          position: 'absolute',
-          width: '100%',
-          height: '2px',
-          background: 'linear-gradient(90deg, transparent, rgba(25,118,210,0.3), transparent)',
-          top: '25%',
-        }}
-        animate={{
-          top: ['25%', '50%', '75%', '25%'],
-          opacity: [0.3, 0.4, 0.3, 0.3],
-        }}
-        transition={{
-          repeat: Infinity,
-          duration: 20,
-          ease: "linear",
-        }}
-      />
-      {/* Update PageBackgroundAnimation with moving gradient overlay */}
-      <Box
-        component={motion.div}
-        animate={{
-          background: [
-            'radial-gradient(circle at 00% 30%, rgba(107, 70, 193, 0.15) 0%, rgba(0, 0, 0, 0) 70%)',
-            'radial-gradient(circle at 80% 70%, rgba(107, 70, 193, 0.15) 0%, rgba(0, 0, 0, 0) 70%)',
-            'radial-gradient(circle at 40% 60%, rgba(107, 70, 193, 0.15) 0%, rgba(0, 0, 0, 0) 70%)',
-            'radial-gradient(circle at 20% 30%, rgba(107, 70, 193, 0.15) 0%, rgba(0, 0, 0, 0) 70%)',
-          ]
-        }}
-        transition={{
-          duration: 10,
-          repeat: Infinity,
-          ease: "linear"
-        }}
-        sx={{
-          position: 'absolute',
-          top: 0,
-          left: 0,
-          right: 0,
-          bottom: 0,
-          zIndex: 1,
-        }}
-      />
-      <motion.div
-        style={{
-          position: 'fixed',
-          top: 0,
-          left: 0,
-          right: 0,
-          height: '4px',
-          background: 'linear-gradient(90deg, #6B46C1, #9F7AEA)',
-          transformOrigin: '0%',
-          zIndex: 1100,
-        }}
-        initial={{ scaleX: 0 }}
-        animate={{ scaleX }}
-      />
-    </Box>
-  );
-};
-
 export default function HomePage() {
   const router = useRouter();
   const theme = useTheme();
@@ -951,38 +690,7 @@ export default function HomePage() {
   const [scrolled, setScrolled] = useState(false);
   const [activeSection, setActiveSection] = useState('hero');
 
-  // In the top level of your HomePage component
-  // Use the useReducedMotion hook from framer-motion to respect user preferences
-  const prefersReducedMotion = useReducedMotion();
-
-  // Then conditionally apply animations
-  const animationSettings = prefersReducedMotion 
-    ? { duration: 0 } // No animations for users who prefer reduced motion
-    : { duration: 0.7, type: "spring", stiffness: 100, damping: 15 };
-
   useEffect(() => {
-    // Add smooth scrolling behavior
-    const smoothScroll = (target: string) => {
-      const element = document.getElementById(target);
-      if (element) {
-        element.scrollIntoView({
-          behavior: 'smooth',
-          block: 'start'
-        });
-      }
-    };
-
-    // Handle clicks on navigation items
-    const navLinks = document.querySelectorAll('a[href^="#"]');
-    navLinks.forEach(link => {
-      link.addEventListener('click', (e) => {
-        e.preventDefault();
-        const target = (e.currentTarget as HTMLAnchorElement).getAttribute('href')?.substring(1);
-        if (target) smoothScroll(target);
-      });
-    });
-
-    // Improve the scroll handler to be less jumpy
     const handleScroll = () => {
       const scrollPosition = window.scrollY;
       if (scrollPosition > 100) {
@@ -991,36 +699,24 @@ export default function HomePage() {
         setScrolled(false);
       }
 
-      // Use IntersectionObserver instead of direct calculations for better performance
-      const determineActiveSection = () => {
-        const sections = ['hero', 'about', 'features', 'pricing', 'team'];
-        let currentActive = activeSection;
-        
-        sections.forEach((section) => {
-          const element = document.getElementById(section);
-          if (element) {
-            const rect = element.getBoundingClientRect();
-            const isVisible = rect.top <= window.innerHeight / 2 && rect.bottom >= window.innerHeight / 3;
-            if (isVisible) {
-              currentActive = section;
-            }
+      // Determine active section for animations
+      const sections = ['hero', 'about', 'features', 'pricing', 'team'];
+      sections.forEach((section) => {
+        const element = document.getElementById(section);
+        if (element) {
+          const rect = element.getBoundingClientRect();
+          if (rect.top <= window.innerHeight / 2 && rect.bottom >= window.innerHeight / 2) {
+            setActiveSection(section);
           }
-        });
-        
-        if (currentActive !== activeSection) {
-          setActiveSection(currentActive);
         }
-      };
-      
-      // Throttle calculation for better performance
-      requestAnimationFrame(determineActiveSection);
+      });
     };
 
     window.addEventListener('scroll', handleScroll);
     return () => {
       window.removeEventListener('scroll', handleScroll);
     };
-  }, [activeSection]);
+  }, []);
 
   const features = [
     {
@@ -1142,25 +838,16 @@ export default function HomePage() {
   };
 
   return (
-    <Box sx={{ 
-      flexGrow: 1,
-      background: 'linear-gradient(135deg, rgba(255,255,255,0.9) 0%, rgba(240,240,250,0.85) 100%)',
-      position: 'relative',
-      overflow: 'hidden'
-    }}>
-      {/* Global animated background */}
-      <PageBackgroundAnimation />
-      
+    <Box sx={{ flexGrow: 1 }}>
       {/* Navigation Bar */}
       <AppBar 
         position="fixed" 
         elevation={scrolled ? 4 : 0} 
         sx={{ 
-          backgroundColor: scrolled ? 'rgba(255, 255, 255, 0.95)' : 'rgba(255, 255, 255, 0.7)',
-          backdropFilter: 'blur(10px)', // Always have blur for better readability
+          backgroundColor: scrolled ? 'rgba(255, 255, 255, 0.95)' : 'transparent',
+          backdropFilter: scrolled ? 'blur(10px)' : 'none',
           boxShadow: scrolled ? `0 4px 20px rgba(0, 0, 0, 0.1)` : 'none',
           transition: 'all 0.3s ease-in-out',
-          zIndex: 100, // Ensure navbar is above background
         }}
       >
         <Toolbar sx={{ transition: 'all 0.3s ease' }}>
@@ -1175,7 +862,7 @@ export default function HomePage() {
               component="div" 
               sx={{ 
                 fontWeight: 700, 
-                color: '#6B46C1', // Always purple to match your theme
+                color: scrolled ? 'primary.main' : 'white',
                 cursor: 'pointer',
                 mr: 2,
                 transition: 'color 0.3s ease',
@@ -1193,19 +880,15 @@ export default function HomePage() {
               initial={{ opacity: 0, x: 20 }}
               animate={{ opacity: 1, x: 0 }}
               transition={{ duration: 0.5, delay: 0.2 }}
-              variant="outlined" 
-              color="primary"
+              variant={scrolled ? "outlined" : "text"} 
+              color={scrolled ? "primary" : "inherit"}
               onClick={() => router.push(paths.auth.signIn)}
               sx={{ 
                 fontWeight: 600,
                 borderRadius: '50px',
                 px: 2,
-                color: '#6B46C1',
-                borderColor: '#6B46C1',
-                '&:hover': {
-                  borderColor: '#805AD5',
-                  backgroundColor: 'rgba(107, 70, 193, 0.04)',
-                }
+                color: scrolled ? 'primary.main' : 'white',
+                borderColor: scrolled ? 'primary.main' : 'white',
               }}
             >
               Sign In
@@ -1216,16 +899,15 @@ export default function HomePage() {
               animate={{ opacity: 1, x: 0 }}
               transition={{ duration: 0.5, delay: 0.3 }}
               variant="contained" 
+              color="primary" 
               onClick={() => router.push(paths.auth.signUp)}
               sx={{ 
                 fontWeight: 600,
                 borderRadius: '50px',
                 px: 3,
-                background: 'linear-gradient(45deg, #6B46C1 30%, #9F7AEA 90%)',
-                boxShadow: '0 4px 10px rgba(107, 70, 193, 0.3)',
+                background: scrolled ? 'primary.main' : 'rgba(255, 255, 255, 0.2)',
                 '&:hover': {
-                  boxShadow: '0 6px 15px rgba(107, 70, 193, 0.4)',
-                  transform: 'translateY(-1px)',
+                  background: scrolled ? 'primary.dark' : 'rgba(255, 255, 255, 0.3)',
                 }
               }}
             >
@@ -1235,211 +917,221 @@ export default function HomePage() {
         </Toolbar>
       </AppBar>
 
-      {/* Hero Section - Simplified, no background elements */}
-      <HeroSection id="hero">
-        {/* Content only, no background elements */}
-        <MotionContainer 
-          maxWidth="md"
-          initial="hidden"
-          animate="visible"
-          variants={{
-            hidden: { opacity: 0 },
-            visible: {
-              opacity: 1,
-              transition: {
-                staggerChildren: 0.3,
-                delayChildren: 0.2
-              }
+      {/* Hero Section */}
+<HeroSection id="hero">
+  <DrivingAnalyticsBackground />
+  <AnimatedBackgroundMesh />
+  <DataFlowAnimation />
+  <ParticleBackground />
+  
+  {/* Add floating elements */}
+  {[...Array(5)].map((_, i) => (
+    <FloatingElement
+      key={i}
+      initial={{ opacity: 0, scale: 0 }}
+      animate={{ 
+        opacity: [0.3, 0.6, 0.3],
+        scale: [1, 1.2, 1],
+        x: [0, Math.random() * 100 - 50, 0],
+        y: [0, Math.random() * 100 - 50, 0],
+      }}
+      transition={{ 
+        duration: 10 + i * 2,
+        repeat: Infinity,
+        ease: "easeInOut"
+      }}
+      sx={{
+        width: 100 + i * 50,
+        height: 100 + i * 50,
+        top: `${Math.random() * 80}%`,
+        left: `${Math.random() * 80}%`,
+        filter: 'blur(4px)',
+      }}
+    />
+  ))}
+
+  <MotionContainer 
+    maxWidth="md"
+    initial="hidden"
+    animate="visible"
+    variants={{
+      hidden: { opacity: 0 },
+      visible: {
+        opacity: 1,
+        transition: {
+          staggerChildren: 0.3,
+          delayChildren: 0.2
+        }
+      }
+    }}
+    sx={{ position: 'relative', zIndex: 1 }}
+  >
+    <MotionTypography 
+      variant="h2" 
+      //component="h1" 
+      gutterBottom
+      variants={{
+        hidden: { opacity: 0, y: -50 },
+        visible: { 
+          opacity: 1, 
+          y: 0,
+          transition: {
+            duration: 1,
+            ease: [0.6, -0.05, 0.01, 0.99]
+          }
+        }
+      }}
+      sx={{ 
+        fontWeight: 800,
+        mb: 3,
+        fontSize: { xs: '2.5rem', md: '4rem' },
+        background: 'linear-gradient(135deg, #ffffff 0%, #90caf9 100%)',
+        backgroundClip: 'text',
+        WebkitBackgroundClip: 'text',
+        WebkitTextFillColor: 'transparent',
+        letterSpacing: '-0.02em',
+        textShadow: '0 5px 15px rgba(0,0,0,0.1)',
+        position: 'relative',
+        '&::after': {
+          content: '""',
+          position: 'absolute',
+          bottom: '-10px',
+          left: '50%',
+          transform: 'translateX(-50%)',
+          width: '60px',
+          height: '4px',
+          background: 'linear-gradient(90deg, transparent, #90caf9, transparent)',
+          borderRadius: '2px'
+        }
+      }}
+    >
+      SafeMotion
+    </MotionTypography>
+
+    <MotionTypography 
+      variant="h5" 
+      //component="p"
+      variants={{
+        hidden: { opacity: 0, y: 30 },
+        visible: { 
+          opacity: 1, 
+          y: 0,
+          transition: {
+            duration: 1,
+            delay: 0.3,
+            ease: [0.6, -0.05, 0.01, 0.99]
+          }
+        }
+      }}
+      sx={{ 
+        mb: 5,
+        opacity: 0.9,
+        maxWidth: '800px',
+        margin: '0 auto',
+        fontSize: { xs: '1.1rem', md: '1.3rem' },
+        lineHeight: 1.6,
+        textShadow: '0 2px 5px rgba(0,0,0,0.2)',
+        position: 'relative'
+      }}
+    >
+      Advanced monitoring and analytics to promote safer driving behaviors
+      for individuals and companies across Saudi Arabia
+    </MotionTypography>
+
+    <MotionBox 
+      component={motion.div}
+      variants={{
+        hidden: { opacity: 0, y: 50 },
+        visible: { 
+          opacity: 1, 
+          y: 0,
+          transition: {
+            duration: 0.8,
+            delay: 0.5,
+            ease: [0.6, -0.05, 0.01, 0.99]
+          }
+        }
+      }}
+    >
+      <Stack 
+        direction={{ xs: 'column', sm: 'row' }} 
+        spacing={3} 
+        justifyContent="center"
+      >
+        <Button 
+          component={motion.button}
+          whileHover={{ 
+            scale: 1.05,
+            boxShadow: '0 0 30px rgba(25, 118, 210, 0.6)'
+          }}
+          whileTap={{ scale: 0.95 }}
+          variant="contained" 
+          size="large" 
+          onClick={() => router.push(paths.auth.signUp)}
+          sx={{ 
+            px: 5, 
+            py: 1.8,
+            borderRadius: '50px',
+            fontSize: '1.1rem',
+            fontWeight: 600,
+            background: 'linear-gradient(45deg, #1976d2 30%, #42a5f5 90%)',
+            boxShadow: '0 10px 20px rgba(0,0,0,0.15)',
+            transition: 'all 0.3s ease',
+            position: 'relative',
+            overflow: 'hidden',
+            '&::before': {
+              content: '""',
+              position: 'absolute',
+              top: 0,
+              left: '-100%',
+              width: '100%',
+              height: '100%',
+              background: 'linear-gradient(90deg, transparent, rgba(255,255,255,0.2), transparent)',
+              transition: 'all 0.5s ease',
+            },
+            '&:hover::before': {
+              left: '100%'
             }
           }}
-          sx={{ position: 'relative', zIndex: 1 }}
         >
-          <MotionTypography 
-            variant="h2" 
-            gutterBottom
-            variants={{
-              hidden: { opacity: 0, y: -50 },
-              visible: { 
-                opacity: 1, 
-                y: 0,
-                transition: {
-                  duration: 1,
-                  ease: [0.6, -0.05, 0.01, 0.99]
-                }
-              }
-            }}
-            sx={{ 
-              fontWeight: 800,
-              mb: 3,
-              fontSize: { xs: '2.5rem', md: '4rem' },
-              // Replace blue gradient with purple gradient
-              background: 'linear-gradient(135deg, #6B46C1 0%, #9F7AEA 100%)',
-              backgroundClip: 'text',
-              WebkitBackgroundClip: 'text',
-              WebkitTextFillColor: 'transparent',
-              letterSpacing: '-0.02em',
-              textShadow: '0 5px 15px rgba(0,0,0,0.1)',
-              position: 'relative',
-              '&::after': {
-                content: '""',
-                position: 'absolute',
-                bottom: '-10px',
-                left: '50%',
-                transform: 'translateX(-50%)',
-                width: '60px',
-                height: '4px',
-                // Update line color to match purple theme
-                background: 'linear-gradient(90deg, transparent, #9F7AEA, transparent)',
-                borderRadius: '2px'
-              }
-            }}
-          >
-            SafeMotion
-          </MotionTypography>
+          Get Started
+        </Button>
+        
+        {/* Similar styling for Learn More button */}
+      </Stack>
+    </MotionBox>
+  </MotionContainer>
 
-          <MotionTypography 
-            variant="h5" 
-            variants={{
-              hidden: { opacity: 0, y: 30 },
-              visible: { 
-                opacity: 1, 
-                y: 0,
-                transition: {
-                  duration: 1,
-                  delay: 0.3,
-                  ease: [0.6, -0.05, 0.01, 0.99]
-                }
-              }
-            }}
-            sx={{ 
-              mb: 5,
-              opacity: 0.9,
-              maxWidth: '800px',
-              margin: '0 auto',
-              fontSize: { xs: '1.1rem', md: '1.3rem' },
-              lineHeight: 1.6,
-              // Add dark color instead of relying on white from parent
-              color: '#1A202C',
-              textShadow: '0 2px 5px rgba(0,0,0,0.1)',
-              position: 'relative'
-            }}
-          >
-            Advanced monitoring and analytics to promote safer driving behaviors
-            for individuals and companies across Saudi Arabia
-          </MotionTypography>
-
-          <MotionBox 
-            component={motion.div}
-            variants={{
-              hidden: { opacity: 0, y: 50 },
-              visible: { 
-                opacity: 1, 
-                y: 0,
-                transition: {
-                  duration: 0.8,
-                  delay: 0.5,
-                  ease: [0.6, -0.05, 0.01, 0.99]
-                }
-              }
-            }}
-          >
-            <Stack 
-              direction={{ xs: 'column', sm: 'row' }} 
-              spacing={3} 
-              justifyContent="center"
-            >
-              <Button 
-                component={motion.button}
-                whileHover={{ 
-                  scale: 1.05,
-                  boxShadow: [
-                    '0 10px 20px rgba(107, 70, 193, 0.15)',
-                    '0 0 10px rgba(107, 70, 193, 0.2)',
-                    '0 0 20px rgba(107, 70, 193, 0.3)',
-                    '0 0 30px rgba(107, 70, 193, 0.2)',
-                    '0 10px 20px rgba(107, 70, 193, 0.15)'
-                  ]
-                }}
-                transition={{
-                  boxShadow: {
-                    duration: 1,
-                    repeat: Infinity,
-                    repeatType: 'reverse',
-                  }
-                }}
-                whileTap={{ scale: 0.95 }}
-                variant="contained" 
-                size="large" 
-                onClick={() => router.push(paths.auth.signUp)}
-                sx={{ 
-                  px: 5, 
-                  py: 1.8,
-                  borderRadius: '50px',
-                  fontSize: '1.1rem',
-                  fontWeight: 600,
-                  background: 'linear-gradient(45deg, #6B46C1 30%, #9F7AEA 90%)',
-                  boxShadow: '0 10px 20px rgba(107, 70, 193, 0.15)',
-                  transition: 'all 0.3s ease',
-                  position: 'relative',
-                  overflow: 'hidden',
-                  '&::before': {
-                    content: '""',
-                    position: 'absolute',
-                    top: 0,
-                    left: '-100%',
-                    width: '100%',
-                    height: '100%',
-                    background: 'linear-gradient(90deg, transparent, rgba(255,255,255,0.3), transparent)',
-                    transition: 'all 0.5s ease',
-                  },
-                  '&:hover::before': {
-                    left: '100%'
-                  }
-                }}
-              >
-                Get Started
-              </Button>
-              
-              {/* Similar styling for Learn More button */}
-            </Stack>
-          </MotionBox>
-        </MotionContainer>
-
-        <ScrollDownButton 
-          animate={{ 
-            y: [0, 10, 0],
-            opacity: [0.6, 1, 0.6],
-            scale: [1, 1.1, 1]
-          }}
-          transition={{ 
-            repeat: Infinity, 
-            duration: 2,
-            ease: "easeInOut"
-          }}
-          variant="text" 
-          color="inherit" 
-          onClick={() => {
-            const element = document.getElementById('about');
-            element?.scrollIntoView({ behavior: 'smooth' });
-          }}
-          sx={{
-            '&:hover': {
-              backgroundColor: 'rgba(255, 255, 255, 0.2)',
-              transform: 'scale(1.1)'
-            },
-            zIndex: 1, // Ensure button is above background
-          }}
-        >
-          <KeyboardArrowDownIcon sx={{ fontSize: 30 }} />
-        </ScrollDownButton>
-      </HeroSection>
+  <ScrollDownButton 
+    animate={{ 
+      y: [0, 10, 0],
+      opacity: [0.6, 1, 0.6],
+      scale: [1, 1.1, 1]
+    }}
+    transition={{ 
+      repeat: Infinity, 
+      duration: 2,
+      ease: "easeInOut"
+    }}
+    variant="text" 
+    color="inherit" 
+    onClick={() => {
+      const element = document.getElementById('about');
+      element?.scrollIntoView({ behavior: 'smooth' });
+    }}
+    sx={{
+      '&:hover': {
+        backgroundColor: 'rgba(255, 255, 255, 0.2)',
+        transform: 'scale(1.1)'
+      }
+    }}
+  >
+    <KeyboardArrowDownIcon sx={{ fontSize: 30 }} />
+  </ScrollDownButton>
+</HeroSection>
 
       {/* About Section */}
-      <Box id="about" sx={{ 
-        py: 12, 
-        position: 'relative',
-        zIndex: 1,
-      }}>
+      <Box id="about" sx={{ py: 12, backgroundColor: '#f9fafc' }}>
         <Container>
           <MotionBox 
             sx={{ textAlign: 'center', mb: 8 }}
@@ -1649,11 +1341,7 @@ export default function HomePage() {
       </Box>
 
       {/* Features Section */}
-      <Box id="features" sx={{ 
-        py: 12, 
-        position: 'relative',
-        zIndex: 1,
-      }}>
+      <Box id="features" sx={{ py: 12, position: 'relative' }}>
         {/* Background decoration */}
         <Box 
           sx={{ 
@@ -1704,37 +1392,22 @@ export default function HomePage() {
                   transition={{ duration: 0.7, delay: 0.2 + index * 0.2 }}
                   sx={{ height: '100%' }}
                 >
-                  <FeatureCard 
-                    component={motion.div} 
-                    whileHover={{ 
-                      y: -12, 
-                      rotateX: 5, 
-                      boxShadow: '0 15px 35px rgba(0, 0, 0, 0.1), 0 5px 15px rgba(0, 0, 0, 0.07)' 
-                    }}
-                    elevation={3}
-                  >
-                    <Box sx={{ 
-                      display: 'flex', 
-                      alignItems: 'center', 
-                      justifyContent: 'center', 
-                      width: 80,
-                      height: 80,
-                      borderRadius: '20px', // More rounded square
-                      background: 'linear-gradient(135deg, rgba(107, 70, 193, 0.1) 0%, rgba(159, 122, 234, 0.1) 100%)',
-                      backdropFilter: 'blur(5px)',
-                      boxShadow: 'inset 0 0 0 1px rgba(107, 70, 193, 0.2), 0 10px 20px rgba(107, 70, 193, 0.1)',
-                      mb: 3,
-                      transform: 'rotate(-5deg)', // Slight rotation for style
-                    }}>
-                      {React.cloneElement(feature.icon, { 
-                        sx: { 
-                          fontSize: 40, 
-                          color: '#6B46C1',
-                          filter: 'drop-shadow(0 2px 5px rgba(107, 70, 193, 0.4))'
-                        } 
-                      })}
+                  <FeatureCard elevation={3}>
+                    <Box sx={{ display: 'flex', alignItems: 'center', mb: 3 }}>
+                      <Box sx={{ 
+                        display: 'flex', 
+                        alignItems: 'center', 
+                        justifyContent: 'center', 
+                        width: 70,
+                        height: 70,
+                        borderRadius: '50%',
+                        backgroundColor: 'rgba(25, 118, 210, 0.08)',
+                        mb: 2,
+                      }}>
+                        {feature.icon}
+                      </Box>
                     </Box>
-                    <Typography variant="h6" component="h4" sx={{ fontWeight: 700 }}>
+                    <Typography variant="h5" component="h3" sx={{ fontWeight: 700, mb: 2 }}>
                       {feature.title}
                     </Typography>
                     <Typography variant="body1" color="text.secondary" sx={{ flexGrow: 1 }}>
@@ -1749,11 +1422,7 @@ export default function HomePage() {
       </Box>
 
       {/* Pricing Section */}
-      <Box id="pricing" sx={{ 
-        py: 12, 
-        position: 'relative',
-        zIndex: 1,
-      }}>
+      <Box id="pricing" sx={{ py: 12, backgroundColor: '#f9fafc' }}>
         <Container>
           <MotionBox 
             sx={{ textAlign: 'center', mb: 8 }}
@@ -1792,7 +1461,7 @@ export default function HomePage() {
                   transition={{ duration: 0.7, delay: 0.2 + index * 0.2 }}
                   sx={{ height: '100%' }}
                 >
-                  <ContentCard elevation={plan.highlighted ? 8 : 1}>
+                  <PricingCard elevation={plan.highlighted ? 8 : 1}>
                     <CardContent sx={{ 
                       flexGrow: 1, 
                       p: 4,
@@ -1807,8 +1476,7 @@ export default function HomePage() {
                           top: 20, 
                           right: -35, 
                           transform: 'rotate(45deg)',
-                          bgcolor: 'rgba(159, 122, 234, 0.85)', // More transparent purple
-                          backdropFilter: 'blur(5px)',
+                          bgcolor: theme.palette.secondary.main,
                           color: theme.palette.secondary.contrastText,
                           px: 4,
                           py: 0.5,
@@ -1817,24 +1485,17 @@ export default function HomePage() {
                           fontWeight: 'bold',
                           fontSize: '0.8rem',
                           zIndex: 1,
-                          boxShadow: '0 2px 10px rgba(107, 70, 193, 0.3)',
+                          boxShadow: '0 2px 5px rgba(0,0,0,0.2)',
                         }}>
                           POPULAR
                         </Box>
                       )}
                       
+                      <Typography variant="h5" component="h3" gutterBottom fontWeight={700}>
+                        {plan.title}
+                      </Typography>
                       <Box sx={{ my: 3 }}>
-                        <Typography variant="h3" component={motion.span} 
-                          initial={{ opacity: 0, scale: 0.8 }}
-                          animate={{ opacity: 1, scale: 1 }}
-                          transition={{ 
-                            type: "spring", 
-                            stiffness: 100, 
-                            delay: 0.4 + index * 0.2 
-                          }}
-                          fontWeight={800} 
-                          sx={{ letterSpacing: '-0.02em' }}
-                        >
+                        <Typography variant="h3" component="span" fontWeight={800} sx={{ letterSpacing: '-0.02em' }}>
                           {plan.price}
                         </Typography>
                         <Typography variant="subtitle1" component="span" sx={{ ml: 1, opacity: 0.7 }}>
@@ -1879,7 +1540,7 @@ export default function HomePage() {
                         {plan.buttonText}
                       </Button>
                     </CardActions>
-                  </ContentCard>
+                  </PricingCard>
                 </MotionBox>
               </Grid>
             ))}
@@ -1911,11 +1572,7 @@ export default function HomePage() {
       </Box>
 
       {/* Our Team Section */}
-      <Box id="team" sx={{ 
-        py: 12, 
-        position: 'relative',
-        zIndex: 1,
-      }}>
+      <Box id="team" sx={{ py: 12 }}>
         <Container>
           <MotionBox 
             sx={{ textAlign: 'center', mb: 8 }}
@@ -2009,12 +1666,7 @@ export default function HomePage() {
       </Box>
 
       {/* Footer */}
-      <Box sx={{ 
-        py: 8, 
-        bgcolor: 'rgba(20, 27, 45, 0.9)', // Semi-transparent dark background
-        position: 'relative',
-        zIndex: 1,
-      }}>
+      <Box sx={{ py: 8, bgcolor: '#141B2D' }}>
         <Container>
           <Grid container spacing={4}>
             <Grid item xs={12} md={4}>
