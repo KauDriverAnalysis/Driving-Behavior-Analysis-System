@@ -14,9 +14,12 @@ import {
 } from '@mui/material';
 import WarningIcon from '@mui/icons-material/Warning';
 import SpeedIcon from '@mui/icons-material/Speed';
-import NotListedLocationIcon from '@mui/icons-material/NotListedLocation';
-import TrendingDownIcon from '@mui/icons-material/TrendingDown';
-import TrendingUpIcon from '@mui/icons-material/TrendingUp';
+// Import better icons for alerts
+import FlightTakeoffIcon from '@mui/icons-material/FlightTakeoff'; // For acceleration
+import FlightLandIcon from '@mui/icons-material/FlightLand'; // For braking
+import AltRouteIcon from '@mui/icons-material/AltRoute'; // For swerving
+import LocationOffIcon from '@mui/icons-material/LocationOff'; // For geofence
+import CrisisAlertIcon from '@mui/icons-material/CrisisAlert'; // For accidents
 import SearchIcon from '@mui/icons-material/Search';
 import type { Alert } from '@/types/alert';
 
@@ -40,18 +43,41 @@ interface CarData {
   };
 }
 
+interface AlertSettings {
+  harshBraking: boolean;
+  hardAcceleration: boolean;
+  swerving: boolean;
+  overSpeed: boolean;
+  geofence: boolean;
+}
+
+const DEFAULT_ALERT_SETTINGS: AlertSettings = {
+  harshBraking: true,
+  hardAcceleration: true,
+  swerving: true,
+  overSpeed: true,
+  geofence: true
+};
+
 function AlertsTab(): React.JSX.Element {
   const [alerts, setAlerts] = useState<Alert[]>([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
   const [searchTerm, setSearchTerm] = useState('');
-  const [alertSettings, setAlertSettings] = useState({
-    harshBraking: true,
-    hardAcceleration: true,
-    swerving: true,
-    overSpeed: true,
-    geofence: true
-  });
+  const [alertSettings, setAlertSettings] = useState<AlertSettings>(DEFAULT_ALERT_SETTINGS);
+
+  // Load alert settings from localStorage on mount
+  useEffect(() => {
+    const savedSettings = localStorage.getItem('adminAlertSettings');
+    if (savedSettings) {
+      try {
+        const parsedSettings = JSON.parse(savedSettings);
+        setAlertSettings({...DEFAULT_ALERT_SETTINGS, ...parsedSettings});
+      } catch (e) {
+        console.error('Failed to parse alert settings:', e);
+      }
+    }
+  }, []);
 
   // Handle search input change
   const handleSearchChange = (event: React.ChangeEvent<HTMLInputElement>): void => {
@@ -108,18 +134,20 @@ function AlertsTab(): React.JSX.Element {
             
             // Process current data - this contains the latest metrics
             const record = carData.current;
-            // Create a synthetic record ID for alerts
-            const recordId = new Date().getTime();
+            
+            // Get the ACTUAL timestamp from the record
+            // If created_at doesn't exist, then fallback to current time
+            const recordTimestamp = record.created_at ? new Date(record.created_at).toISOString() : new Date().toISOString();
             
             // Check for speeding > 120km/h
-            if (record.speed > 120) {
+            if (record.speed > 120 && alertSettings.overSpeed) {
               allAlerts.push({
-                id: `speed-${car.id}-${recordId}`,
+                id: `speed-${car.id}-${Date.now()}`,
                 type: 'speeding',
                 message: `Vehicle exceeded speed limit: ${Math.round(record.speed)} km/h`,
                 severity: 'error',
                 isRead: false,
-                timestamp: new Date().toISOString(),
+                timestamp: recordTimestamp, // Use actual record timestamp
                 carInfo: {
                   id: car.id,
                   model: car.Model_of_car || car.model || 'Unknown Model',
@@ -129,14 +157,14 @@ function AlertsTab(): React.JSX.Element {
             }
             
             // Check for harsh braking events > 25
-            if (record.harsh_braking_events > 25) {
+            if (record.harsh_braking_events > 25 && alertSettings.harshBraking) {
               allAlerts.push({
-                id: `brake-${car.id}-${recordId}`,
+                id: `brake-${car.id}-${Date.now()}`,
                 type: 'harsh_braking',
                 message: `Excessive harsh braking detected: ${record.harsh_braking_events} events`,
                 severity: 'warning',
                 isRead: false,
-                timestamp: new Date().toISOString(),
+                timestamp: recordTimestamp, // Use actual record timestamp
                 carInfo: {
                   id: car.id,
                   model: car.Model_of_car || car.model || 'Unknown Model',
@@ -146,14 +174,14 @@ function AlertsTab(): React.JSX.Element {
             }
             
             // Check for harsh acceleration > 25
-            if (record.harsh_acceleration_events > 25) {
+            if (record.harsh_acceleration_events > 25 && alertSettings.hardAcceleration) {
               allAlerts.push({
-                id: `accel-${car.id}-${recordId}`,
+                id: `accel-${car.id}-${Date.now()}`,
                 type: 'harsh_acceleration',
                 message: `Excessive harsh acceleration detected: ${record.harsh_acceleration_events} events`,
                 severity: 'warning',
                 isRead: false,
-                timestamp: new Date().toISOString(),
+                timestamp: recordTimestamp, // Use actual record timestamp
                 carInfo: {
                   id: car.id,
                   model: car.Model_of_car || car.model || 'Unknown Model',
@@ -163,14 +191,14 @@ function AlertsTab(): React.JSX.Element {
             }
             
             // Check for swerving > 25
-            if (record.swerving_events > 25) {
+            if (record.swerving_events > 25 && alertSettings.swerving) {
               allAlerts.push({
-                id: `swerve-${car.id}-${recordId}`,
+                id: `swerve-${car.id}-${Date.now()}`,
                 type: 'swerving',
                 message: `Excessive swerving detected: ${record.swerving_events} events`,
                 severity: 'warning',
                 isRead: false,
-                timestamp: new Date().toISOString(),
+                timestamp: recordTimestamp, // Use actual record timestamp
                 carInfo: {
                   id: car.id,
                   model: car.Model_of_car || car.model || 'Unknown Model',
@@ -183,10 +211,17 @@ function AlertsTab(): React.JSX.Element {
           }
         }
         
-        // Sort alerts by timestamp (newest first)
-        allAlerts.sort((a, b) => new Date(b.timestamp).getTime() - new Date(a.timestamp).getTime());
+        // Filter alerts by time-to-live (24 hours from their ACTUAL recorded time)
+        const now = new Date().getTime();
+        const filteredAlerts = allAlerts.filter(alert => {
+          const alertTime = new Date(alert.timestamp).getTime();
+          return (now - alertTime) < 14 * 24 * 60 * 60 * 1000; // Extend to 14 days to see older data if needed
+        });
         
-        setAlerts(allAlerts);
+        // Sort alerts by timestamp (newest first)
+        filteredAlerts.sort((a, b) => new Date(b.timestamp).getTime() - new Date(a.timestamp).getTime());
+        
+        setAlerts(filteredAlerts);
         setLoading(false);
       } catch (err) {
         setError('Failed to load alerts');
@@ -195,14 +230,19 @@ function AlertsTab(): React.JSX.Element {
     };
 
     void fetchAlerts(); // Use void operator to handle the Promise
-  }, []);
+  }, [alertSettings]);
   
   // Handle alert setting toggling
   const handleSettingChange = (setting: string) => (event: React.ChangeEvent<HTMLInputElement>): void => {
-    setAlertSettings({
+    const newSettings = {
       ...alertSettings,
       [setting]: event.target.checked
-    });
+    };
+    
+    setAlertSettings(newSettings);
+    
+    // Save to localStorage
+    localStorage.setItem('adminAlertSettings', JSON.stringify(newSettings));
   };
 
   // Filter alerts based on search term
@@ -214,30 +254,35 @@ function AlertsTab(): React.JSX.Element {
            alert.type.toLowerCase().includes(searchLower);
   });
 
-  // Format timestamp to relative time
+  // Format timestamp to display exact time
   const formatTimestamp = (timestamp: string): string => {
     const date = new Date(timestamp);
     const now = new Date();
-    const diffMs = now.getTime() - date.getTime();
-    const diffMins = Math.round(diffMs / 60000);
     
-    if (diffMins < 1) return 'Just now';
-    if (diffMins < 60) return `${diffMins} min ago`;
-    if (diffMins < 1440) return `${Math.floor(diffMins / 60)} hours ago`;
-    return date.toLocaleDateString();
+    // Always show actual time for events from today
+    if (date.toDateString() === now.toDateString()) {
+      return `Today at ${date.toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })}`;
+    }
+    
+    // For older events
+    return `${date.toLocaleDateString()} ${date.toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })}`;
   };
   
-  // Get icon for alert type
+  // Get icon for alert type with improved icons
   const getAlertIcon = (type: string): React.ReactNode => {
     switch (type) {
       case 'speeding':
-        return <SpeedIcon />;
+        return <SpeedIcon />; // Keep the speed icon as it's good
       case 'harsh_braking':
-        return <TrendingDownIcon />;
+        return <FlightLandIcon style={{ transform: 'rotate(45deg)' }} />; // Better braking icon
       case 'harsh_acceleration':
-        return <TrendingUpIcon />;
+        return <FlightTakeoffIcon style={{ transform: 'rotate(45deg)' }} />; // Better acceleration icon
       case 'swerving':
-        return <NotListedLocationIcon />;
+        return <AltRouteIcon />; // Better swerving icon
+      case 'geofence':
+        return <LocationOffIcon />; // For geofence alerts
+      case 'accident':
+        return <CrisisAlertIcon />; // For accident detection
       default:
         return <WarningIcon />;
     }
