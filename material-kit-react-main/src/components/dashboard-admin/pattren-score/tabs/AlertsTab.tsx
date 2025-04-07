@@ -10,17 +10,37 @@ import {
   Switch, 
   CircularProgress, 
   TextField,
-  InputAdornment
+  InputAdornment,
+  Chip,
+  Avatar,
+  Divider,
+  IconButton,
+  Tooltip,
+  Badge
 } from '@mui/material';
-import WarningIcon from '@mui/icons-material/Warning';
-import SpeedIcon from '@mui/icons-material/Speed';
-// Import better icons for alerts
-import FlightTakeoffIcon from '@mui/icons-material/FlightTakeoff'; // For acceleration
-import FlightLandIcon from '@mui/icons-material/FlightLand'; // For braking
-import AltRouteIcon from '@mui/icons-material/AltRoute'; // For swerving
-import LocationOffIcon from '@mui/icons-material/LocationOff'; // For geofence
-import CrisisAlertIcon from '@mui/icons-material/CrisisAlert'; // For accidents
 import SearchIcon from '@mui/icons-material/Search';
+import NotificationsActiveIcon from '@mui/icons-material/NotificationsActive';
+import NotificationsOffIcon from '@mui/icons-material/NotificationsOff';
+import CheckCircleIcon from '@mui/icons-material/CheckCircle';
+
+// Modern alert icons - More contemporary choices
+import ShieldIcon from '@mui/icons-material/Shield';
+// Import better driving behavior analysis related icons
+import BrakingIcon from '@mui/icons-material/NoStroller'; // Braking (emergency stop)
+import SpeedIcon from '@mui/icons-material/Speed'; // Speed-related
+import TireRepairIcon from '@mui/icons-material/TireRepair'; // Swerving/tire tracks
+import DirectionsCarIcon from '@mui/icons-material/DirectionsCar'; // General car
+import LocalPoliceIcon from '@mui/icons-material/LocalPolice'; // Authority/rules
+import FlightTakeoffIcon from '@mui/icons-material/FlightTakeoff'; // Acceleration
+import OpenInFullIcon from '@mui/icons-material/OpenInFull';
+import GpsFixedIcon from '@mui/icons-material/GpsFixed';
+import GpsOffIcon from '@mui/icons-material/GpsOff';
+import ReportIcon from '@mui/icons-material/Report';
+import ElectricCarIcon from '@mui/icons-material/ElectricCar';
+import NotificationsNoneIcon from '@mui/icons-material/NotificationsNone';
+import TrendingUpIcon from '@mui/icons-material/TrendingUp'; // For acceleration
+import TrendingDownIcon from '@mui/icons-material/TrendingDown'; // For braking
+import TimerIcon from '@mui/icons-material/Timer'; // For speed limits
 import type { Alert } from '@/types/alert';
 
 interface Car {
@@ -40,6 +60,7 @@ interface CarData {
     accident_detected: boolean;
     latitude?: number;
     longitude?: number;
+    created_at?: string;
   };
 }
 
@@ -65,6 +86,7 @@ function AlertsTab(): React.JSX.Element {
   const [error, setError] = useState<string | null>(null);
   const [searchTerm, setSearchTerm] = useState('');
   const [alertSettings, setAlertSettings] = useState<AlertSettings>(DEFAULT_ALERT_SETTINGS);
+  const [unreadCount, setUnreadCount] = useState<number>(0);
 
   // Load alert settings from localStorage on mount
   useEffect(() => {
@@ -222,6 +244,8 @@ function AlertsTab(): React.JSX.Element {
         filteredAlerts.sort((a, b) => new Date(b.timestamp).getTime() - new Date(a.timestamp).getTime());
         
         setAlerts(filteredAlerts);
+        // Count unread alerts
+        setUnreadCount(filteredAlerts.filter(alert => !alert.isRead).length);
         setLoading(false);
       } catch (err) {
         setError('Failed to load alerts');
@@ -245,6 +269,16 @@ function AlertsTab(): React.JSX.Element {
     localStorage.setItem('adminAlertSettings', JSON.stringify(newSettings));
   };
 
+  // Mark an alert as read
+  const markAsRead = (alertId: string): void => {
+    setAlerts(prevAlerts => 
+      prevAlerts.map(alert => 
+        alert.id === alertId ? { ...alert, isRead: true } : alert
+      )
+    );
+    setUnreadCount(prev => Math.max(0, prev - 1));
+  };
+
   // Filter alerts based on search term
   const filteredAlerts = alerts.filter(alert => {
     const searchLower = searchTerm.toLowerCase();
@@ -259,32 +293,38 @@ function AlertsTab(): React.JSX.Element {
     const date = new Date(timestamp);
     const now = new Date();
     
-    // Always show actual time for events from today
-    if (date.toDateString() === now.toDateString()) {
-      return `Today at ${date.toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })}`;
+    const diffMs = now.getTime() - date.getTime();
+    const diffMins = Math.round(diffMs / 60000);
+    const diffHrs = Math.round(diffMs / 3600000);
+    
+    // Show relative time for recent events
+    if (diffMins < 60) {
+      return diffMins <= 1 ? 'Just now' : `${diffMins} minutes ago`;
+    } else if (diffHrs < 24) {
+      return `${diffHrs} ${diffHrs === 1 ? 'hour' : 'hours'} ago`;
     }
     
     // For older events
-    return `${date.toLocaleDateString()} ${date.toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })}`;
+    return `${date.toLocaleDateString()} at ${date.toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })}`;
   };
   
-  // Get icon for alert type with improved icons
+  // Get icon for alert type with improved modern icons
   const getAlertIcon = (type: string): React.ReactNode => {
     switch (type) {
       case 'speeding':
-        return <SpeedIcon />; // Keep the speed icon as it's good
+        return <SpeedIcon />; // Modern speedometer icon
       case 'harsh_braking':
-        return <FlightLandIcon style={{ transform: 'rotate(45deg)' }} />; // Better braking icon
+        return <BrakingIcon />; // Braking (emergency stop)
       case 'harsh_acceleration':
-        return <FlightTakeoffIcon style={{ transform: 'rotate(45deg)' }} />; // Better acceleration icon
+        return <FlightTakeoffIcon />; // Acceleration
       case 'swerving':
-        return <AltRouteIcon />; // Better swerving icon
+        return <TireRepairIcon />; // Swerving/tire tracks
       case 'geofence':
-        return <LocationOffIcon />; // For geofence alerts
+        return <GpsOffIcon />; // Modern GPS off icon
       case 'accident':
-        return <CrisisAlertIcon />; // For accident detection
+        return <ReportIcon />; // Modern report/warning icon
       default:
-        return <WarningIcon />;
+        return <NotificationsNoneIcon />;
     }
   };
   
@@ -292,99 +332,199 @@ function AlertsTab(): React.JSX.Element {
   const getAlertColor = (severity: string): string => {
     switch (severity) {
       case 'error':
-        return 'error.main';
+        return '#f44336'; // Red
       case 'warning':
-        return 'warning.main';
+        return '#ff9800'; // Orange
       default:
-        return 'info.main';
+        return '#2196f3'; // Blue
+    }
+  };
+
+  // Get background color for alert severity (lighter version)
+  const getAlertBgColor = (severity: string): string => {
+    switch (severity) {
+      case 'error':
+        return 'rgba(244, 67, 54, 0.08)';
+      case 'warning':
+        return 'rgba(255, 152, 0, 0.08)';
+      default:
+        return 'rgba(33, 150, 243, 0.08)';
     }
   };
 
   return (
     <Box sx={{ mt: 3, width: '100%' }}>
-      {/* Add search box for alerts */}
-      <TextField
-        fullWidth
-        variant="outlined"
-        placeholder="Search alerts by vehicle, type, or message..."
-        value={searchTerm}
-        onChange={handleSearchChange}
-        sx={{ mb: 3 }}
-        InputProps={{
-          startAdornment: (
-            <InputAdornment position="start">
-              <SearchIcon />
-            </InputAdornment>
-          ),
-        }}
-      />
+      {/* Header with search and badge */}
+      <Box sx={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', mb: 3 }}>
+        <Typography variant="h5" fontWeight="600" sx={{ display: 'flex', alignItems: 'center' }}>
+          <ShieldIcon sx={{ mr: 1, fontSize: 28 }} />
+          Fleet Alerts
+          {unreadCount > 0 && (
+            <Badge 
+              badgeContent={unreadCount} 
+              color="error" 
+              sx={{ ml: 2 }}
+              anchorOrigin={{
+                vertical: 'top',
+                horizontal: 'right',
+              }}
+            >
+              <NotificationsActiveIcon color="action" />
+            </Badge>
+          )}
+        </Typography>
+        
+        <TextField
+          placeholder="Search alerts..."
+          value={searchTerm}
+          onChange={handleSearchChange}
+          size="small"
+          sx={{ 
+            width: { xs: '50%', md: '300px' },
+            '& .MuiOutlinedInput-root': {
+              borderRadius: '20px',
+            }
+          }}
+          InputProps={{
+            startAdornment: (
+              <InputAdornment position="start">
+                <SearchIcon fontSize="small" />
+              </InputAdornment>
+            ),
+          }}
+        />
+      </Box>
     
       <Paper sx={{ 
         p: 3, 
-        borderRadius: 3, 
+        borderRadius: 2, 
         mb: 3,
-        minHeight: { xs: 'auto', md: '400px' }
-      }}>
-        <Typography variant="h6" fontWeight="medium" sx={{ mb: 2 }}>Fleet Alerts</Typography>
-        
+        minHeight: { xs: 'auto', md: '400px' },
+        boxShadow: '0 4px 20px rgba(0,0,0,0.05)'
+      }} elevation={0}>
         {loading ? (
           <Box sx={{ display: 'flex', justifyContent: 'center', my: 4 }}>
-            <CircularProgress />
+            <CircularProgress size={40} />
           </Box>
         ) : null}
         
         {!loading && error ? (
-          <Typography color="error" sx={{ textAlign: 'center', my: 4 }}>
-            {error}
-          </Typography>
+          <Box sx={{ 
+            display: 'flex', 
+            justifyContent: 'center', 
+            alignItems: 'center', 
+            my: 4, 
+            p: 3, 
+            bgcolor: 'rgba(244, 67, 54, 0.08)', 
+            borderRadius: 2 
+          }}>
+            <Typography color="error" sx={{ display: 'flex', alignItems: 'center' }}>
+              <ReportIcon sx={{ mr: 1 }} />
+              {error}
+            </Typography>
+          </Box>
         ) : null}
         
         {!loading && !error && filteredAlerts.length === 0 && (
-          <Typography sx={{ textAlign: 'center', my: 4, color: 'text.secondary' }}>
-            {searchTerm ? 'No alerts match your search criteria.' : 'No alerts found. All vehicles operating within normal parameters.'}
-          </Typography>
+          <Box sx={{ 
+            display: 'flex', 
+            flexDirection: 'column', 
+            alignItems: 'center', 
+            justifyContent: 'center', 
+            my: 8, 
+            color: 'text.secondary' 
+          }}>
+            <CheckCircleIcon sx={{ fontSize: 60, mb: 2, color: 'success.main', opacity: 0.8 }} />
+            <Typography variant="h6">
+              {searchTerm ? 'No alerts match your search criteria.' : 'All systems normal'}
+            </Typography>
+            <Typography variant="body2" color="text.secondary" sx={{ mt: 1 }}>
+              {searchTerm ? 'Try adjusting your search terms.' : 'All vehicles operating within normal parameters.'}
+            </Typography>
+          </Box>
         )}
         
         {!loading && !error && filteredAlerts.length > 0 && (
-          <List>
-            {filteredAlerts.map(alert => (
-              <ListItem 
-                key={alert.id}
-                sx={{ 
-                  borderRadius: 2, 
-                  mb: 1,
-                  borderLeft: 4,
-                  borderColor: getAlertColor(alert.severity),
-                  bgcolor: `${getAlertColor(alert.severity)}10`,
-                }}
-              >
-                <ListItemIcon>
-                  <Box sx={{ 
-                    p: 1, 
-                    borderRadius: '50%', 
-                    bgcolor: getAlertColor(alert.severity),
-                    color: 'white'
-                  }}>
-                    {getAlertIcon(alert.type)}
-                  </Box>
-                </ListItemIcon>
-                <ListItemText 
-                  primary={
-                    <Box sx={{ display: 'flex', justifyContent: 'space-between' }}>
-                      <Typography fontWeight="medium">{alert.type.replace('_', ' ').toUpperCase()} Alert</Typography>
-                      <Typography variant="body2" color="text.secondary">{formatTimestamp(alert.timestamp)}</Typography>
-                    </Box>
-                  }
-                  secondary={
-                    <>
-                      <Typography variant="body2">{alert.message}</Typography>
-                      <Typography variant="caption" color="text.secondary">
-                        {alert.carInfo.model} ({alert.carInfo.plateNumber})
-                      </Typography>
-                    </>
-                  }
-                />
-              </ListItem>
+          <List sx={{ p: 0 }}>
+            {filteredAlerts.map((alert, index) => (
+              <React.Fragment key={alert.id}>
+                <ListItem 
+                  sx={{ 
+                    p: 2,
+                    borderRadius: 2, 
+                    mb: 1,
+                    bgcolor: alert.isRead ? 'transparent' : getAlertBgColor(alert.severity),
+                    transition: 'all 0.2s ease',
+                    '&:hover': {
+                      bgcolor: getAlertBgColor(alert.severity),
+                      transform: 'translateY(-2px)',
+                      boxShadow: '0 4px 12px rgba(0,0,0,0.08)'
+                    },
+                  }}
+                >
+                  <ListItemIcon>
+                    <Avatar sx={{ 
+                      bgcolor: getAlertColor(alert.severity),
+                      color: 'white',
+                      width: 44,
+                      height: 44
+                    }}>
+                      {getAlertIcon(alert.type)}
+                    </Avatar>
+                  </ListItemIcon>
+                  
+                  <ListItemText 
+                    primary={
+                      <Box sx={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
+                        <Box sx={{ display: 'flex', alignItems: 'center' }}>
+                          <Typography fontWeight="600">
+                            {alert.type.replace('_', ' ').charAt(0).toUpperCase() + alert.type.replace('_', ' ').slice(1)} Alert
+                          </Typography>
+                          {!alert.isRead && (
+                            <Chip 
+                              label="NEW" 
+                              size="small" 
+                              sx={{ 
+                                ml: 1, 
+                                height: 20, 
+                                fontSize: '0.7rem',
+                                bgcolor: getAlertColor(alert.severity),
+                                color: 'white'
+                              }} 
+                            />
+                          )}
+                        </Box>
+                        <Typography variant="caption" color="text.secondary">{formatTimestamp(alert.timestamp)}</Typography>
+                      </Box>
+                    }
+                    secondary={
+                      <>
+                        <Typography variant="body2" sx={{ mt: 0.5, mb: 0.5 }}>{alert.message}</Typography>
+                        <Box sx={{ display: 'flex', alignItems: 'center', mt: 1 }}>
+                          <ElectricCarIcon sx={{ fontSize: '1rem', mr: 0.5, color: 'text.secondary' }} />
+                          <Typography variant="caption" color="text.secondary">
+                            {alert.carInfo.model} • {alert.carInfo.plateNumber}
+                          </Typography>
+                        </Box>
+                      </>
+                    }
+                  />
+                  
+                  <Tooltip title="Mark as read">
+                    <IconButton 
+                      size="small" 
+                      onClick={() => markAsRead(alert.id)} 
+                      sx={{ 
+                        opacity: alert.isRead ? 0.3 : 1,
+                        '&:hover': { bgcolor: 'rgba(0,0,0,0.05)' } 
+                      }}
+                    >
+                      <CheckCircleIcon fontSize="small" />
+                    </IconButton>
+                  </Tooltip>
+                </ListItem>
+                {index < filteredAlerts.length - 1 && <Divider variant="inset" sx={{ ml: 7 }} />}
+              </React.Fragment>
             ))}
           </List>
         )}
@@ -392,61 +532,135 @@ function AlertsTab(): React.JSX.Element {
       
       <Paper sx={{ 
         p: 3, 
-        borderRadius: 3,
-        minHeight: { xs: 'auto', md: '300px' }
-      }}>
-        <Typography variant="h6" fontWeight="medium" sx={{ mb: 2 }}>Company Alert Settings</Typography>
-        <AlertSettingItem 
-          title="Harsh Braking" 
-          description="Notify when harsh braking events are detected" 
-          checked={alertSettings.harshBraking}
-          onChange={handleSettingChange('harshBraking')}
-        />
-        <AlertSettingItem 
-          title="Hard Acceleration" 
-          description="Notify when aggressive acceleration is detected" 
-          checked={alertSettings.hardAcceleration}
-          onChange={handleSettingChange('hardAcceleration')}
-        />
-        <AlertSettingItem 
-          title="Swerving" 
-          description="Notify when sudden lane changes or swerving occurs" 
-          checked={alertSettings.swerving}
-          onChange={handleSettingChange('swerving')}
-        />
-        <AlertSettingItem 
-          title="Over Speed" 
-          description="Notify when vehicle exceeds speed limits" 
-          checked={alertSettings.overSpeed}
-          onChange={handleSettingChange('overSpeed')}
-        />
-        <AlertSettingItem 
-          title="Geofence Boundary" 
-          description="Notify when vehicle leaves designated area" 
-          checked={alertSettings.geofence}
-          onChange={handleSettingChange('geofence')}
-        />
+        borderRadius: 2,
+        minHeight: { xs: 'auto', md: '300px' },
+        boxShadow: '0 4px 20px rgba(0,0,0,0.05)'
+      }} elevation={0}>
+        <Box sx={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', mb: 3 }}>
+          <Typography variant="h6" fontWeight="600" sx={{ display: 'flex', alignItems: 'center' }}>
+            <NotificationsNoneIcon sx={{ mr: 1 }} />
+            Alert Settings
+          </Typography>
+          <Chip 
+            icon={alertSettings.harshBraking || alertSettings.hardAcceleration || alertSettings.swerving || alertSettings.overSpeed || alertSettings.geofence ? 
+              <NotificationsActiveIcon fontSize="small" /> : 
+              <NotificationsOffIcon fontSize="small" />
+            } 
+            label={alertSettings.harshBraking || alertSettings.hardAcceleration || alertSettings.swerving || alertSettings.overSpeed || alertSettings.geofence ? 
+              "Notifications Active" : 
+              "All Notifications Off"
+            }
+            color={alertSettings.harshBraking || alertSettings.hardAcceleration || alertSettings.swerving || alertSettings.overSpeed || alertSettings.geofence ? 
+              "primary" : 
+              "default"
+            }
+            variant="outlined"
+            size="small"
+          />
+        </Box>
+        
+        <List sx={{ p: 0 }}>
+          <AlertSettingItem 
+            title="Harsh Braking" 
+            description="Notify when harsh braking events are detected" 
+            checked={alertSettings.harshBraking}
+            onChange={handleSettingChange('harshBraking')}
+            icon={<TrendingDownIcon />}
+          />
+          <AlertSettingItem 
+            title="Hard Acceleration" 
+            description="Notify when aggressive acceleration is detected" 
+            checked={alertSettings.hardAcceleration}
+            onChange={handleSettingChange('hardAcceleration')}
+            icon={<TrendingUpIcon />}
+          />
+          <AlertSettingItem 
+            title="Swerving" 
+            description="Notify when sudden lane changes or swerving occurs" 
+            checked={alertSettings.swerving}
+            onChange={handleSettingChange('swerving')}
+            icon={<OpenInFullIcon />}
+          />
+          <AlertSettingItem 
+            title="Speed Limit" 
+            description="Notify when vehicle exceeds speed limits" 
+            checked={alertSettings.overSpeed}
+            onChange={handleSettingChange('overSpeed')}
+            icon={<TimerIcon />}
+          />
+          <AlertSettingItem 
+            title="Geofence Boundary" 
+            description="Notify when vehicle leaves designated area" 
+            checked={alertSettings.geofence}
+            onChange={handleSettingChange('geofence')}
+            icon={<GpsOffIcon />}
+          />
+        </List>
       </Paper>
     </Box>
   );
 }
 
-// Alert Setting Item Component
+// Alert Setting Item Component with improved design
 interface AlertSettingItemProps {
   title: string;
   description: string;
   checked: boolean;
   onChange: (event: React.ChangeEvent<HTMLInputElement>) => void;
+  icon: React.ReactNode;
 }
 
-function AlertSettingItem({ title, description, checked, onChange }: AlertSettingItemProps): React.JSX.Element {
+function AlertSettingItem({ title, description, checked, onChange, icon }: AlertSettingItemProps): React.JSX.Element {
   return (
-    <ListItem sx={{ bgcolor: '#f5f5f5', borderRadius: 1, mb: 1 }}>
+    <ListItem 
+      sx={{ 
+        p: 2,
+        borderRadius: 2, 
+        mb: 1.5,
+        bgcolor: 'background.default',
+        transition: 'all 0.2s ease',
+        '&:hover': {
+          bgcolor: 'rgba(0,0,0,0.02)',
+        },
+      }}
+      secondaryAction={
+        <Switch 
+          checked={checked} 
+          onChange={onChange} 
+          edge="end" 
+          color="primary"
+          sx={{
+            '& .MuiSwitch-switchBase.Mui-checked': {
+              color: '#3f51b5',
+            },
+            '& .MuiSwitch-switchBase.Mui-checked + .MuiSwitch-track': {
+              backgroundColor: '#3f51b5',
+            },
+          }}
+        />
+      }
+    >
+      <ListItemIcon>
+        <Avatar 
+          sx={{ 
+            bgcolor: checked ? 'rgba(63, 81, 181, 0.12)' : 'rgba(0, 0, 0, 0.08)',
+            color: checked ? '#3f51b5' : 'text.secondary',
+            width: 36,
+            height: 36
+          }}
+        >
+          {icon}
+        </Avatar>
+      </ListItemIcon>
       <ListItemText 
-        primary={<Typography fontWeight="medium">{title}</Typography>}
+        primary={<Typography fontWeight="500">{title}</Typography>}
         secondary={description}
+        sx={{
+          '& .MuiTypography-root': {
+            color: checked ? 'text.primary' : 'text.secondary',
+          }
+        }}
       />
-      <Switch checked={checked} onChange={onChange} edge="end" />
     </ListItem>
   );
 }
