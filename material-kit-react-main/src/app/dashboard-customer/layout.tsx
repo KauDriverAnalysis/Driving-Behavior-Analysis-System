@@ -3,8 +3,9 @@
 import * as React from 'react';
 import Box from '@mui/material/Box';
 import Container from '@mui/material/Container';
+import GlobalStyles from '@mui/material/GlobalStyles';
 import { SideNav } from '@/components/dashboard-customer/layout/side-nav';
-import { TopNav } from '@/components/dashboard-customer/layout/top-nav.tsx';
+import { TopNav } from '@/components/dashboard-customer/layout/top-nav';
 import { AuthGuard } from '@/components/auth/auth-guard';
 import { NotificationsProvider } from '@/contexts/notifications-context';
 
@@ -18,35 +19,42 @@ export default function Layout({ children }: LayoutProps): React.JSX.Element {
   return (
     <AuthGuard>
       <NotificationsProvider>
-        <Box component="main" sx={{ display: 'flex' }}>
+        {/* Add GlobalStyles to match admin dashboard */}
+        <GlobalStyles
+          styles={{
+            body: {
+              '--MainNav-height': '56px',
+              '--MainNav-zIndex': 1000,
+              '--SideNav-width': '280px',
+              '--SideNav-zIndex': 1100,
+              '--MobileNav-width': '320px',
+              '--MobileNav-zIndex': 1100,
+            },
+          }}
+        />
+        <Box
+          sx={{
+            bgcolor: 'var(--mui-palette-background-default)',
+            display: 'flex',
+            flexDirection: 'column',
+            position: 'relative',
+            minHeight: '100%',
+          }}
+        >
           <SideNav onClose={(): void => setOpenNav(false)} open={openNav} />
-          <Box
-            sx={{
-              flexGrow: 1,
-              paddingLeft: { xs: 0, lg: '280px' }, // Add padding equal to SideNav width on large screens
-              width: { xs: '100%', lg: 'calc(100% - 280px)' }, // Adjust width to account for SideNav
-              ml: { xs: 0, lg: 'auto' }, // Auto margin on large screens
-              minHeight: '100vh'
-            }}
-          >
+          <Box sx={{ display: 'flex', flex: '1 1 auto', flexDirection: 'column', pl: { lg: 'var(--SideNav-width)' } }}>
             <TopNav onNavOpen={(): void => setOpenNav(true)} />
-            <Box
-              sx={{
-                pt: 8, // Padding to account for the TopNav height
-                pb: 8,
-                overflow: 'hidden' // Prevent horizontal scrolling
-              }}
-            >
+            <main>
               <Container 
                 maxWidth="xl" 
                 sx={{ 
-                  pt: 3,
-                  px: { xs: 2, sm: 3 } // Responsive horizontal padding
+                  py: '64px',
+                  px: { xs: 2, sm: 3 }
                 }}
               >
                 {children}
               </Container>
-            </Box>
+            </main>
           </Box>
         </Box>
       </NotificationsProvider>
