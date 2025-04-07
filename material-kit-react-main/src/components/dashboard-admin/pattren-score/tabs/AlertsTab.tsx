@@ -41,6 +41,9 @@ import NotificationsNoneIcon from '@mui/icons-material/NotificationsNone';
 import TrendingUpIcon from '@mui/icons-material/TrendingUp'; // For acceleration
 import TrendingDownIcon from '@mui/icons-material/TrendingDown'; // For braking
 import TimerIcon from '@mui/icons-material/Timer'; // For speed limits
+import CompareArrowsIcon from '@mui/icons-material/CompareArrows';
+import LocationOffIcon from '@mui/icons-material/LocationOff';
+import WarningIcon from '@mui/icons-material/Warning';
 import type { Alert } from '@/types/alert';
 
 interface Car {
@@ -308,21 +311,21 @@ function AlertsTab(): React.JSX.Element {
     return `${date.toLocaleDateString()} at ${date.toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })}`;
   };
   
-  // Get icon for alert type with improved modern icons
+  // Get icon for alert type with improved relevant icons
   const getAlertIcon = (type: string): React.ReactNode => {
     switch (type) {
       case 'speeding':
-        return <SpeedIcon />; // Modern speedometer icon
+        return <SpeedIcon />; // Speedometer icon (already good)
       case 'harsh_braking':
-        return <BrakingIcon />; // Braking (emergency stop)
+        return <TrendingDownIcon />; // Downward trend - perfect for braking
       case 'harsh_acceleration':
-        return <FlightTakeoffIcon />; // Acceleration
+        return <TrendingUpIcon />; // Upward trend - perfect for acceleration
       case 'swerving':
-        return <TireRepairIcon />; // Swerving/tire tracks
+        return <CompareArrowsIcon />; // Sideways arrows - good for lateral movement
       case 'geofence':
-        return <GpsOffIcon />; // Modern GPS off icon
+        return <LocationOffIcon />; // Location boundary exit
       case 'accident':
-        return <ReportIcon />; // Modern report/warning icon
+        return <WarningIcon />; // Warning triangle - universal accident symbol
       default:
         return <NotificationsNoneIcon />;
     }
@@ -565,21 +568,21 @@ function AlertsTab(): React.JSX.Element {
             description="Notify when harsh braking events are detected" 
             checked={alertSettings.harshBraking}
             onChange={handleSettingChange('harshBraking')}
-            icon={<TrendingDownIcon />}
+            icon={<TrendingDownIcon />} // Updated from previous icon
           />
           <AlertSettingItem 
             title="Hard Acceleration" 
             description="Notify when aggressive acceleration is detected" 
             checked={alertSettings.hardAcceleration}
             onChange={handleSettingChange('hardAcceleration')}
-            icon={<TrendingUpIcon />}
+            icon={<TrendingUpIcon />} // Updated from previous icon
           />
           <AlertSettingItem 
             title="Swerving" 
             description="Notify when sudden lane changes or swerving occurs" 
             checked={alertSettings.swerving}
             onChange={handleSettingChange('swerving')}
-            icon={<OpenInFullIcon />}
+            icon={<CompareArrowsIcon />} // Updated from OpenInFullIcon
           />
           <AlertSettingItem 
             title="Speed Limit" 
