@@ -48,8 +48,9 @@ interface PerformanceTrendData {
 }
 
 interface TripHistoryItem {
-  start: string;
-  destination: string;
+  tripNumber: number;
+  start?: string;
+  destination?: string;
   time: string;
   score: number;
   miles: number;
@@ -218,16 +219,13 @@ export default function CustomerOverview(): React.JSX.Element {
           scores: scores
         });
         
-        
-        // Set a simple trip history based on the time frame
-        // In a real implementation, this would come from the API
+        // Set a simple trip history based on the time frame with trip numbers
         const trips = [];
         const tripCount = timeFrame === '1d' ? 2 : (timeFrame === '7d' ? 5 : 8);
         
         for (let i = 0; i < tripCount; i++) {
           trips.push({
-            start: 'Home',
-            destination: 'Office',
+            tripNumber: i + 1,  // Sequential trip number starting at 1
             time: trendLabels[i % trendLabels.length],
             score: Math.round(scores[i % scores.length]),
             miles: Math.round(Math.random() * 20 + 5)

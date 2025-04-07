@@ -1,8 +1,8 @@
 // TripHistory.tsx
 import * as React from 'react';
 import Card from '@mui/material/Card';
-import CardContent from '@mui/material/CardContent';
-import Typography from '@mui/material/Typography';
+import CardHeader from '@mui/material/CardHeader';
+import Divider from '@mui/material/Divider';
 import Box from '@mui/material/Box';
 import Table from '@mui/material/Table';
 import TableBody from '@mui/material/TableBody';
@@ -10,105 +10,90 @@ import TableCell from '@mui/material/TableCell';
 import TableContainer from '@mui/material/TableContainer';
 import TableHead from '@mui/material/TableHead';
 import TableRow from '@mui/material/TableRow';
+import Typography from '@mui/material/Typography';
+import DirectionsCarIcon from '@mui/icons-material/DirectionsCar';
 import Chip from '@mui/material/Chip';
-import ArrowRightAltIcon from '@mui/icons-material/ArrowRightAlt';
-import AccessTimeIcon from '@mui/icons-material/AccessTime';
-import SpeedIcon from '@mui/icons-material/Speed';
-import StraightenIcon from '@mui/icons-material/Straighten';
+
+interface TripHistoryItem {
+  tripNumber: number;
+  time: string;
+  score: number;
+  miles: number;
+}
 
 interface TripHistoryProps {
-  data: {
-    start: string;
-    destination: string;
-    time: string;
-    score: number;
-    miles: number;
-  }[];
+  data: TripHistoryItem[];
   timeFrame: '1d' | '7d' | '30d';
 }
 
-// Function to determine score color
-const getScoreColor = (score: number) => {
-  if (score >= 90) return 'success';
-  if (score >= 75) return 'info';
-  if (score >= 60) return 'warning';
-  return 'error';
+const ScoreChip = ({ score }: { score: number }) => {
+  const getScoreColor = (score: number) => {
+    if (score >= 90) return 'success';
+    if (score >= 75) return 'info';
+    if (score >= 60) return 'warning';
+    return 'error';
+  };
+
+  return (
+    <Chip
+      label={`${score}/100`}
+      size="small"
+      color={getScoreColor(score)}
+      variant="outlined"
+    />
+  );
 };
 
-export function TripHistory({ data, timeFrame }: TripHistoryProps) {
+export function TripHistory({ data, timeFrame }: TripHistoryProps): React.JSX.Element {
   return (
-    <Card>
-      <CardContent>
-        <Box sx={{ mb: 3 }}>
-          <Typography variant="h6" gutterBottom>
-            Recent Trip History
-          </Typography>
-          <Typography color="text.secondary" variant="body2">
-            Your driving activity for the past {timeFrame === '1d' ? 'day' : timeFrame === '7d' ? 'week' : 'month'}
-          </Typography>
-        </Box>
-
-        <TableContainer>
-          <Table sx={{ minWidth: 650 }}>
-            <TableHead>
-              <TableRow>
-                <TableCell>Trip</TableCell>
-                <TableCell>Time</TableCell>
-                <TableCell>Distance</TableCell>
-                <TableCell>Score</TableCell>
+    <Card sx={{ height: '100%' }}>
+      <CardHeader
+        title="Trip History"
+        subheader={`Recent trips from the last ${timeFrame === '1d' ? 'day' : timeFrame === '7d' ? 'week' : 'month'}`}
+      />
+      <Divider />
+      <Box sx={{ minWidth: 800, overflowX: 'auto' }}>
+        <Table>
+          <TableHead>
+            <TableRow>
+              <TableCell>Trip </TableCell>
+              <TableCell>Time</TableCell>
+              <TableCell>Miles</TableCell>
+              <TableCell>Score</TableCell>
+              <TableCell>Grade</TableCell>
+            </TableRow>
+          </TableHead>
+          <TableBody>
+            {data.map((trip) => (
+              <TableRow
+                hover
+                key={trip.tripNumber}
+              >
+                <TableCell>
+                  <Box sx={{ display: 'flex', alignItems: 'center' }}>
+                    <DirectionsCarIcon
+                      sx={{
+                        color: 'primary.main',
+                        fontSize: 20,
+                        mr: 1
+                      }}
+                    />
+                    <Typography variant="body2">
+                      Trip {trip.tripNumber}
+                    </Typography>
+                  </Box>
+                </TableCell>
+                <TableCell>{trip.time}</TableCell>
+                <TableCell>{trip.miles}</TableCell>
+                <TableCell>{trip.score}</TableCell>
+                <TableCell>
+                  <ScoreChip score={trip.score} />
+                </TableCell>
               </TableRow>
-            </TableHead>
-            <TableBody>
-              {data.map((trip, index) => (
-                <TableRow key={index} sx={{ '&:last-child td, &:last-child th': { border: 0 } }}>
-                  <TableCell>
-                    <Box sx={{ display: 'flex', alignItems: 'center' }}>
-                      <Typography variant="body2" fontWeight="medium">
-                        {trip.start}
-                      </Typography>
-                      <ArrowRightAltIcon sx={{ mx: 1 }} />
-                      <Typography variant="body2" fontWeight="medium">
-                        {trip.destination}
-                      </Typography>
-                    </Box>
-                  </TableCell>
-                  <TableCell>
-                    <Box sx={{ display: 'flex', alignItems: 'center' }}>
-                      <AccessTimeIcon fontSize="small" sx={{ mr: 1, color: 'text.secondary' }} />
-                      <Typography variant="body2">{trip.time}</Typography>
-                    </Box>
-                  </TableCell>
-                  <TableCell>
-                    <Box sx={{ display: 'flex', alignItems: 'center' }}>
-                      <StraightenIcon fontSize="small" sx={{ mr: 1, color: 'text.secondary' }} />
-                      <Typography variant="body2">{trip.miles} miles</Typography>
-                    </Box>
-                  </TableCell>
-                  <TableCell>
-                    <Box sx={{ display: 'flex', alignItems: 'center' }}>
-                      <SpeedIcon fontSize="small" sx={{ mr: 1, color: 'text.secondary' }} />
-                      <Chip 
-                        label={`${trip.score}/100`} 
-                        size="small" 
-                        color={getScoreColor(trip.score)} 
-                        variant="outlined"
-                      />
-                    </Box>
-                  </TableCell>
-                </TableRow>
-              ))}
-            </TableBody>
-          </Table>
-        </TableContainer>
-        
-        {data.length === 0 && (
-          <Box sx={{ p: 3, textAlign: 'center' }}>
-            <Typography variant="body1" color="text.secondary">
-              No trips recorded in this time period
-            </Typography>
-          </Box>
-        )}
-      </CardContent>
+            ))}
+          </TableBody>
+        </Table>
+      </Box>
     </Card>
   );
 }
