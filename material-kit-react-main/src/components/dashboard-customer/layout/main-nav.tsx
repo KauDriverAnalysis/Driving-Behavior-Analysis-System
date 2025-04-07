@@ -1,110 +1,111 @@
 'use client';
 
-import * as React from 'react';
-import { useRouter } from 'next/navigation';
-import { paths } from '@/paths';
+import React, { useState } from 'react';
 import Box from '@mui/material/Box';
 import Button from '@mui/material/Button';
+import Drawer from '@mui/material/Drawer';
 import IconButton from '@mui/material/IconButton';
 import Stack from '@mui/material/Stack';
-import { List as ListIcon } from '@phosphor-icons/react/dist/ssr/List';
-import { SignOut as SignOutIcon } from '@phosphor-icons/react/dist/ssr/SignOut';
-import NotificationsIcon from '@mui/icons-material/Notifications';
+import { styled } from '@mui/material/styles';
+import SignOutIcon from '@mui/icons-material/LogoutOutlined';
+import ListIcon from '@mui/icons-material/FormatListBulleted';
+import { useRouter } from 'next/navigation';
+import { NavItems } from './nav-items';
+import { paths } from '@/paths';
+import { navItems } from './config';
+import { NotificationsPopover } from '../notifications/notifications-popover';
 
-import { MobileNav } from './mobile-nav';
+const MainNavDesktop = styled(Box)(({ theme }) => ({
+  display: 'none',
+  [theme.breakpoints.up('lg')]: {
+    display: 'flex',
+    flex: '1 1 auto',
+    marginLeft: 'auto'
+  }
+}));
+
+const MainNavMobile = styled(Drawer)(({ theme }) => ({
+  [theme.breakpoints.up('lg')]: {
+    display: 'none'
+  }
+}));
 
 export function MainNav(): React.JSX.Element {
   const router = useRouter();
-  const [openNav, setOpenNav] = React.useState<boolean>(false);
+  const [openNav, setOpenNav] = useState(false);
   
-  const handleSignOut = async () => {
-    try {
-      console.log('Starting sign out...');
-      localStorage.clear();
-      sessionStorage.clear();
-      console.log('Storage cleared');
-      
-      // Use window.location.href instead of router.push for a full page refresh
-      window.location.href = '/auth/sign-in';
-    } catch (error) {
-      console.error('Sign out failed:', error);
-      window.location.href = '/auth/sign-in';
-    }
+  const handleSignOut = (): void => {
+    // Clear all user data from localStorage
+    localStorage.clear();
+    // Redirect to login page
+    router.push(paths.auth.login);
   };
-  
+
   return (
-    <React.Fragment>
+    <>
+      <MainNavDesktop>
+        <NavItems items={navItems} />
+      </MainNavDesktop>
+
+      <MainNavMobile
+        anchor="right"
+        onClose={(): void => { setOpenNav(false); }}
+        open={openNav}
+        variant="temporary"
+        PaperProps={{ sx: { width: 256 } }}
+      >
+        <Box sx={{ p: 2 }}>
+          <NavItems items={navItems} />
+        </Box>
+      </MainNavMobile>
+
       <Box
-        component="header"
         sx={{
-          borderBottom: '1px solid var(--mui-palette-divider)',
-          backgroundColor: 'var(--mui-palette-background-paper)',
-          position: 'sticky',
-          top: 0,
-          zIndex: 'var(--mui-zIndex-appBar)',
+          display: 'flex',
+          flex: '1 1 auto',
+          alignItems: 'center', 
+          justifyContent: 'space-between', 
+          minHeight: '64px', 
+          px: 2 
         }}
       >
+        <IconButton
+          onClick={(): void => {
+            setOpenNav(true);
+          }}
+          sx={{ display: { lg: 'none' } }}
+        >
+          <ListIcon />
+        </IconButton>
+
         <Stack
           direction="row"
           spacing={2}
-          sx={{ 
-            alignItems: 'center', 
-            justifyContent: 'space-between', 
-            minHeight: '64px', 
-            px: 2 
+          sx={{
+            ml: 'auto',
+            alignItems: 'center'
           }}
         >
-          <IconButton
-            onClick={(): void => {
-              setOpenNav(true);
-            }}
-            sx={{ display: { lg: 'none' } }}
-          >
-            <ListIcon />
-          </IconButton>
+          <Box sx={{ display: 'flex', alignItems: 'center', gap: 1 }}>
+            <NotificationsPopover />
+          </Box>
 
-          <Stack
-            direction="row"
-            spacing={2}
-            sx={{
-              ml: 'auto',
-              alignItems: 'center'
+          <Button 
+            variant="contained"
+            startIcon={<SignOutIcon />}
+            onClick={handleSignOut}
+            sx={{ 
+              fontWeight: 600,
+              boxShadow: 'none',
+              '&:hover': {
+                boxShadow: 'none'
+              }
             }}
           >
-            <Box sx={{ display: 'flex', alignItems: 'center', gap: 1 }}>
-              <IconButton 
-                sx={{ 
-                  color: 'primary.main',
-                  '&:hover': { bgcolor: 'primary.light' }
-                }}
-                size="small"
-              >
-                <NotificationsIcon />
-              </IconButton>
-            </Box>
-
-            <Button 
-              variant="contained"
-              startIcon={<SignOutIcon />}
-              onClick={handleSignOut}
-              sx={{ 
-                bgcolor: 'primary.main',
-                '&:hover': {
-                  bgcolor: 'primary.dark',
-                }
-              }}
-            >
-              Sign Out
-            </Button>
-          </Stack>
+            Sign Out
+          </Button>
         </Stack>
       </Box>
-      <MobileNav
-        onClose={() => {
-          setOpenNav(false);
-        }}
-        open={openNav}
-      />
-    </React.Fragment>
+    </>
   );
 }
