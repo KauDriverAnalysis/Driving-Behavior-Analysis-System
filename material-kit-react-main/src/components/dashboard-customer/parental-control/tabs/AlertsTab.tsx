@@ -28,7 +28,7 @@ import NotListedLocationIcon from '@mui/icons-material/NotListedLocation';
 import TrendingDownIcon from '@mui/icons-material/TrendingDown';
 import TrendingUpIcon from '@mui/icons-material/TrendingUp';
 import CompareArrowsIcon from '@mui/icons-material/CompareArrows'; // For swerving
-import LocationOffIcon from '@mui/icons-material/LocationOff'; // For geofence
+import GpsOffIcon from '@mui/icons-material/GpsOff';
 import TimerIcon from '@mui/icons-material/Timer'; // For speed
 import CrisisAlertIcon from '@mui/icons-material/CrisisAlert'; // For accidents
 import ElectricCarIcon from '@mui/icons-material/ElectricCar'; // For car details
@@ -284,7 +284,7 @@ function AlertsTab({ selectedCar, carDetails }: AlertsTabProps): React.JSX.Eleme
       case 'swerving':
         return <CompareArrowsIcon />; // Sideways arrows for lateral movement
       case 'geofence':
-        return <LocationOffIcon />; // Location boundary exit
+        return <GpsOffIcon />; // Location boundary exit
       case 'accident':
         return <WarningIcon />; // Warning triangle for accident
       default:
@@ -552,14 +552,14 @@ function AlertsTab({ selectedCar, carDetails }: AlertsTabProps): React.JSX.Eleme
             description="Notify when vehicle exceeds speed limits" 
             checked={alertSettings.overSpeed}
             onChange={handleSettingChange('overSpeed')}
-            icon={<TimerIcon />}
+            icon={<SpeedIcon />}
           />
           <AlertSettingItem 
             title="Geofence Boundary" 
             description="Notify when vehicle leaves designated area" 
             checked={alertSettings.geofence}
             onChange={handleSettingChange('geofence')}
-            icon={<LocationOffIcon />}
+            icon={<GpsOffIcon />}
           />
         </List>
       </Paper>
