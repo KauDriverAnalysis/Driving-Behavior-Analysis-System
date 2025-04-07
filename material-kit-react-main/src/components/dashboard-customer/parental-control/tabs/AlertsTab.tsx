@@ -317,9 +317,26 @@ function AlertsTab({ selectedCar, carDetails }: AlertsTabProps): React.JSX.Eleme
   };
 
   return (
-    <Box sx={{ mt: 3, width: '100%' }}>
+    <Box 
+      sx={{ 
+        mt: 3, 
+        width: '100%', 
+        maxWidth: '100%', // Ensure doesn't overflow
+        boxSizing: 'border-box', // Include padding in width calculation
+        overflow: 'hidden' // Prevent horizontal scrolling
+      }}
+    >
       {/* Header with search and badge */}
-      <Box sx={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', mb: 3 }}>
+      <Box 
+        sx={{ 
+          display: 'flex', 
+          flexDirection: { xs: 'column', sm: 'row' }, // Stack vertically on mobile
+          justifyContent: 'space-between', 
+          alignItems: { xs: 'flex-start', sm: 'center' },
+          mb: 3,
+          gap: 2 // Add space between elements when stacked
+        }}
+      >
         <Typography variant="h5" fontWeight="600" sx={{ display: 'flex', alignItems: 'center' }}>
           <ShieldIcon sx={{ mr: 1, fontSize: 28 }} />
           Vehicle Alerts
@@ -344,7 +361,7 @@ function AlertsTab({ selectedCar, carDetails }: AlertsTabProps): React.JSX.Eleme
           onChange={handleSearchChange}
           size="small"
           sx={{ 
-            width: { xs: '50%', md: '300px' },
+            width: { xs: '100%', sm: '50%', md: '300px' },
             '& .MuiOutlinedInput-root': {
               borderRadius: '20px',
             }
