@@ -4,8 +4,8 @@ import * as React from 'react';
 import Box from '@mui/material/Box';
 import Container from '@mui/material/Container';
 import { SideNav } from '@/components/dashboard-customer/layout/side-nav';
-import { TopNav } from '@/components/dashboard-customer/layout/top-nav';
-import { AuthGuard } from '@/guards/auth-guard';
+import { TopNav } from '@/components/dashboard-customer/layout/top-nav.tsx';
+import { AuthGuard } from '@/components/auth/auth-guard'; // Fixed import path
 import { NotificationsProvider } from '@/contexts/notifications-context';
 
 interface LayoutProps {

@@ -37,17 +37,22 @@ export function NotificationsPopover(): React.JSX.Element {
 
   const open = Boolean(anchorEl);
 
-  // Format timestamp to relative time
+  // Format timestamp to display exact time
   const formatTimestamp = (timestamp: string): string => {
     const date = new Date(timestamp);
     const now = new Date();
     const diffMs = now.getTime() - date.getTime();
     const diffMins = Math.round(diffMs / 60000);
     
-    if (diffMins < 1) return 'Just now';
+    // Always show actual time for events from today
+    if (date.toDateString() === now.toDateString()) {
+      return `Today at ${date.toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })}`;
+    }
+    
+    // For older events
     if (diffMins < 60) return `${diffMins} min ago`;
     if (diffMins < 1440) return `${Math.floor(diffMins / 60)} hours ago`;
-    return date.toLocaleDateString();
+    return `${date.toLocaleDateString()} ${date.toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })}`;
   };
 
   // Get icon for alert type
@@ -139,7 +144,8 @@ export function NotificationsPopover(): React.JSX.Element {
                 <ListItem
                   sx={{
                     bgcolor: alert.isRead ? 'transparent' : 'action.hover',
-                    py: 1.5
+                    py: 1.5,
+                    cursor: 'pointer'
                   }}
                   onClick={() => handleClickNotification(alert.id)}
                 >
@@ -179,7 +185,11 @@ export function NotificationsPopover(): React.JSX.Element {
         
         {alerts.length > 0 && (
           <Box sx={{ p: 1, display: 'flex', justifyContent: 'center' }}>
-            <Button size="small" onClick={() => console.log('View all clicked')}>
+            <Button 
+              size="small" 
+              href="/dashboard-customer/parental-control"
+              onClick={handleClose}
+            >
               View All
             </Button>
           </Box>

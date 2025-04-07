@@ -1,5 +1,27 @@
 import React, { createContext, useContext, useState, useEffect } from 'react';
-import type { Alert } from '@/types/alert';
+
+// Define Alert type
+export interface Alert {
+  id: string;
+  type: string;
+  message: string;
+  severity: 'error' | 'warning' | 'info' | 'success';
+  isRead: boolean;
+  timestamp: string;
+  carInfo: {
+    id: string;
+    model: string;
+    plateNumber: string;
+  }
+}
+
+interface AlertSettings {
+  harshBraking: boolean;
+  hardAcceleration: boolean;
+  swerving: boolean;
+  overSpeed: boolean;
+  geofence: boolean;
+}
 
 interface NotificationsContextType {
   alerts: Alert[];
@@ -8,15 +30,74 @@ interface NotificationsContextType {
   fetchAlerts: () => Promise<void>;
   markAllAsRead: () => void;
   markAsRead: (id: string) => void;
+  alertSettings: AlertSettings;
+  updateAlertSettings: (settings: Partial<AlertSettings>) => void;
 }
+
+const DEFAULT_ALERT_SETTINGS: AlertSettings = {
+  harshBraking: true,
+  hardAcceleration: true,
+  swerving: true,
+  overSpeed: true,
+  geofence: true
+};
 
 const NotificationsContext = createContext<NotificationsContextType | undefined>(undefined);
 
 export const NotificationsProvider: React.FC<{ children: React.ReactNode }> = ({ children }) => {
   const [alerts, setAlerts] = useState<Alert[]>([]);
   const [loading, setLoading] = useState(false);
+  const [alertSettings, setAlertSettings] = useState<AlertSettings>(DEFAULT_ALERT_SETTINGS);
+
+  // Load alert settings from localStorage on mount
+  useEffect(() => {
+    const savedSettings = localStorage.getItem('alertSettings');
+    if (savedSettings) {
+      try {
+        const parsedSettings = JSON.parse(savedSettings);
+        setAlertSettings({...DEFAULT_ALERT_SETTINGS, ...parsedSettings});
+      } catch (e) {
+        console.error('Failed to parse alert settings:', e);
+      }
+    }
+  }, []);
+
+  const updateAlertSettings = (settings: Partial<AlertSettings>) => {
+    const newSettings = {...alertSettings, ...settings};
+    setAlertSettings(newSettings);
+    
+    // Save settings to localStorage
+    localStorage.setItem('alertSettings', JSON.stringify(newSettings));
+  };
 
   const unreadCount = alerts.filter(alert => !alert.isRead).length;
+
+  const shouldIncludeAlert = (alert: Alert): boolean => {
+    // Check time-to-live (24 hours)
+    const alertTime = new Date(alert.timestamp).getTime();
+    const now = new Date().getTime();
+    const isWithin24Hours = (now - alertTime) < 24 * 60 * 60 * 1000;
+    
+    if (!isWithin24Hours) {
+      return false;
+    }
+    
+    // Check alert type against settings
+    switch (alert.type) {
+      case 'harsh_braking':
+        return alertSettings.harshBraking;
+      case 'harsh_acceleration':
+        return alertSettings.hardAcceleration;
+      case 'swerving':
+        return alertSettings.swerving;
+      case 'speeding':
+        return alertSettings.overSpeed;
+      case 'geofence':
+        return alertSettings.geofence;
+      default:
+        return true; // Always show other alert types
+    }
+  };
 
   const fetchAlerts = async () => {
     setLoading(true);
@@ -103,7 +184,39 @@ export const NotificationsProvider: React.FC<{ children: React.ReactNode }> = ({
             });
           }
           
-          // Add more alert checks as needed...
+          // Check for harsh acceleration events
+          if (record.harsh_acceleration_events > 25) {
+            allAlerts.push({
+              id: `accel-${car.id}-${recordId}`,
+              type: 'harsh_acceleration',
+              message: `Excessive harsh acceleration detected: ${record.harsh_acceleration_events} events`,
+              severity: 'warning',
+              isRead: false,
+              timestamp: new Date().toISOString(),
+              carInfo: {
+                id: car.id,
+                model: carModel,
+                plateNumber: carPlateNumber
+              }
+            });
+          }
+          
+          // Check for swerving events
+          if (record.swerving_events > 25) {
+            allAlerts.push({
+              id: `swerve-${car.id}-${recordId}`,
+              type: 'swerving',
+              message: `Excessive swerving detected: ${record.swerving_events} events`,
+              severity: 'warning',
+              isRead: false,
+              timestamp: new Date().toISOString(),
+              carInfo: {
+                id: car.id,
+                model: carModel,
+                plateNumber: carPlateNumber
+              }
+            });
+          }
         } catch (error) {
           console.error('Error fetching car data:', error);
         }
@@ -112,7 +225,10 @@ export const NotificationsProvider: React.FC<{ children: React.ReactNode }> = ({
       // Sort alerts by timestamp (newest first)
       allAlerts.sort((a, b) => new Date(b.timestamp).getTime() - new Date(a.timestamp).getTime());
       
-      setAlerts(allAlerts);
+      // Filter alerts based on settings and TTL
+      const filteredAlerts = allAlerts.filter(shouldIncludeAlert);
+      
+      setAlerts(filteredAlerts);
     } catch (error) {
       console.error('Failed to fetch alerts', error);
     } finally {
@@ -150,7 +266,9 @@ export const NotificationsProvider: React.FC<{ children: React.ReactNode }> = ({
         loading, 
         fetchAlerts, 
         markAllAsRead, 
-        markAsRead 
+        markAsRead,
+        alertSettings,
+        updateAlertSettings
       }}
     >
       {children}
