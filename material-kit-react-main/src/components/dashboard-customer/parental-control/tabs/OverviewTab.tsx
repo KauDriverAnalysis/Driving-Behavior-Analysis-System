@@ -41,32 +41,106 @@ const OverviewTab: React.FC<OverviewTabProps> = ({ selectedCar }) => {
   const [metricsData, setMetricsData] = useState<DrivingMetricsData[]>(() => 
     transformToMetricsData(drivingHistoryData)
   );
+  const [loading, setLoading] = useState(false);
+  const [error, setError] = useState<string | null>(null);
   
-  // Add effect to fetch data when selectedCar changes
+  // Update useEffect to fetch data based on car selection
   useEffect(() => {
-    // Log the car ID for debugging
-    console.log(`Fetching overview data for car: ${selectedCar}`);
-    
-    // Example of how you would fetch and transform real data
-    if (selectedCar && selectedCar !== 'all') {
-      // This is just for the mock data - you'll replace with real API call
-      // For now, simulate by using the mock data
-      setRawData(drivingHistoryData);
-      // Transform the data to match expected format
-      const transformedData = transformToMetricsData(drivingHistoryData);
-      setMetricsData(transformedData);
+    const fetchDrivingData = async () => {
+      setLoading(true);
+      setError(null);
       
-      // When you implement the real API call, it would look like:
-      /*
-      fetch(`https://driving-behavior-analysis-system.onrender.com/api/car-driving-data/${selectedCar}/`)
-        .then(response => response.json())
-        .then(data => {
-          setRawData(data);
-          setMetricsData(transformToMetricsData(data));
-        })
-        .catch(error => console.error('Error fetching car overview data:', error));
-      */
-    }
+      try {
+        let endpoint;
+        let dataFormatter;
+        
+        if (selectedCar && selectedCar !== 'all') {
+          // Fetch data for a specific car
+          endpoint = `https://driving-behavior-analysis-system.onrender.com/api/car-driving-data/${selectedCar}/`;
+          dataFormatter = processSingleCarData;
+        } else {
+          // Fetch aggregate data for all customer's cars
+          const customerId = localStorage.getItem('customerId') || 
+                           localStorage.getItem('customer-id') || 
+                           localStorage.getItem('customer_id') ||
+                           localStorage.getItem('userId');
+          
+          endpoint = `https://driving-behavior-analysis-system.onrender.com/api/fleet-overview/?customer_id=${customerId}&time_frame=7d`;
+          dataFormatter = processFleetData;
+        }
+        
+        const response = await fetch(endpoint);
+        
+        if (!response.ok) {
+          throw new Error(`HTTP error ${response.status}`);
+        }
+        
+        const data = await response.json();
+        const processedData = dataFormatter(data);
+        
+        setMetricsData(processedData);
+        setLoading(false);
+      } catch (error) {
+        console.error('Error fetching driving data:', error);
+        setError('Failed to load driving data');
+        setLoading(false);
+      }
+    };
+    
+    // Data processing functions
+    const processSingleCarData = (data) => {
+      const { summary, history = [] } = data;
+      
+      // Process historical data if available
+      if (history.length > 0) {
+        return history.map(record => ({
+          date: new Date(record.created_at).toISOString().split('T')[0],
+          harshBraking: record.harsh_braking_events || 0,
+          hardAcceleration: record.harsh_acceleration_events || 0,
+          swerving: record.swerving_events || 0,
+          overSpeed: record.over_speed_events || 0,
+          score: record.score || 0
+        }));
+      }
+      
+      // Fallback to summary data
+      return [{
+        date: new Date().toISOString().split('T')[0],
+        harshBraking: summary?.total_harsh_braking || 0,
+        hardAcceleration: summary?.total_harsh_acceleration || 0,
+        swerving: summary?.total_swerving || 0,
+        overSpeed: summary?.total_over_speed || 0,
+        score: summary?.avg_score || 0
+      }];
+    };
+    
+    const processFleetData = (data) => {
+      const events = data.events || {};
+      const fleetStats = data.fleet_stats || {};
+      const historicalScores = data.historical_scores || [];
+      
+      if (historicalScores.length > 0) {
+        return historicalScores.map(item => ({
+          date: item.date || item.time_label,
+          harshBraking: events.harsh_braking || 0,
+          hardAcceleration: events.harsh_acceleration || 0,
+          swerving: events.swerving || 0,
+          overSpeed: events.over_speed || 0,
+          score: item.score || 0
+        }));
+      }
+      
+      return [{
+        date: new Date().toISOString().split('T')[0],
+        harshBraking: events.harsh_braking || 0,
+        hardAcceleration: events.harsh_acceleration || 0,
+        swerving: events.swerving || 0,
+        overSpeed: events.over_speed || 0,
+        score: fleetStats.avg_score || 0
+      }];
+    };
+    
+    fetchDrivingData();
   }, [selectedCar]);
 
   return (

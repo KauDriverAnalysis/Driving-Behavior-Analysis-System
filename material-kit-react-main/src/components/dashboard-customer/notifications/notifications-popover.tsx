@@ -14,10 +14,12 @@ import {
   Tooltip
 } from '@mui/material';
 import NotificationsIcon from '@mui/icons-material/Notifications';
+import NotificationsNoneIcon from '@mui/icons-material/NotificationsNone';
 import SpeedIcon from '@mui/icons-material/Speed';
 import TrendingDownIcon from '@mui/icons-material/TrendingDown';
 import TrendingUpIcon from '@mui/icons-material/TrendingUp';
-import NotListedLocationIcon from '@mui/icons-material/NotListedLocation';
+import CompareArrowsIcon from '@mui/icons-material/CompareArrows';
+import GpsOffIcon from '@mui/icons-material/GpsOff';
 import WarningIcon from '@mui/icons-material/Warning';
 import { useNotifications } from '@/contexts/notifications-context';
 
@@ -55,7 +57,7 @@ export function NotificationsPopover(): React.JSX.Element {
     return `${date.toLocaleDateString()} ${date.toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })}`;
   };
 
-  // Get icon for alert type
+  // Get icon for alert type - UPDATED to match AlertsTab component
   const getAlertIcon = (type: string): React.ReactNode => {
     switch (type) {
       case 'speeding':
@@ -65,9 +67,13 @@ export function NotificationsPopover(): React.JSX.Element {
       case 'harsh_acceleration':
         return <TrendingUpIcon fontSize="small" />;
       case 'swerving':
-        return <NotListedLocationIcon fontSize="small" />;
+        return <CompareArrowsIcon fontSize="small" />; // Updated to match AlertsTab
+      case 'geofence':
+        return <GpsOffIcon fontSize="small" />; // Added specific handler
+      case 'accident':
+        return <WarningIcon fontSize="small" />; // Added specific handler
       default:
-        return <WarningIcon fontSize="small" />;
+        return <NotificationsNoneIcon fontSize="small" />; // Changed default icon
     }
   };
 

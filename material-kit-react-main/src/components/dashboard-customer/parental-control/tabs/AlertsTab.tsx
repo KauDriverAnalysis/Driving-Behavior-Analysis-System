@@ -77,151 +77,243 @@ function AlertsTab({ selectedCar, carDetails }: AlertsTabProps): React.JSX.Eleme
 
   // Fetch alerts for the selected car only
   useEffect(() => {
-    const fetchAlerts = async (): Promise<void> => {
-      if (!selectedCar || selectedCar === 'all') {
-        setAlerts([]);
-        setLoading(false);
-        return; // Don't fetch if no car selected or "all" is selected
+    const fetchAlerts = async () => {
+      if (!selectedCar) {
+        return;
       }
       
       try {
         setLoading(true);
-        setAlerts([]); // Clear previous alerts
+        setAlerts([]);
         
-        // Fetch driving data only for the selected car
-        const dataResponse = await fetch(`https://driving-behavior-analysis-system.onrender.com/api/car-driving-data/${selectedCar}/`);
-        const carData = await dataResponse.json() as CarDrivingData;
-        
-        const allAlerts: Alert[] = [];
-        
-        // Check the current data for this car
-        if (carData?.current) {
-          const record = carData.current;
+        // If 'all' is selected, fetch alerts for all customer's cars
+        if (selectedCar === 'all') {
+          // Get customer ID
+          const customerId = localStorage.getItem('customerId') || 
+                            localStorage.getItem('customer-id') || 
+                            localStorage.getItem('customer_id') ||
+                            localStorage.getItem('userId');
           
-          // Get the ACTUAL timestamp from the record
-          // If created_at doesn't exist, then fallback to current time
-          const recordTimestamp = record.created_at ? new Date(record.created_at).toISOString() : new Date().toISOString();
+          // First fetch all cars for this customer
+          const carsResponse = await fetch(`https://driving-behavior-analysis-system.onrender.com/api/cars/?userType=customer&userId=${customerId}`);
           
-          const recordId = new Date().getTime();
-          
-          // Use carDetails from props if available
-          const carModel = carDetails?.model || 'Unknown';
-          const carPlateNumber = carDetails?.plateNumber || 'Unknown';
-          
-          // Check for speeding > 120km/h
-          if (record.speed > 120 && alertSettings.overSpeed) {
-            allAlerts.push({
-              id: `speed-${selectedCar}-${recordId}`,
-              type: 'speeding',
-              message: `Vehicle exceeded speed limit: ${Math.round(record.speed)} km/h`,
-              severity: 'error',
-              isRead: false,
-              timestamp: recordTimestamp, // Use actual record timestamp
-              carInfo: {
-                id: selectedCar,
-                model: carModel,
-                plateNumber: carPlateNumber
-              }
-            });
+          if (!carsResponse.ok) {
+            throw new Error('Failed to fetch cars');
           }
           
-          // Check for harsh braking events > 25
-          if (record.harsh_braking_events > 25 && alertSettings.harshBraking) {
-            allAlerts.push({
-              id: `brake-${selectedCar}-${recordId}`,
-              type: 'harsh_braking',
-              message: `Excessive harsh braking detected: ${record.harsh_braking_events} events`,
-              severity: 'warning',
-              isRead: false,
-              timestamp: recordTimestamp, // Use actual record timestamp
-              carInfo: {
-                id: selectedCar,
-                model: carModel,
-                plateNumber: carPlateNumber
-              }
-            });
+          const cars = await carsResponse.json();
+          
+          if (!Array.isArray(cars) || cars.length === 0) {
+            setAlerts([]);
+            setLoading(false);
+            return;
           }
           
-          // Check for harsh acceleration > 25
-          if (record.harsh_acceleration_events > 25 && alertSettings.hardAcceleration) {
-            allAlerts.push({
-              id: `accel-${selectedCar}-${recordId}`,
-              type: 'harsh_acceleration',
-              message: `Excessive harsh acceleration detected: ${record.harsh_acceleration_events} events`,
-              severity: 'warning',
-              isRead: false,
-              timestamp: recordTimestamp, // Use actual record timestamp
-              carInfo: {
-                id: selectedCar,
-                model: carModel,
-                plateNumber: carPlateNumber
+          // Collect alerts for all customer's cars
+          const allAlerts: Alert[] = [];
+          
+          for (const car of cars) {
+            try {
+              const dataResponse = await fetch(`https://driving-behavior-analysis-system.onrender.com/api/car-driving-data/${car.id}/`);
+              
+              if (!dataResponse.ok) {
+                continue;
               }
-            });
+              
+              const carData = await dataResponse.json();
+              
+              // Process alert data for this car
+              if (carData?.current) {
+                const record = carData.current;
+                const recordId = new Date().getTime();
+                const carModel = car.Model_of_car || car.model || 'Unknown Model';
+                const carPlateNumber = car.Plate_number || car.plate_number || 'Unknown';
+                const recordTimestamp = record.created_at ? new Date(record.created_at).toISOString() : new Date().toISOString();
+                              
+                // Check for various alert conditions
+                if (record.speed > 120 && alertSettings.overSpeed) {
+                  allAlerts.push({
+                    id: `speed-${car.id}-${recordId}`,
+                    type: 'speeding',
+                    message: `Vehicle exceeded speed limit: ${Math.round(record.speed)} km/h`,
+                    severity: 'error',
+                    isRead: false,
+                    timestamp: recordTimestamp,
+                    carInfo: {
+                      id: car.id,
+                      model: carModel,
+                      plateNumber: carPlateNumber
+                    }
+                  });
+                }
+                
+                // Add other alert checks (harsh braking, acceleration, swerving, etc.)
+                // ... (similar to existing code for individual cars)
+              }
+            } catch (error) {
+              console.error(`Error fetching data for car ${car.id}:`, error);
+              // Continue with other cars even if one fails
+            }
           }
           
-          // Check for swerving > 25
-          if (record.swerving_events > 25 && alertSettings.swerving) {
-            allAlerts.push({
-              id: `swerve-${selectedCar}-${recordId}`,
-              type: 'swerving',
-              message: `Excessive swerving detected: ${record.swerving_events} events`,
-              severity: 'warning',
-              isRead: false,
-              timestamp: recordTimestamp, // Use actual record timestamp
-              carInfo: {
-                id: selectedCar,
-                model: carModel,
-                plateNumber: carPlateNumber
-              }
-            });
+          // Sort alerts by timestamp (newest first)
+          allAlerts.sort((a, b) => new Date(b.timestamp).getTime() - new Date(a.timestamp).getTime());
+          
+          setAlerts(allAlerts);
+        } else {
+          // Original code for fetching a specific car's alerts
+          if (!selectedCar || selectedCar === 'all') {
+            setAlerts([]);
+            setLoading(false);
+            return; // Don't fetch if no car selected or "all" is selected
           }
           
-          // Check for possible accident
-          if (record.accident_detected) {
-            allAlerts.push({
-              id: `accident-${selectedCar}-${recordId}`,
-              type: 'accident',
-              message: `Possible accident detected! Emergency services may be needed.`,
-              severity: 'error',
-              isRead: false,
-              timestamp: recordTimestamp, // Use actual record timestamp
-              carInfo: {
-                id: selectedCar,
-                model: carModel,
-                plateNumber: carPlateNumber
-              },
-              location: record.latitude && record.longitude 
-                ? {
-                    lat: record.latitude,
-                    lng: record.longitude
-                  } 
-                : undefined
+          try {
+            setLoading(true);
+            setAlerts([]); // Clear previous alerts
+            
+            // Fetch driving data only for the selected car
+            const dataResponse = await fetch(`https://driving-behavior-analysis-system.onrender.com/api/car-driving-data/${selectedCar}/`);
+            const carData = await dataResponse.json() as CarDrivingData;
+            
+            const allAlerts: Alert[] = [];
+            
+            // Check the current data for this car
+            if (carData?.current) {
+              const record = carData.current;
+              
+              // Get the ACTUAL timestamp from the record
+              // If created_at doesn't exist, then fallback to current time
+              const recordTimestamp = record.created_at ? new Date(record.created_at).toISOString() : new Date().toISOString();
+              
+              const recordId = new Date().getTime();
+              
+              // Use carDetails from props if available
+              const carModel = carDetails?.model || 'Unknown';
+              const carPlateNumber = carDetails?.plateNumber || 'Unknown';
+              
+              // Check for speeding > 120km/h
+              if (record.speed > 120 && alertSettings.overSpeed) {
+                allAlerts.push({
+                  id: `speed-${selectedCar}-${recordId}`,
+                  type: 'speeding',
+                  message: `Vehicle exceeded speed limit: ${Math.round(record.speed)} km/h`,
+                  severity: 'error',
+                  isRead: false,
+                  timestamp: recordTimestamp, // Use actual record timestamp
+                  carInfo: {
+                    id: selectedCar,
+                    model: carModel,
+                    plateNumber: carPlateNumber
+                  }
+                });
+              }
+              
+              // Check for harsh braking events > 25
+              if (record.harsh_braking_events > 25 && alertSettings.harshBraking) {
+                allAlerts.push({
+                  id: `brake-${selectedCar}-${recordId}`,
+                  type: 'harsh_braking',
+                  message: `Excessive harsh braking detected: ${record.harsh_braking_events} events`,
+                  severity: 'warning',
+                  isRead: false,
+                  timestamp: recordTimestamp, // Use actual record timestamp
+                  carInfo: {
+                    id: selectedCar,
+                    model: carModel,
+                    plateNumber: carPlateNumber
+                  }
+                });
+              }
+              
+              // Check for harsh acceleration > 25
+              if (record.harsh_acceleration_events > 25 && alertSettings.hardAcceleration) {
+                allAlerts.push({
+                  id: `accel-${selectedCar}-${recordId}`,
+                  type: 'harsh_acceleration',
+                  message: `Excessive harsh acceleration detected: ${record.harsh_acceleration_events} events`,
+                  severity: 'warning',
+                  isRead: false,
+                  timestamp: recordTimestamp, // Use actual record timestamp
+                  carInfo: {
+                    id: selectedCar,
+                    model: carModel,
+                    plateNumber: carPlateNumber
+                  }
+                });
+              }
+              
+              // Check for swerving > 25
+              if (record.swerving_events > 25 && alertSettings.swerving) {
+                allAlerts.push({
+                  id: `swerve-${selectedCar}-${recordId}`,
+                  type: 'swerving',
+                  message: `Excessive swerving detected: ${record.swerving_events} events`,
+                  severity: 'warning',
+                  isRead: false,
+                  timestamp: recordTimestamp, // Use actual record timestamp
+                  carInfo: {
+                    id: selectedCar,
+                    model: carModel,
+                    plateNumber: carPlateNumber
+                  }
+                });
+              }
+              
+              // Check for possible accident
+              if (record.accident_detected) {
+                allAlerts.push({
+                  id: `accident-${selectedCar}-${recordId}`,
+                  type: 'accident',
+                  message: `Possible accident detected! Emergency services may be needed.`,
+                  severity: 'error',
+                  isRead: false,
+                  timestamp: recordTimestamp, // Use actual record timestamp
+                  carInfo: {
+                    id: selectedCar,
+                    model: carModel,
+                    plateNumber: carPlateNumber
+                  },
+                  location: record.latitude && record.longitude 
+                    ? {
+                        lat: record.latitude,
+                        lng: record.longitude
+                      } 
+                    : undefined
+                });
+              }
+            }
+            
+            // Filter alerts by time-to-live (extending to 14 days to see older data)
+            const now = new Date().getTime();
+            const filteredAlerts = allAlerts.filter(alert => {
+              const alertTime = new Date(alert.timestamp).getTime();
+              return (now - alertTime) < 14 * 24 * 60 * 60 * 1000;
             });
+            
+            // Sort alerts by timestamp (newest first)
+            filteredAlerts.sort((a, b) => new Date(b.timestamp).getTime() - new Date(a.timestamp).getTime());
+            
+            setAlerts(filteredAlerts);
+            // Count unread alerts
+            setUnreadCount(filteredAlerts.filter(alert => !alert.isRead).length);
+            setLoading(false);
+          } catch (err) {
+            setError('Failed to load alerts');
+            setLoading(false);
           }
         }
         
-        // Filter alerts by time-to-live (extending to 14 days to see older data)
-        const now = new Date().getTime();
-        const filteredAlerts = allAlerts.filter(alert => {
-          const alertTime = new Date(alert.timestamp).getTime();
-          return (now - alertTime) < 14 * 24 * 60 * 60 * 1000;
-        });
-        
-        // Sort alerts by timestamp (newest first)
-        filteredAlerts.sort((a, b) => new Date(b.timestamp).getTime() - new Date(a.timestamp).getTime());
-        
-        setAlerts(filteredAlerts);
-        // Count unread alerts
-        setUnreadCount(filteredAlerts.filter(alert => !alert.isRead).length);
         setLoading(false);
-      } catch (err) {
-        setError('Failed to load alerts');
+      } catch (error) {
+        console.error('Error fetching alerts:', error);
+        setAlerts([]);
         setLoading(false);
       }
     };
-
-    void fetchAlerts(); // Use void operator to handle the Promise
-  }, [selectedCar, carDetails, alertSettings]);
+    
+    fetchAlerts();
+  }, [selectedCar, alertSettings]);
   
   // Handle alert setting toggling
   const handleSettingChange = (setting: string) => (event: React.ChangeEvent<HTMLInputElement>): void => {

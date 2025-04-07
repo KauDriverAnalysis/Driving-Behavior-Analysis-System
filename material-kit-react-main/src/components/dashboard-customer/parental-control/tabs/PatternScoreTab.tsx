@@ -8,7 +8,8 @@ import {
   Button, 
   Alert, 
   Stack, 
-  Divider 
+  Divider, 
+  CircularProgress 
 } from '@mui/material';
 import { 
   PieChart, 
@@ -58,6 +59,15 @@ const PatternScoreTab: React.FC<PatternScoreTabProps> = ({
   const [scoreData, setScoreData] = useState(null);
   const [loading, setLoading] = useState(false);
   const [recalculatingScores, setRecalculatingScores] = useState(false);
+  const [historicalScores, setHistoricalScores] = useState({
+    harshBraking: 0,
+    hardAcceleration: 0,
+    swerving: 0,
+    overSpeed: 0,
+    overall: 0
+  });
+  const [historicalLoading, setHistoricalLoading] = useState(false);
+  const [historicalError, setHistoricalError] = useState<string | null>(null);
 
   // Effect to validate the total equals 100
   useEffect(() => {
@@ -132,6 +142,73 @@ const userType = "customer"; // This is the customer dashboard
         });
     }
   }, []);
+
+  // Add this useEffect to fetch historical data based on selectedCar or all cars
+  useEffect(() => {
+    const fetchHistoricalScores = async () => {
+      setHistoricalLoading(true);
+      setHistoricalError(null);
+      
+      try {
+        let endpoint;
+        
+        if (selectedCar && selectedCar !== 'all') {
+          // Fetch data for specific car
+          endpoint = `https://driving-behavior-analysis-system.onrender.com/api/car-driving-data/${selectedCar}/`;
+        } else {
+          // Fetch aggregate data for all customer's cars
+          const customerId = localStorage.getItem('customerId') || 
+                            localStorage.getItem('customer-id') || 
+                            localStorage.getItem('customer_id') ||
+                            localStorage.getItem('userId');
+                            
+          endpoint = `https://driving-behavior-analysis-system.onrender.com/api/fleet-overview/?customer_id=${customerId}&time_frame=7d`;
+        }
+        
+        const response = await fetch(endpoint);
+        
+        if (!response.ok) {
+          throw new Error('Failed to fetch historical data');
+        }
+        
+        const data = await response.json();
+        
+        if (selectedCar && selectedCar !== 'all') {
+          // Parse data for a specific car
+          const currentData = data.current || {};
+          const summaryData = data.summary || {};
+          
+          setHistoricalScores({
+            harshBraking: summaryData.total_harsh_braking || currentData.harsh_braking_events || 0,
+            hardAcceleration: summaryData.total_harsh_acceleration || currentData.harsh_acceleration_events || 0,
+            swerving: summaryData.total_swerving || currentData.swerving_events || 0,
+            overSpeed: summaryData.total_over_speed || currentData.over_speed_events || 0,
+            overall: summaryData.avg_score || currentData.score || 0
+          });
+        } else {
+          // Parse data for all cars (fleet overview)
+          const events = data.events || {};
+          
+          setHistoricalScores({
+            harshBraking: events.harsh_braking || 0,
+            hardAcceleration: events.harsh_acceleration || 0,
+            swerving: events.swerving || 0,
+            overSpeed: events.over_speed || 0,
+            overall: data.fleet_stats?.avg_score || 0
+          });
+        }
+        
+        setHistoricalLoading(false);
+      } catch (error) {
+        console.error('Error fetching historical data:', error);
+        setHistoricalError('Failed to load historical data');
+        setHistoricalLoading(false);
+      }
+    };
+    
+    // Call the function whenever selectedCar changes
+    fetchHistoricalScores();
+  }, [selectedCar]);
 
   // Handle slider change
   const handleSliderChange = (id: string, newValue: number) => {
@@ -236,7 +313,8 @@ const userType = "customer"; // This is the customer dashboard
   return (
     <Box sx={{ mt: 3, width: '100%' }}>
       <Typography variant="h6" color="text.secondary" sx={{ mb: 2 }}>
-        Customizing score pattern for car: {selectedCar || 'No car selected'}
+        {/* Remove car-specific text since patterns apply to all cars under the user */}
+        Customizing driving behavior scoring pattern
       </Typography>
       <Grid container spacing={3}>
         {/* Left column - Chart */}
@@ -395,56 +473,87 @@ const userType = "customer"; // This is the customer dashboard
             borderRadius: 3,
           }}>
             <Typography variant="h6" fontWeight="medium" sx={{ mb: 3 }}>
-              Historical Score Calculation
+              {selectedCar !== 'all' ? 'Vehicle Historical Score Analysis' : 'All Vehicles Historical Score Analysis'}
             </Typography>
-            <Grid container spacing={3}>
-              {scorePattern.map((item) => (
-                <Grid item xs={12} sm={6} md={3} key={item.id}>
-                  <Paper sx={{ 
-                    p: 2, 
-                    bgcolor: `${item.color}10`, // Very light version of the color
-                    borderLeft: 4,
-                    borderColor: item.color,
-                    borderRadius: 2
-                  }}>
-                    <Box sx={{ display: 'flex', justifyContent: 'space-between', mb: 1 }}>
-                      <Typography variant="body2" color="text.secondary">{item.name}</Typography>
-                      <Box sx={{ 
-                        color: item.color, 
-                        display: 'flex',
-                      }}>
-                        {item.icon}
-                      </Box>
-                    </Box>
-                    <Typography variant="h5" fontWeight="bold">
-                      {/* Random score between 60-95 for display purposes */}
-                      {Math.floor(Math.random() * 35) + 60}/100
-                    </Typography>
-                    <Typography variant="body2" color="text.secondary">
-                      Weight: {item.value}%
-                    </Typography>
-                  </Paper>
-                </Grid>
-              ))}
-            </Grid>
-
-            <Box sx={{ 
-              display: 'flex', 
-              justifyContent: 'space-between', 
-              alignItems: 'center',
-              mt: 3,
-              p: 2,
-              borderRadius: 2
-            }}>
-              <Box sx={{ display: 'flex', alignItems: 'center', gap: 2 }}>
-                <DirectionsCarIcon color="primary" sx={{ fontSize: 40 }} />
-                <Box>
-                  <Typography variant="body2" color="primary.main">Overall Safety Score</Typography>
-                  <Typography variant="h4" fontWeight="bold" color="primary.main">82/100</Typography>
-                </Box>
+            
+            {historicalLoading && (
+              <Box sx={{ display: 'flex', justifyContent: 'center', my: 4 }}>
+                <CircularProgress />
               </Box>
-              <Button variant="contained">View Detailed Report</Button>
-            </Box>
+            )}
+            
+            {historicalError && (
+              <Alert severity="error" sx={{ mb: 3 }}>
+                {historicalError}
+              </Alert>
+            )}
+            
+            {!historicalLoading && !historicalError && (
+              <>
+                <Grid container spacing={3}>
+                  {scorePattern.map((item) => {
+                    // Map scorePattern items to historicalScores keys
+                    const itemScore = item.id === 'harshBraking' ? historicalScores.harshBraking :
+                                    item.id === 'hardAcceleration' ? historicalScores.hardAcceleration :
+                                    item.id === 'swerving' ? historicalScores.swerving :
+                                    item.id === 'overSpeed' ? historicalScores.overSpeed : 0;
+                    
+                    // Calculate a normalized score from 0-100 based on the event count
+                    const normalizedScore = Math.max(0, Math.min(100, 100 - (itemScore > 100 ? 100 : itemScore)));
+                    
+                    return (
+                      <Grid item xs={12} sm={6} md={3} key={item.id}>
+                        <Paper sx={{ 
+                          p: 2, 
+                          bgcolor: `${item.color}10`,
+                          borderLeft: 4,
+                          borderColor: item.color,
+                          borderRadius: 2
+                        }}>
+                          <Box sx={{ display: 'flex', justifyContent: 'space-between', mb: 1 }}>
+                            <Typography variant="body2" color="text.secondary">{item.name}</Typography>
+                            <Box sx={{ color: item.color, display: 'flex' }}>
+                              {item.icon}
+                            </Box>
+                          </Box>
+                          <Typography variant="h5" fontWeight="bold">
+                            {normalizedScore.toFixed(0)}/100
+                          </Typography>
+                          <Typography variant="body2" color="text.secondary">
+                            Events: {itemScore} | Weight: {item.value}%
+                          </Typography>
+                        </Paper>
+                      </Grid>
+                    );
+                  })}
+                </Grid>
+
+                <Box sx={{ 
+                  display: 'flex', 
+                  justifyContent: 'space-between', 
+                  alignItems: 'center',
+                  mt: 3,
+                  p: 2,
+                  borderRadius: 2
+                }}>
+                  <Box sx={{ display: 'flex', alignItems: 'center', gap: 2 }}>
+                    <DirectionsCarIcon color="primary" sx={{ fontSize: 40 }} />
+                    <Box>
+                      <Typography variant="body2" color="primary.main">Overall Safety Score</Typography>
+                      <Typography variant="h4" fontWeight="bold" color="primary.main">
+                        {historicalScores.overall.toFixed(1)}/100
+                      </Typography>
+                    </Box>
+                  </Box>
+                  <Button 
+                    variant="contained"
+                    href={selectedCar && selectedCar !== 'all' ? `/dashboard-customer/car-details/${selectedCar}` : '/dashboard-customer'}
+                  >
+                    View Detailed Report
+                  </Button>
+                </Box>
+              </>
+            )}
           </Paper>
         </Grid>
       </Grid>
