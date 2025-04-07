@@ -1574,28 +1574,7 @@ export default function HomePage() {
                 ))}
               </Grid>
               
-              <MotionBox 
-                sx={{ textAlign: 'center', mt: 8 }}
-                initial={{ opacity: 0, y: 30 }}
-                animate={{ opacity: 1, y: 0 }}
-                transition={{ duration: 0.7, delay: 0.8 }}
-              >
-                <Typography variant="body2" color="text.secondary" sx={{ mb: 2 }}>
-                  Need a custom solution for your specific requirements?
-                </Typography>
-                <Button 
-                  component={motion.button}
-                  whileHover={{ scale: 1.05 }}
-                  whileTap={{ scale: 0.95 }}
-                  variant="text" 
-                  color="primary" 
-                  size="large"
-                  sx={{ fontWeight: 600 }}
-                  onClick={() => router.push('/contact')}
-                >
-                  Contact our sales team
-                </Button>
-              </MotionBox>
+
             </Box>
           </Fade>
         </Container>
@@ -1706,83 +1685,76 @@ export default function HomePage() {
               <Typography variant="body2" sx={{ color: 'rgba(255,255,255,0.7)', mb: 3 }}>
                 Advanced technology for safer roads and better driving habits through real-time monitoring and analysis.
               </Typography>
-              <Stack direction="row" spacing={2} sx={{ mt: 2 }}>
-                {['Facebook', 'Twitter', 'LinkedIn', 'Instagram'].map((social) => (
-                  <Box 
-                    key={social}
-                    component={motion.div}
-                    whileHover={{ y: -5 }}
-                    sx={{ 
-                      width: 40, 
-                      height: 40, 
-                      borderRadius: '50%', 
-                      bgcolor: 'rgba(255,255,255,0.1)',
-                      display: 'flex',
-                      alignItems: 'center',
-                      justifyContent: 'center',
-                      cursor: 'pointer',
-                      transition: 'all 0.3s ease',
-                      '&:hover': {
-                        bgcolor: 'primary.main',
-                      }
-                    }}
-                  >
-                    <Typography variant="caption" sx={{ color: 'white', fontSize: '0.6rem' }}>
-                      {social.charAt(0)}
-                    </Typography>
-                  </Box>
-                ))}
-              </Stack>
+              
             </Grid>
             <Grid item xs={12} md={2}>
               <Typography variant="subtitle1" fontWeight={700} gutterBottom sx={{ color: 'white' }}>
                 Quick Links
               </Typography>
               <Box component="ul" sx={{ p: 0, listStyle: 'none' }}>
-                {['Home', 'Features', 'Pricing', 'About Us'].map((item) => (
-                  <Box component="li" key={item} sx={{ mb: 1.5 }}>
+  {[
+    { name: 'Home', section: 'hero' },
+    { name: 'Features', section: 'features' },
+    { name: 'Pricing', section: 'pricing' },
+    { name: 'About Our System', section: 'about' }
+  ].map((item) => (
+                  <Box component="li" key={item.name} sx={{ mb: 1.5 }}>
                     <Typography 
                       component={motion.a}
                       whileHover={{ x: 5 }}
                       variant="body2" 
-                      href="#" 
+                      href={`#${item.section}`}
+                      onClick={(e) => {
+                        e.preventDefault();
+                        const element = document.getElementById(item.section);
+                        element?.scrollIntoView({ behavior: 'smooth' });
+                      }}
                       sx={{ 
                         color: 'rgba(255,255,255,0.7)', 
                         textDecoration: 'none', 
                         display: 'inline-block',
-                        '&:hover': { color: 'white' } 
+                        '&:hover': { color: 'white' },
+                        cursor: 'pointer'
                       }}
                     >
-                      {item}
+                      {item.name}
                     </Typography>
                   </Box>
                 ))}
-              </Box>
+              </Box>  
             </Grid>
             <Grid item xs={12} md={2}>
               <Typography variant="subtitle1" fontWeight={700} gutterBottom sx={{ color: 'white' }}>
                 For Users
               </Typography>
               <Box component="ul" sx={{ p: 0, listStyle: 'none' }}>
-                {['Sign Up', 'Log In', 'FAQ', 'Support'].map((item) => (
-                  <Box component="li" key={item} sx={{ mb: 1.5 }}>
-                    <Typography 
-                      component={motion.a}
-                      whileHover={{ x: 5 }}
-                      variant="body2" 
-                      href="#" 
-                      sx={{ 
-                        color: 'rgba(255,255,255,0.7)', 
-                        textDecoration: 'none', 
-                        display: 'inline-block',
-                        '&:hover': { color: 'white' } 
-                      }}
-                    >
-                      {item}
-                    </Typography>
-                  </Box>
-                ))}
-              </Box>
+    {[
+      { name: 'Sign In', path: paths.auth.signIn },
+      { name: 'Sign Up', path: paths.auth.signUp }
+    ].map((item) => (
+      <Box component="li" key={item.name} sx={{ mb: 1.5 }}>
+        <Typography 
+          component={motion.a}
+          whileHover={{ x: 5 }}
+          variant="body2" 
+          href={item.path}
+          onClick={(e) => {
+            e.preventDefault();
+            router.push(item.path);
+          }}
+          sx={{ 
+            color: 'rgba(255,255,255,0.7)', 
+            textDecoration: 'none', 
+            display: 'inline-block',
+            '&:hover': { color: 'white' },
+            cursor: 'pointer'
+          }}
+        >
+          {item.name}
+        </Typography>
+      </Box>
+    ))}
+  </Box>
             </Grid>
             <Grid item xs={12} md={4}>
               <Typography variant="subtitle1" fontWeight={700} gutterBottom sx={{ color: 'white' }}>
@@ -1792,40 +1764,12 @@ export default function HomePage() {
                 King Abdulaziz University, Jeddah, Saudi Arabia
               </Typography>
               <Typography variant="body2" sx={{ color: 'rgba(255,255,255,0.7)', mb: 2 }}>
-                Email: info@drivinganalysis.com
+                Email: drivingbehavior2@gmail.com
               </Typography>
               <Typography variant="body2" sx={{ color: 'rgba(255,255,255,0.7)' }}>
-                Phone: +966 12 345 6789
+                Phone: +966 59 965 1127
               </Typography>
               <Box sx={{ mt: 4 }}>
-                <form>
-                  <Typography variant="subtitle2" sx={{ color: 'white', mb: 1.5 }}>
-                    Subscribe to our newsletter
-                  </Typography>
-                  <Box sx={{ display: 'flex' }}>
-                    <Box 
-                      component="input" 
-                      placeholder="Your email" 
-                      sx={{ 
-                        flex: 1,
-                        p: 1.5,
-                        border: 'none',
-                        borderRadius: '50px 0 0 50px',
-                        outline: 'none'
-                      }} 
-                    />
-                    <Button 
-                      variant="contained" 
-                      color="primary" 
-                      sx={{ 
-                        borderRadius: '0 50px 50px 0',
-                        px: 2
-                      }}
-                    >
-                      Subscribe
-                    </Button>
-                  </Box>
-                </form>
               </Box>
             </Grid>
           </Grid>
