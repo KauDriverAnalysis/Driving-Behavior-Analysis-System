@@ -34,6 +34,7 @@ import BusinessIcon from '@mui/icons-material/Business';
 import PersonIcon from '@mui/icons-material/Person';
 import CheckCircleIcon from '@mui/icons-material/CheckCircle';
 import KeyboardArrowDownIcon from '@mui/icons-material/KeyboardArrowDown';
+import KeyboardArrowUpIcon from '@mui/icons-material/KeyboardArrowUp';
 import LinkedInIcon from '@mui/icons-material/LinkedIn';
 import TwitterIcon from '@mui/icons-material/Twitter';
 import EmailIcon from '@mui/icons-material/Email';
@@ -689,6 +690,7 @@ export default function HomePage() {
   const isMobile = useMediaQuery(theme.breakpoints.down('sm'));
   const [scrolled, setScrolled] = useState(false);
   const [activeSection, setActiveSection] = useState('hero');
+  const [showPricingPlans, setShowPricingPlans] = useState(false);
 
   useEffect(() => {
     const handleScroll = () => {
@@ -1425,7 +1427,7 @@ export default function HomePage() {
       <Box id="pricing" sx={{ py: 12, backgroundColor: '#f9fafc' }}>
         <Container>
           <MotionBox 
-            sx={{ textAlign: 'center', mb: 8 }}
+            sx={{ textAlign: 'center', mb: 4 }}
             initial={{ opacity: 0, y: 30 }}
             animate={activeSection === 'pricing' ? { opacity: 1, y: 0 } : {}}
             transition={{ duration: 0.7 }}
@@ -1446,128 +1448,156 @@ export default function HomePage() {
                 borderRadius: '2px'
               }}></Box>
             </Typography>
-            <Typography variant="body1" color="text.secondary" sx={{ maxWidth: '800px', mx: 'auto', mt: 4, fontSize: '1.1rem' }}>
+            <Typography variant="body1" color="text.secondary" sx={{ maxWidth: '800px', mx: 'auto', mt: 4, mb: 4, fontSize: '1.1rem' }}>
               Choose the plan that best fits your needs. All plans include core features with increasing capabilities as you scale.
             </Typography>
-          </MotionBox>
-
-          <Grid container spacing={4} alignItems="stretch">
-            {pricingPlans.map((plan, index) => (
-              <Grid item key={index} xs={12} sm={6} md={4}>
-                <MotionBox 
-                  component={motion.div}
-                  initial={{ opacity: 0, y: 50 }}
-                  animate={activeSection === 'pricing' ? { opacity: 1, y: 0 } : {}}
-                  transition={{ duration: 0.7, delay: 0.2 + index * 0.2 }}
-                  sx={{ height: '100%' }}
-                >
-                  <PricingCard elevation={plan.highlighted ? 8 : 1}>
-                    <CardContent sx={{ 
-                      flexGrow: 1, 
-                      p: 4,
-                      bgcolor: plan.highlighted ? 'primary.main' : 'background.paper',
-                      color: plan.highlighted ? 'primary.contrastText' : 'inherit',
-                      position: 'relative',
-                      overflow: 'hidden'
-                    }}>
-                      {plan.highlighted && (
-                        <Box sx={{ 
-                          position: 'absolute', 
-                          top: 20, 
-                          right: -35, 
-                          transform: 'rotate(45deg)',
-                          bgcolor: theme.palette.secondary.main,
-                          color: theme.palette.secondary.contrastText,
-                          px: 4,
-                          py: 0.5,
-                          width: 150,
-                          textAlign: 'center',
-                          fontWeight: 'bold',
-                          fontSize: '0.8rem',
-                          zIndex: 1,
-                          boxShadow: '0 2px 5px rgba(0,0,0,0.2)',
-                        }}>
-                          POPULAR
-                        </Box>
-                      )}
-                      
-                      <Typography variant="h5" component="h3" gutterBottom fontWeight={700}>
-                        {plan.title}
-                      </Typography>
-                      <Box sx={{ my: 3 }}>
-                        <Typography variant="h3" component="span" fontWeight={800} sx={{ letterSpacing: '-0.02em' }}>
-                          {plan.price}
-                        </Typography>
-                        <Typography variant="subtitle1" component="span" sx={{ ml: 1, opacity: 0.7 }}>
-                          {plan.period}
-                        </Typography>
-                      </Box>
-                      <Typography color={plan.highlighted ? 'inherit' : 'text.secondary'} paragraph>
-                        {plan.description}
-                      </Typography>
-                      <Divider sx={{ my: 3, borderColor: plan.highlighted ? 'rgba(255,255,255,0.2)' : 'divider' }} />
-                      <Box sx={{ mt: 3 }}>
-                        {plan.features.map((feature, idx) => (
-                          <Box key={idx} sx={{ display: 'flex', alignItems: 'center', mb: 2 }}>
-                            <CheckCircleIcon sx={{ 
-                              mr: 1.5, 
-                              fontSize: 20,
-                              color: plan.highlighted ? 'primary.contrastText' : 'success.main'
-                            }} />
-                            <Typography variant="body2">
-                              {feature}
-                            </Typography>
-                          </Box>
-                        ))}
-                      </Box>
-                    </CardContent>
-                    <CardActions sx={{ p: 4, bgcolor: plan.highlighted ? 'primary.dark' : 'background.paper' }}>
-                      <Button 
-                        component={motion.button}
-                        whileHover={{ scale: 1.05 }}
-                        whileTap={{ scale: 0.95 }}
-                        fullWidth 
-                        variant={plan.buttonVariant as "text" | "outlined" | "contained"}
-                        color={plan.highlighted ? 'secondary' : 'primary'}
-                        size="large"
-                        onClick={() => router.push(paths.auth.signUp)}
-                        sx={{ 
-                          py: 1.5,
-                          borderRadius: '50px',
-                          fontWeight: 600
-                        }}
-                      >
-                        {plan.buttonText}
-                      </Button>
-                    </CardActions>
-                  </PricingCard>
-                </MotionBox>
-              </Grid>
-            ))}
-          </Grid>
-          
-          <MotionBox 
-            sx={{ textAlign: 'center', mt: 8 }}
-            initial={{ opacity: 0, y: 30 }}
-            animate={activeSection === 'pricing' ? { opacity: 1, y: 0 } : {}}
-            transition={{ duration: 0.7, delay: 0.8 }}
-          >
-            <Typography variant="body2" color="text.secondary" sx={{ mb: 2 }}>
-              Need a custom solution for your specific requirements?
-            </Typography>
-            <Button 
-              component={motion.button}
-              whileHover={{ scale: 1.05 }}
-              whileTap={{ scale: 0.95 }}
-              variant="text" 
-              color="primary" 
-              size="large"
-              sx={{ fontWeight: 600 }}
-              onClick={() => router.push('/contact')}
+            
+            {/* Toggle button for showing/hiding pricing plans */}
+            <Button
+              onClick={() => setShowPricingPlans(prev => !prev)}
+              variant="contained" 
+              color={showPricingPlans ? "secondary" : "primary"}
+              startIcon={showPricingPlans ? <KeyboardArrowUpIcon /> : <KeyboardArrowDownIcon />}
+              sx={{ 
+                px: 4,
+                py: 1.2,
+                borderRadius: '50px',
+                fontWeight: 600,
+                boxShadow: '0 4px 14px rgba(0,0,0,0.1)',
+                transition: 'all 0.3s ease',
+                mb: 4
+              }}
             >
-              Contact our sales team
+              {showPricingPlans ? "Hide Subscription Plans" : "View Subscription Plans"}
             </Button>
           </MotionBox>
+          
+          <Fade in={showPricingPlans} timeout={800}>
+            <Box sx={{ 
+              overflow: 'hidden',
+              maxHeight: showPricingPlans ? '3000px' : '0px',
+              opacity: showPricingPlans ? 1 : 0,
+              transition: 'max-height 0.8s ease, opacity 0.6s ease',
+            }}>
+              <Grid container spacing={4} alignItems="stretch">
+                {pricingPlans.map((plan, index) => (
+                  <Grid item key={index} xs={12} sm={6} md={4}>
+                    <MotionBox 
+                      component={motion.div}
+                      initial={{ opacity: 0, y: 50 }}
+                      animate={{ opacity: 1, y: 0 }}
+                      transition={{ duration: 0.7, delay: 0.2 + index * 0.2 }}
+                      sx={{ height: '100%' }}
+                    >
+                      <PricingCard elevation={plan.highlighted ? 8 : 1}>
+                        <CardContent sx={{ 
+                          flexGrow: 1, 
+                          p: 4,
+                          bgcolor: plan.highlighted ? 'primary.main' : 'background.paper',
+                          color: plan.highlighted ? 'primary.contrastText' : 'inherit',
+                          position: 'relative',
+                          overflow: 'hidden'
+                        }}>
+                          {plan.highlighted && (
+                            <Box sx={{ 
+                              position: 'absolute', 
+                              top: 20, 
+                              right: -35, 
+                              transform: 'rotate(45deg)',
+                              bgcolor: theme.palette.secondary.main,
+                              color: theme.palette.secondary.contrastText,
+                              px: 4,
+                              py: 0.5,
+                              width: 150,
+                              textAlign: 'center',
+                              fontWeight: 'bold',
+                              fontSize: '0.8rem',
+                              zIndex: 1,
+                              boxShadow: '0 2px 5px rgba(0,0,0,0.2)',
+                            }}>
+                              POPULAR
+                            </Box>
+                          )}
+                          
+                          <Typography variant="h5" component="h3" gutterBottom fontWeight={700}>
+                            {plan.title}
+                          </Typography>
+                          <Box sx={{ my: 3 }}>
+                            <Typography variant="h3" component="span" fontWeight={800} sx={{ letterSpacing: '-0.02em' }}>
+                              {plan.price}
+                            </Typography>
+                            <Typography variant="subtitle1" component="span" sx={{ ml: 1, opacity: 0.7 }}>
+                              {plan.period}
+                            </Typography>
+                          </Box>
+                          <Typography color={plan.highlighted ? 'inherit' : 'text.secondary'} paragraph>
+                            {plan.description}
+                          </Typography>
+                          <Divider sx={{ my: 3, borderColor: plan.highlighted ? 'rgba(255,255,255,0.2)' : 'divider' }} />
+                          <Box sx={{ mt: 3 }}>
+                            {plan.features.map((feature, idx) => (
+                              <Box key={idx} sx={{ display: 'flex', alignItems: 'center', mb: 2 }}>
+                                <CheckCircleIcon sx={{ 
+                                  mr: 1.5, 
+                                  fontSize: 20,
+                                  color: plan.highlighted ? 'primary.contrastText' : 'success.main'
+                                }} />
+                                <Typography variant="body2">
+                                  {feature}
+                                </Typography>
+                              </Box>
+                            ))}
+                          </Box>
+                        </CardContent>
+                        <CardActions sx={{ p: 4, bgcolor: plan.highlighted ? 'primary.dark' : 'background.paper' }}>
+                          <Button 
+                            component={motion.button}
+                            whileHover={{ scale: 1.05 }}
+                            whileTap={{ scale: 0.95 }}
+                            fullWidth 
+                            variant={plan.buttonVariant as "text" | "outlined" | "contained"}
+                            color={plan.highlighted ? 'secondary' : 'primary'}
+                            size="large"
+                            onClick={() => router.push(paths.auth.signUp)}
+                            sx={{ 
+                              py: 1.5,
+                              borderRadius: '50px',
+                              fontWeight: 600
+                            }}
+                          >
+                            {plan.buttonText}
+                          </Button>
+                        </CardActions>
+                      </PricingCard>
+                    </MotionBox>
+                  </Grid>
+                ))}
+              </Grid>
+              
+              <MotionBox 
+                sx={{ textAlign: 'center', mt: 8 }}
+                initial={{ opacity: 0, y: 30 }}
+                animate={{ opacity: 1, y: 0 }}
+                transition={{ duration: 0.7, delay: 0.8 }}
+              >
+                <Typography variant="body2" color="text.secondary" sx={{ mb: 2 }}>
+                  Need a custom solution for your specific requirements?
+                </Typography>
+                <Button 
+                  component={motion.button}
+                  whileHover={{ scale: 1.05 }}
+                  whileTap={{ scale: 0.95 }}
+                  variant="text" 
+                  color="primary" 
+                  size="large"
+                  sx={{ fontWeight: 600 }}
+                  onClick={() => router.push('/contact')}
+                >
+                  Contact our sales team
+                </Button>
+              </MotionBox>
+            </Box>
+          </Fade>
         </Container>
       </Box>
 
