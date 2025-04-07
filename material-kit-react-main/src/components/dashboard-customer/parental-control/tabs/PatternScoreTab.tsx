@@ -57,6 +57,7 @@ const PatternScoreTab: React.FC<PatternScoreTabProps> = ({
   const [isDirty, setIsDirty] = useState(false);
   const [scoreData, setScoreData] = useState(null);
   const [loading, setLoading] = useState(false);
+  const [recalculatingScores, setRecalculatingScores] = useState(false);
 
   // Effect to validate the total equals 100
   useEffect(() => {
@@ -104,6 +105,34 @@ const PatternScoreTab: React.FC<PatternScoreTabProps> = ({
     }
   }, [selectedCar]);
 
+  useEffect(() => {
+    // Get user ID based on user type (customer or company)
+    const userId = localStorage.getItem('customerId') || // for customer
+                  localStorage.getItem('companyId') ||   // for company
+                  localStorage.getItem('userId');
+    
+const userType = "customer"; // This is the customer dashboard   
+    if (userId) {
+      setLoading(true);
+      fetch(`https://driving-behavior-analysis-system.onrender.com/api/score-pattern/?userType=${userType}&userId=${userId}`)
+        .then(response => response.json())
+        .then(data => {
+          // If there's saved pattern data, use it
+          setScorePattern([
+            { ...scorePattern[0], value: data.harshBraking },
+            { ...scorePattern[1], value: data.harshAcceleration },
+            { ...scorePattern[2], value: data.swerving },
+            { ...scorePattern[3], value: data.overSpeed },
+          ]);
+          setLoading(false);
+        })
+        .catch(error => {
+          console.error('Error loading score pattern:', error);
+          setLoading(false);
+        });
+    }
+  }, []);
+
   // Handle slider change
   const handleSliderChange = (id: string, newValue: number) => {
     setScorePattern(prev => 
@@ -111,41 +140,53 @@ const PatternScoreTab: React.FC<PatternScoreTabProps> = ({
     );
   };
 
-  // Save changes - update to include car ID
+  // Handle save function to send data to backend
   const handleSave = () => {
     if (isValid) {
-      // Here you would save to backend with the car ID
-      // Example API call (commented out):
-      // const patternData = {
-      //   carId: selectedCar,
-      //   pattern: {
-      //     harshBraking: scorePattern[0].value,
-      //     hardAcceleration: scorePattern[1].value,
-      //     swerving: scorePattern[2].value,
-      //     overSpeed: scorePattern[3].value
-      //   }
-      // };
-      // 
-      // fetch('https://driving-behavior-analysis-system.onrender.com/api/car-score-patterns/', {
-      //   method: 'POST',
-      //   headers: {
-      //     'Content-Type': 'application/json'
-      //   },
-      //   body: JSON.stringify(patternData)
-      // })
-      //   .then(response => response.json())
-      //   .then(() => {
-      //     showNotification('Pattern score weights saved successfully');
-      //     setIsDirty(false);
-      //   })
-      //   .catch(error => {
-      //     console.error('Error saving pattern data:', error);
-      //     showNotification('Failed to save pattern data', 'error');
-      //   });
+      // Get customer ID from localStorage
+      const customerId = localStorage.getItem('customerId') || 
+                         localStorage.getItem('customer-id') || 
+                         localStorage.getItem('customer_id') ||
+                         localStorage.getItem('userId');
       
-      // For now, just show notification
-      showNotification(`Pattern score weights saved successfully for car ${selectedCar}`);
-      setIsDirty(false);
+      if (!customerId) {
+        showNotification('User ID not found. Please login again.', 'error');
+        return;
+      }
+      
+      // Prepare data to send
+      const patternData = {
+        userType: 'customer',
+        userId: customerId,
+        harshBraking: scorePattern.find(p => p.id === 'harshBraking')?.value || 30,
+        harshAcceleration: scorePattern.find(p => p.id === 'hardAcceleration')?.value || 25,
+        swerving: scorePattern.find(p => p.id === 'swerving')?.value || 20,
+        overSpeed: scorePattern.find(p => p.id === 'overSpeed')?.value || 25,
+        potentialSwerving: 0 // Default, not used in UI
+      };
+      
+      // Send to backend
+      fetch('https://driving-behavior-analysis-system.onrender.com/api/score-pattern/update/', {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json'
+        },
+        body: JSON.stringify(patternData)
+      })
+        .then(response => {
+          if (!response.ok) {
+            throw new Error('Failed to save pattern');
+          }
+          return response.json();
+        })
+        .then(data => {
+          showNotification('Pattern score weights saved successfully');
+          setIsDirty(false);
+        })
+        .catch(error => {
+          console.error('Error saving pattern data:', error);
+          showNotification('Failed to save pattern data', 'error');
+        });
     } else {
       showNotification('Total weight must equal 100%', 'error');
     }
@@ -155,6 +196,35 @@ const PatternScoreTab: React.FC<PatternScoreTabProps> = ({
   const handleReset = () => {
     setScorePattern(initialScorePattern);
     showNotification('Pattern score weights reset to default');
+  };
+
+  const handleRecalculateScores = () => {
+    if (selectedCar) {
+      setRecalculatingScores(true);
+      
+      fetch('https://driving-behavior-analysis-system.onrender.com/api/car-scores/recalculate/', {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json'
+        },
+        body: JSON.stringify({
+          carId: selectedCar,
+          days: 7  // Recalculate last 7 days of data
+        })
+      })
+        .then(response => response.json())
+        .then(data => {
+          showNotification(`Scores recalculated successfully! Updated ${data.updatedCount} records.`);
+          setRecalculatingScores(false);
+        })
+        .catch(error => {
+          console.error('Error recalculating scores:', error);
+          showNotification('Failed to recalculate scores', 'error');
+          setRecalculatingScores(false);
+        });
+    } else {
+      showNotification('Please select a car first', 'warning');
+    }
   };
 
   // Prepare data for the pie chart
@@ -306,6 +376,13 @@ const PatternScoreTab: React.FC<PatternScoreTabProps> = ({
                 disabled={!isValid || !isDirty}
               >
                 Save Changes
+              </Button>
+              <Button 
+                variant="contained" 
+                onClick={handleRecalculateScores}
+                disabled={recalculatingScores}
+              >
+                {recalculatingScores ? 'Recalculating...' : 'Recalculate Scores'}
               </Button>
             </Box>
           </Paper>

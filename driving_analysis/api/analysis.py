@@ -1,7 +1,7 @@
 import pandas as pd
 import numpy as np
 
-def analyze_data(cleaned_data):
+def analyze_data(cleaned_data, car_id=None):
     """
     Analyze the cleaned driving data to extract insights about driving behavior
     using advanced statistical techniques.
@@ -197,6 +197,10 @@ def analyze_data(cleaned_data):
     
     # Ensure score doesn't go below 0
     results['score'] = max(score, 0)
+    
+    # When calling score_chunk, pass the car_id
+    from .views import score_chunk
+    results['score'] = score_chunk(df, results, car_id)
     
     # Store labels for future reference
     results['labels'] = df['labels'].tolist()

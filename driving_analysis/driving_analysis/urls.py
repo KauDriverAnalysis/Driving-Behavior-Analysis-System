@@ -61,4 +61,7 @@ urlpatterns = [
     path('api/customer/<int:customer_id>/', views.get_customer, name='get_customer'),   
     path('api/companies/', views.company_list, name='company_list'),
     path('api/fleet-overview/', views.get_fleet_overview, name='get_fleet_overview'),
+    path('score-pattern/', views.get_score_pattern, name='get_score_pattern'),
+    path('score-pattern/update/', views.update_score_pattern, name='update_score_pattern'),
+    path('car-scores/recalculate/', views.recalculate_car_scores, name='recalculate_car_scores'),
 ]

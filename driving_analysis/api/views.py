@@ -2095,10 +2095,20 @@ def score_chunk(chunk_df, results, car_id=None):
             # First check if there's a customer-specific pattern
             if car.customer_id:
                 custom_weights = ScorePattern.objects.filter(customer_id=car.customer_id).first()
+                print(f"Using customer {car.customer_id.id} score pattern for car {car_id}")
             
             # If no customer-specific pattern, try company pattern
             if not custom_weights and car.company_id:
                 custom_weights = ScorePattern.objects.filter(company_id=car.company_id).first()
+                print(f"Using company {car.company_id.id} score pattern for car {car_id}")
+                
+            if custom_weights:
+                print(f"Custom weights found: harsh_braking={custom_weights.harsh_braking_weight}, "
+                      f"harsh_acceleration={custom_weights.harsh_acceleration_weight}, "
+                      f"swerving={custom_weights.swerving_weight}, "
+                      f"over_speed={custom_weights.over_speed_weight}")
+            else:
+                print(f"No custom weights found for car {car_id}")
         except Exception as e:
             print(f"Error getting custom weights: {str(e)}")
     
@@ -2117,12 +2127,12 @@ def score_chunk(chunk_df, results, car_id=None):
         overspeed_weight = 20
         potential_swerving_weight = 0
 
-    # Apply scoring deductions based on detected events
-    score -= results['harsh_braking_events'] * harsh_braking_weight / 100
-    score -= results['harsh_acceleration_events'] * harsh_acceleration_weight / 100
-    score -= results['swerving_events'] * swerving_weight / 100
-    score -= results['over_speed_events'] * overspeed_weight / 100
-    score -= results['potential_swerving_events'] * potential_swerving_weight / 100
+    # Apply scoring deductions based on detected events and weights
+    score -= results['harsh_braking_events'] * (harsh_braking_weight / 100)
+    score -= results['harsh_acceleration_events'] * (harsh_acceleration_weight / 100)
+    score -= results['swerving_events'] * (swerving_weight / 100)
+    score -= results['over_speed_events'] * (overspeed_weight / 100)
+    score -= results['potential_swerving_events'] * (potential_swerving_weight / 100)
 
     # Ensure the score doesn't go below 0%
     score = max(score, 0)
@@ -2305,4 +2315,65 @@ def update_score_pattern(request):
         return JsonResponse({'error': 'Employee not found'}, status=404)
     except Exception as e:
         print(f"Error updating score pattern: {str(e)}")
+        return JsonResponse({'error': str(e)}, status=500)
+
+@csrf_exempt
+def recalculate_car_scores(request):
+    """
+    Recalculate scores for a car's recent driving data using the latest score pattern
+    """
+    if request.method != 'POST':
+        return JsonResponse({'error': 'Method not allowed'}, status=405)
+    
+    try:
+        data = json.loads(request.body)
+        car_id = data.get('carId')
+        days = int(data.get('days', 7))  # Default to 7 days of data
+        
+        if not car_id:
+            return JsonResponse({'error': 'Car ID is required'}, status=400)
+        
+        # Get recent driving data for this car
+        from django.utils import timezone
+        from datetime import timedelta
+        
+        end_date = timezone.now()
+        start_date = end_date - timedelta(days=days)
+        
+        # Get driving data records
+        driving_records = DrivingData.objects.filter(
+            car_id=car_id,
+            created_at__gte=start_date
+        ).order_by('-created_at')
+        
+        updated_count = 0
+        
+        # Process each record
+        for record in driving_records:
+            # Create results dict from existing record
+            results = {
+                'harsh_braking_events': record.harsh_braking_events,
+                'harsh_acceleration_events': record.harsh_acceleration_events,
+                'swerving_events': record.swerving_events,
+                'potential_swerving_events': record.potential_swerving_events,
+                'over_speed_events': record.over_speed_events
+            }
+            
+            # Recalculate score using the latest pattern
+            new_score = score_chunk(None, results, car_id)
+            
+            # Update if different
+            if abs(record.score - new_score) > 0.01:  # Small tolerance for floating point comparison
+                record.score = new_score
+                record.save(update_fields=['score'])
+                updated_count += 1
+        
+        return JsonResponse({
+            'success': True,
+            'message': f'Recalculated scores for {updated_count} records',
+            'updatedCount': updated_count
+        })
+    
+    except Exception as e:
+        print(f"Error recalculating scores: {str(e)}")
         return JsonResponse({'error': str(e)}, status=500)
