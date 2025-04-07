@@ -23,7 +23,7 @@ export default function Layout({ children }: LayoutProps): React.JSX.Element {
         <GlobalStyles
           styles={{
             body: {
-              '--MainNav-height': '56px',
+              '--MainNav-height': '64px',
               '--MainNav-zIndex': 1000,
               '--SideNav-width': '280px',
               '--SideNav-zIndex': 1100,
@@ -48,8 +48,11 @@ export default function Layout({ children }: LayoutProps): React.JSX.Element {
               <Container 
                 maxWidth="xl" 
                 sx={{ 
-                  py: '64px',
-                  px: { xs: 2, sm: 3 }
+                  pt: 'calc(var(--MainNav-height) + 16px)', // Increased top padding to account for TopNav
+                  pb: 4, // Reduced bottom padding to 32px (4*8px)
+                  px: { xs: 2, sm: 3 },
+                  position: 'relative', // Ensure proper stacking context
+                  zIndex: 1 // Lower than TopNav z-index
                 }}
               >
                 {children}
