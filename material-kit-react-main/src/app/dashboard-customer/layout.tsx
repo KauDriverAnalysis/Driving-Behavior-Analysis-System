@@ -5,7 +5,8 @@ import Box from '@mui/material/Box';
 import Container from '@mui/material/Container';
 import GlobalStyles from '@mui/material/GlobalStyles';
 import { SideNav } from '@/components/dashboard-customer/layout/side-nav';
-import { TopNav } from '@/components/dashboard-customer/layout/top-nav';
+import { MainNav } from '@/components/dashboard-customer/layout/main-nav';
+import { MobileNav } from '@/components/dashboard-customer/layout/mobile-nav';
 import { AuthGuard } from '@/components/auth/auth-guard';
 import { NotificationsProvider } from '@/contexts/notifications-context';
 
@@ -41,9 +42,10 @@ export default function Layout({ children }: LayoutProps): React.JSX.Element {
             minHeight: '100%',
           }}
         >
-          <SideNav onClose={(): void => setOpenNav(false)} open={openNav} />
+          <SideNav />
+          <MobileNav open={openNav} onClose={(): void => setOpenNav(false)} />
           <Box sx={{ display: 'flex', flex: '1 1 auto', flexDirection: 'column', pl: { lg: 'var(--SideNav-width)' } }}>
-            <TopNav onNavOpen={(): void => setOpenNav(true)} />
+            <MainNav onNavOpen={(): void => setOpenNav(true)} />
             <main>
               <Container 
                 maxWidth="xl" 
