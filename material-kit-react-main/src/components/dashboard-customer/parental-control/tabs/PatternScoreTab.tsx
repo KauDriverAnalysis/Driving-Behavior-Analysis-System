@@ -23,7 +23,7 @@ import DirectionsCarIcon from '@mui/icons-material/DirectionsCar';
 import SpeedIcon from '@mui/icons-material/Speed';
 import TrendingUpIcon from '@mui/icons-material/TrendingUp';
 import CompareArrowsIcon from '@mui/icons-material/CompareArrows';
-import BrakeIcon from '@mui/icons-material/NotInterested';
+import TrendingDownIcon from '@mui/icons-material/TrendingDown';
 
 // Define interfaces
 interface PatternScoreTabProps {
@@ -43,9 +43,9 @@ const PatternScoreTab: React.FC<PatternScoreTabProps> = ({
   showNotification,
   selectedCar 
 }) => {
-  // Initial score pattern data
+  // Initial score pattern data with improved icons
   const initialScorePattern: ScorePattern[] = [
-    { id: 'harshBraking', name: 'Harsh Braking', value: 30, color: '#FF5252', icon: <BrakeIcon /> },
+    { id: 'harshBraking', name: 'Harsh Braking', value: 30, color: '#FF5252', icon: <TrendingDownIcon /> },
     { id: 'hardAcceleration', name: 'Hard Acceleration', value: 25, color: '#FF9800', icon: <TrendingUpIcon /> },
     { id: 'swerving', name: 'Swerving', value: 20, color: '#2196F3', icon: <CompareArrowsIcon /> },
     { id: 'overSpeed', name: 'Over Speed', value: 25, color: '#E040FB', icon: <SpeedIcon /> },
@@ -458,7 +458,8 @@ const userType = "customer"; // This is the customer dashboard
               <Button 
                 variant="contained" 
                 onClick={handleRecalculateScores}
-                disabled={recalculatingScores}
+                disabled={recalculatingScores || selectedCar === 'all'}
+                color="secondary"
               >
                 {recalculatingScores ? 'Recalculating...' : 'Recalculate Scores'}
               </Button>
@@ -529,9 +530,8 @@ const userType = "customer"; // This is the customer dashboard
                 </Grid>
 
                 <Box sx={{ 
-                  display: 'flex', 
-                  justifyContent: 'space-between', 
-                  alignItems: 'center',
+                  display: 'flex',
+                  alignItems: 'center', 
                   mt: 3,
                   p: 2,
                   borderRadius: 2
@@ -545,12 +545,7 @@ const userType = "customer"; // This is the customer dashboard
                       </Typography>
                     </Box>
                   </Box>
-                  <Button 
-                    variant="contained"
-                    href={selectedCar && selectedCar !== 'all' ? `/dashboard-customer/car-details/${selectedCar}` : '/dashboard-customer'}
-                  >
-                    View Detailed Report
-                  </Button>
+                  {/* View Detailed Report button removed */}
                 </Box>
               </>
             )}

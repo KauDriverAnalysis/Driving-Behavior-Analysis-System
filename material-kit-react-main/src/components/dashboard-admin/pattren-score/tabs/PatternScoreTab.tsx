@@ -517,8 +517,7 @@ const PatternScoreTab: React.FC<PatternScoreTabProps> = ({
 
                 <Box sx={{ 
                   display: 'flex', 
-                  justifyContent: 'space-between', 
-                  alignItems: 'center',
+                  alignItems: 'center', 
                   mt: 3,
                   p: 2,
                   borderRadius: 2
@@ -532,12 +531,6 @@ const PatternScoreTab: React.FC<PatternScoreTabProps> = ({
                       </Typography>
                     </Box>
                   </Box>
-                  <Button 
-                    variant="contained"
-                    href={selectedCar ? `/dashboard-admin/cars/${selectedCar}` : '/dashboard-admin/cars'}
-                  >
-                    View Detailed Report
-                  </Button>
                 </Box>
               </>
             )}
