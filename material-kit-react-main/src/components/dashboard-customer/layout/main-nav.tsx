@@ -1,14 +1,14 @@
 'use client';
 
-import React from 'react';
+import * as React from 'react';
+import { useRouter } from 'next/navigation';
+import { paths } from '@/paths';
 import Box from '@mui/material/Box';
 import Button from '@mui/material/Button';
 import IconButton from '@mui/material/IconButton';
 import Stack from '@mui/material/Stack';
-import SignOutIcon from '@mui/icons-material/LogoutOutlined';
 import MenuIcon from '@mui/icons-material/Menu';
-import { useRouter } from 'next/navigation';
-import { paths } from '@/paths';
+import SignOutIcon from '@mui/icons-material/LogoutOutlined';
 import { NotificationsPopover } from '../notifications/notifications-popover';
 
 interface MainNavProps {
@@ -18,58 +18,76 @@ interface MainNavProps {
 export function MainNav({ onNavOpen }: MainNavProps): React.JSX.Element {
   const router = useRouter();
   
-  const handleSignOut = (): void => {
-    // Clear all user data from localStorage
-    localStorage.clear();
-    // Redirect to login page
-    router.push(paths.auth.login);
+  const handleSignOut = async () => {
+    try {
+      console.log('Starting sign out...');
+      localStorage.clear();
+      sessionStorage.clear();
+      console.log('Storage cleared');
+      
+      // Use window.location.href instead of router.push for a full page refresh
+      window.location.href = '/auth/sign-in';
+    } catch (error) {
+      console.error('Sign out failed:', error);
+      window.location.href = '/auth/sign-in';
+    }
   };
-
+  
   return (
     <Box
+      component="header"
       sx={{
-        display: 'flex',
-        flex: '1 1 auto',
-        alignItems: 'center', 
-        justifyContent: 'space-between', 
-        minHeight: '64px', 
-        px: 2 
+        borderBottom: '1px solid var(--mui-palette-divider)',
+        backgroundColor: 'var(--mui-palette-background-paper)',
+        position: 'sticky',
+        top: 0,
+        zIndex: 'var(--mui-zIndex-appBar)',
       }}
     >
-      {/* Left side menu icon (for mobile nav) */}
-      <IconButton
-        onClick={onNavOpen}
-        sx={{ display: { lg: 'none' } }}
-      >
-        <MenuIcon />
-      </IconButton>
-
       <Stack
         direction="row"
         spacing={2}
-        sx={{
-          alignItems: 'center',
-          ml: 'auto' // Push to the right
+        sx={{ 
+          alignItems: 'center', 
+          justifyContent: 'space-between', 
+          minHeight: '64px', 
+          px: 2 
         }}
       >
-        <Box sx={{ display: 'flex', alignItems: 'center', gap: 1 }}>
-          <NotificationsPopover />
-        </Box>
-
-        <Button 
-          variant="contained"
-          startIcon={<SignOutIcon />}
-          onClick={handleSignOut}
-          sx={{ 
-            fontWeight: 600,
-            boxShadow: 'none',
-            '&:hover': {
-              boxShadow: 'none'
-            }
+        {/* Left side menu icon (for mobile nav) */}
+        <IconButton
+          onClick={onNavOpen}
+          sx={{ display: { lg: 'none' } }}
+        >
+          <MenuIcon />
+        </IconButton>
+        
+        <Stack
+          direction="row"
+          spacing={2}
+          sx={{
+            alignItems: 'center',
+            ml: 'auto' // Push everything to the right
           }}
         >
-          Sign Out
-        </Button>
+          <Box sx={{ display: 'flex', alignItems: 'center', gap: 1 }}>
+            <NotificationsPopover />
+          </Box>
+
+          <Button 
+            variant="contained"
+            startIcon={<SignOutIcon />}
+            onClick={handleSignOut}
+            sx={{ 
+              bgcolor: 'primary.main',
+              '&:hover': {
+                bgcolor: 'primary.dark',
+              }
+            }}
+          >
+            Sign Out
+          </Button>
+        </Stack>
       </Stack>
     </Box>
   );
