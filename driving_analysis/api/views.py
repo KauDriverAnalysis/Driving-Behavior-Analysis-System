@@ -2377,3 +2377,41 @@ def recalculate_car_scores(request):
     except Exception as e:
         print(f"Error recalculating scores: {str(e)}")
         return JsonResponse({'error': str(e)}, status=500)
+
+@csrf_exempt
+def mark_notification_read(request):
+    """Mark a notification as read for a specific user"""
+    if request.method == 'POST':
+        try:
+            data = json.loads(request.body)
+            car_id = data.get('car_id')
+            user_id = data.get('user_id')
+            user_type = data.get('user_type')
+            notification_type = data.get('notification_type')
+            
+            if not all([car_id, user_id, user_type, notification_type]):
+                return JsonResponse({'error': 'Missing required fields'}, status=400)
+                
+            # Get the latest driving data for this car
+            driving_data = DrivingData.objects.filter(car_id=car_id).order_by('-created_at').first()
+            
+            if not driving_data:
+                return JsonResponse({'error': 'No driving data found'}, status=404)
+            
+            # Initialize read_by if it doesn't exist yet
+            if not driving_data.read_by:
+                driving_data.read_by = {}
+            
+            # Create a unique key for this user and notification type
+            user_key = f"{user_type}_{user_id}_{notification_type}"
+            
+            # Mark as read
+            driving_data.read_by[user_key] = True
+            driving_data.save()
+            
+            return JsonResponse({"success": True})
+        except Exception as e:
+            print(f"Error marking notification as read: {str(e)}")
+            return JsonResponse({'error': str(e)}, status=500)
+    
+    return JsonResponse({'error': 'Method not allowed'}, status=405)

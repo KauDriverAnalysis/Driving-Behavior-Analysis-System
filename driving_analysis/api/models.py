@@ -54,6 +54,8 @@ class DrivingData(models.Model):
     potential_swerving_events = models.IntegerField(default=0)
     over_speed_events = models.IntegerField(default=0)
     score = models.FloatField(default=100.0)
+    # Add a simple JsonField to track who read this notification
+    read_by = models.JSONField(default=dict, blank=True, null=True)
 
 class Employee(models.Model):
     Name = models.CharField(max_length=255)
@@ -116,5 +118,5 @@ class ScorePattern(models.Model):
                 name='score_pattern_customer_or_company'
             )
         ]
-        
-   
+
+

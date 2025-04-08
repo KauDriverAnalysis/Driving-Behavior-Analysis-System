@@ -165,8 +165,15 @@ class DrivingDataForm(forms.ModelForm):
         fields = [
             'speed', 'accident_detection', 'car_id', 'distance', 'harsh_braking_events',
             'harsh_acceleration_events', 'swerving_events', 'potential_swerving_events',
-            'over_speed_events', 'score'
+            'over_speed_events', 'score', 'read_by'
         ]
+    
+    def __init__(self, *args, **kwargs):
+        super().__init__(*args, **kwargs)
+        # Make read_by field optional
+        if 'read_by' in self.fields:
+            self.fields['read_by'].required = False
+
 class EmployeeForm(forms.ModelForm):
     class Meta:
         model = Employee

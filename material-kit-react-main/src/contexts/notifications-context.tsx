@@ -222,6 +222,28 @@ export const NotificationsProvider: React.FC<{ children: React.ReactNode }> = ({
         }
       }
       
+      // After processing alerts, check read status for each
+      for (const alert of allAlerts) {
+        const parts = alert.id.split('-');
+        if (parts.length >= 2) {
+          const eventType = parts[0];
+          const carId = parts[1];
+          
+          // Get the car's driving data from our existing data
+          const carData = carsData.find(data => data.car_id.toString() === carId);
+          
+          if (carData?.current?.read_by) {
+            const userId = localStorage.getItem('customerId') || localStorage.getItem('userId');
+            const userKey = `customer_${userId}_${eventType}`;
+            
+            // Set isRead based on the read_by field
+            if (carData.current.read_by[userKey]) {
+              alert.isRead = true;
+            }
+          }
+        }
+      }
+      
       // Sort alerts by timestamp (newest first)
       allAlerts.sort((a, b) => new Date(b.timestamp).getTime() - new Date(a.timestamp).getTime());
       
@@ -236,16 +258,83 @@ export const NotificationsProvider: React.FC<{ children: React.ReactNode }> = ({
     }
   };
 
-  const markAllAsRead = () => {
-    setAlerts(prev => prev.map(alert => ({ ...alert, isRead: true })));
-  };
-
-  const markAsRead = (id: string) => {
+  const markAsRead = async (id: string) => {
+    // Update UI immediately for better user experience
     setAlerts(prev => 
       prev.map(alert => 
         alert.id === id ? { ...alert, isRead: true } : alert
       )
     );
+    
+    try {
+      // Extract info from the alert ID (e.g., "speed-123-timestamp")
+      const parts = id.split('-');
+      if (parts.length >= 2) {
+        const eventType = parts[0]; // speed, brake, accel, swerve
+        const carId = parts[1];
+        
+        // Get user ID and type
+        const userId = localStorage.getItem('customerId') || 
+                       localStorage.getItem('userId');
+        const userType = 'customer'; // Since this is the customer notifications context
+        
+        // Send request to mark as read in the backend
+        await fetch('https://driving-behavior-analysis-system.onrender.com/api/mark-notification-read/', {
+          method: 'POST',
+          headers: {
+            'Content-Type': 'application/json',
+          },
+          body: JSON.stringify({
+            car_id: carId,
+            user_id: userId,
+            user_type: userType,
+            notification_type: eventType
+          })
+        });
+      }
+    } catch (error) {
+      console.error('Failed to mark notification as read in backend:', error);
+      // Note: We don't revert the UI since it's better UX to keep it marked as read
+    }
+  };
+
+  const markAllAsRead = async () => {
+    // Update UI immediately
+    setAlerts(prev => prev.map(alert => ({ ...alert, isRead: true })));
+    
+    try {
+      // Get user info
+      const userId = localStorage.getItem('customerId') || 
+                     localStorage.getItem('userId');
+      const userType = 'customer';
+      
+      // Mark each alert as read in backend
+      const promises = alerts.map(async (alert) => {
+        const parts = alert.id.split('-');
+        if (parts.length >= 2) {
+          const eventType = parts[0];
+          const carId = parts[1];
+          
+          return fetch('https://driving-behavior-analysis-system.onrender.com/api/mark-notification-read/', {
+            method: 'POST',
+            headers: {
+              'Content-Type': 'application/json',
+            },
+            body: JSON.stringify({
+              car_id: carId,
+              user_id: userId,
+              user_type: userType,
+              notification_type: eventType
+            })
+          });
+        }
+      });
+      
+      // Wait for all requests to complete
+      await Promise.all(promises.filter(Boolean));
+    } catch (error) {
+      console.error('Failed to mark all notifications as read in backend:', error);
+    }
   };
 
   // Fetch alerts on initial load
