@@ -144,6 +144,7 @@ export const NotificationsProvider: React.FC<{ children: React.ReactNode }> = ({
           
           // Process current data - contains the latest metrics
           const record = carData.current;
+          const isRead = record.read_by === true; // Check the read_by field
           // Create a synthetic record ID for alerts
           const recordId = new Date().getTime();
           
@@ -157,7 +158,7 @@ export const NotificationsProvider: React.FC<{ children: React.ReactNode }> = ({
               type: 'speeding',
               message: `Vehicle exceeded speed limit: ${Math.round(record.speed)} km/h`,
               severity: 'error',
-              isRead: false,
+              isRead: isRead, // Use the value from the API
               timestamp: new Date().toISOString(),
               carInfo: {
                 id: car.id,
@@ -174,7 +175,7 @@ export const NotificationsProvider: React.FC<{ children: React.ReactNode }> = ({
               type: 'harsh_braking',
               message: `Excessive harsh braking detected: ${record.harsh_braking_events} events`,
               severity: 'warning',
-              isRead: false,
+              isRead: isRead, // Use the value from the API
               timestamp: new Date().toISOString(),
               carInfo: {
                 id: car.id,
@@ -191,7 +192,7 @@ export const NotificationsProvider: React.FC<{ children: React.ReactNode }> = ({
               type: 'harsh_acceleration',
               message: `Excessive harsh acceleration detected: ${record.harsh_acceleration_events} events`,
               severity: 'warning',
-              isRead: false,
+              isRead: isRead, // Use the value from the API
               timestamp: new Date().toISOString(),
               carInfo: {
                 id: car.id,
@@ -208,7 +209,7 @@ export const NotificationsProvider: React.FC<{ children: React.ReactNode }> = ({
               type: 'swerving',
               message: `Excessive swerving detected: ${record.swerving_events} events`,
               severity: 'warning',
-              isRead: false,
+              isRead: isRead, // Use the value from the API
               timestamp: new Date().toISOString(),
               carInfo: {
                 id: car.id,
@@ -248,31 +249,13 @@ export const NotificationsProvider: React.FC<{ children: React.ReactNode }> = ({
       // Extract info from the alert ID (e.g., "speed-123-timestamp")
       const parts = id.split('-');
       if (parts.length >= 2) {
-        const eventType = parts[0]; // speed, brake, accel, swerve
         const carId = parts[1];
         
-        // Get user ID and type
-        const userId = localStorage.getItem('customerId') || 
-                       localStorage.getItem('userId');
-        const userType = 'customer'; // Since this is the customer notifications context
-        
-        // Send request to mark as read in the backend
-        await fetch('https://driving-behavior-analysis-system.onrender.com/api/mark-notification-read/', {
-          method: 'POST',
-          headers: {
-            'Content-Type': 'application/json',
-          },
-          body: JSON.stringify({
-            car_id: carId,
-            user_id: userId,
-            user_type: userType,
-            notification_type: eventType
-          })
-        });
+        // Use the get_car_driving_data endpoint with mark_read=true parameter
+        await fetch(`https://driving-behavior-analysis-system.onrender.com/api/car-driving-data/${carId}/?mark_read=true`);
       }
     } catch (error) {
-      console.error('Failed to mark notification as read in backend:', error);
-      // Note: We don't revert the UI since it's better UX to keep it marked as read
+      console.error('Failed to mark notification as read:', error);
     }
   };
 
@@ -281,37 +264,24 @@ export const NotificationsProvider: React.FC<{ children: React.ReactNode }> = ({
     setAlerts(prev => prev.map(alert => ({ ...alert, isRead: true })));
     
     try {
-      // Get user info
-      const userId = localStorage.getItem('customerId') || 
-                     localStorage.getItem('userId');
-      const userType = 'customer';
+      // Track which cars we've already processed to avoid duplicate requests
+      const processedCars = new Set();
       
-      // Mark each alert as read in backend
-      const promises = alerts.map(async (alert) => {
+      // Mark each alert's car as read
+      for (const alert of alerts) {
         const parts = alert.id.split('-');
         if (parts.length >= 2) {
-          const eventType = parts[0];
           const carId = parts[1];
           
-          return fetch('https://driving-behavior-analysis-system.onrender.com/api/mark-notification-read/', {
-            method: 'POST',
-            headers: {
-              'Content-Type': 'application/json',
-            },
-            body: JSON.stringify({
-              car_id: carId,
-              user_id: userId,
-              user_type: userType,
-              notification_type: eventType
-            })
-          });
+          // Only process each car once
+          if (!processedCars.has(carId)) {
+            await fetch(`https://driving-behavior-analysis-system.onrender.com/api/car-driving-data/${carId}/?mark_read=true`);
+            processedCars.add(carId);
+          }
         }
-      });
-      
-      // Wait for all requests to complete
-      await Promise.all(promises.filter(Boolean));
+      }
     } catch (error) {
-      console.error('Failed to mark all notifications as read in backend:', error);
+      console.error('Failed to mark all notifications as read:', error);
     }
   };
 

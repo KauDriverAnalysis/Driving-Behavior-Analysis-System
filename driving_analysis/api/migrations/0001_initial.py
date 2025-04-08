@@ -78,8 +78,7 @@ class Migration(migrations.Migration):
                 ('potential_swerving_events', models.IntegerField(default=0)),
                 ('over_speed_events', models.IntegerField(default=0)),
                 ('score', models.FloatField(default=100.0)),
-                ('read_by', models.JSONField(blank=True, default=dict, null=True)),  # Add this line
-                ('car_id', models.ForeignKey(on_delete=django.db.models.deletion.CASCADE, to='api.car')),
+                ('read_by', models.BooleanField(default=False, blank=True)),  # Modified to Boolean                ('car_id', models.ForeignKey(on_delete=django.db.models.deletion.CASCADE, to='api.car')),
             ],
         ),
         migrations.CreateModel(

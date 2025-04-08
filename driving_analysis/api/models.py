@@ -55,8 +55,7 @@ class DrivingData(models.Model):
     over_speed_events = models.IntegerField(default=0)
     score = models.FloatField(default=100.0)
     # Add a simple JsonField to track who read this notification
-    read_by = models.JSONField(default=dict, blank=True, null=True)
-
+    read_by = models.BooleanField(default=False, blank=True)
 class Employee(models.Model):
     Name = models.CharField(max_length=255)
     gender = models.CharField(max_length=6, choices=[('male', 'Male'), ('female', 'Female')])

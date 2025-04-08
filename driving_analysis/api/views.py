@@ -34,7 +34,7 @@ from django.core.cache import cache
 def get_latest_data(request):
     latest_location = cache.get('latest_location')
     print(f"latest_data: {latest_location}")  # Debugging statement
-    if latest_location:
+    if (latest_location):
         data_dict = {
             'latitude': latest_location['latitude'],
             'longitude': latest_location['longitude'],
@@ -1008,8 +1008,17 @@ def get_car_driving_data(request, car_id):
         # Get the car
         car = get_object_or_404(Car, pk=car_id)
         
+        # Check if this request is to mark notifications as read
+        mark_read = request.GET.get('mark_read') == 'true'
+        
         # Get the most recent driving data for this car
         latest_driving_data = DrivingData.objects.filter(car_id=car_id).order_by('-created_at').first()
+        
+        # Mark as read if requested
+        if mark_read and latest_driving_data and not latest_driving_data.read_by:
+            latest_driving_data.read_by = True
+            latest_driving_data.save(update_fields=['read_by'])
+            print(f"Marked notifications as read for car_id: {car_id}")
         
         # Get historical data for trends (last 10 records)
         historical_data = DrivingData.objects.filter(car_id=car_id).order_by('-created_at')[:10]
@@ -1041,6 +1050,7 @@ def get_car_driving_data(request, car_id):
                     'over_speed_events': latest_driving_data.over_speed_events,
                     'score': latest_driving_data.score,
                     'speed': latest_driving_data.speed,
+                    'read_by': latest_driving_data.read_by,  # Include read_by flag in response
                     'created_at': latest_driving_data.created_at.isoformat() if hasattr(latest_driving_data, 'created_at') else None
                 },
                 'summary': {
@@ -1071,7 +1081,8 @@ def get_car_driving_data(request, car_id):
                     'potential_swerving_events': 0,
                     'over_speed_events': 0,
                     'score': 100,
-                    'speed': 0
+                    'speed': 0,
+                    'read_by': False  # Default read_by value
                 },
                 'summary': {
                     'total_distance': 0,
@@ -2377,41 +2388,3 @@ def recalculate_car_scores(request):
     except Exception as e:
         print(f"Error recalculating scores: {str(e)}")
         return JsonResponse({'error': str(e)}, status=500)
-
-@csrf_exempt
-def mark_notification_read(request):
-    """Mark a notification as read for a specific user"""
-    if request.method == 'POST':
-        try:
-            data = json.loads(request.body)
-            car_id = data.get('car_id')
-            user_id = data.get('user_id')
-            user_type = data.get('user_type')
-            notification_type = data.get('notification_type')
-            
-            if not all([car_id, user_id, user_type, notification_type]):
-                return JsonResponse({'error': 'Missing required fields'}, status=400)
-                
-            # Get the latest driving data for this car
-            driving_data = DrivingData.objects.filter(car_id=car_id).order_by('-created_at').first()
-            
-            if not driving_data:
-                return JsonResponse({'error': 'No driving data found'}, status=404)
-            
-            # Initialize read_by if it doesn't exist yet
-            if not driving_data.read_by:
-                driving_data.read_by = {}
-            
-            # Create a unique key for this user and notification type
-            user_key = f"{user_type}_{user_id}_{notification_type}"
-            
-            # Mark as read
-            driving_data.read_by[user_key] = True
-            driving_data.save()
-            
-            return JsonResponse({"success": True})
-        except Exception as e:
-            print(f"Error marking notification as read: {str(e)}")
-            return JsonResponse({'error': str(e)}, status=500)
-    
-    return JsonResponse({'error': 'Method not allowed'}, status=405)
