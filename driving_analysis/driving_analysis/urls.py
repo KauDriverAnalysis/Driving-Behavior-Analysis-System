@@ -64,5 +64,7 @@ urlpatterns = [
     path('api/score-pattern/', views.get_score_pattern, name='get_score_pattern'),
     path('api/score-pattern/update/', views.update_score_pattern, name='update_score_pattern'),
     path('api/car-scores/recalculate/', views.recalculate_car_scores, name='recalculate_car_scores'),
+    path('api/car-trips/<int:car_id>/', views.get_car_trips, name='get_car_trips'),
+    path('api/car-trips/', views.get_car_trips, name='get_all_car_trips'),
     
 ]

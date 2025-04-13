@@ -20,6 +20,7 @@ from datetime import timedelta
 from django.core.mail import send_mail
 from django.conf import settings
 from django.template.loader import render_to_string
+from datetime import timedelta
 
 # Add these imports at the top of your views.py
 from .models import Geofence
@@ -2388,3 +2389,122 @@ def recalculate_car_scores(request):
     except Exception as e:
         print(f"Error recalculating scores: {str(e)}")
         return JsonResponse({'error': str(e)}, status=500)
+
+@csrf_exempt
+def get_car_trips(request, car_id=None):
+    """
+    Get trip data for a specific car or all cars for a customer.
+    Trips are defined by driving data with gaps of 10+ minutes.
+    """
+    try:
+        # Get time frame parameter or default to 7d
+        time_frame = request.GET.get('time_frame', '7d')
+        
+        # Determine the customer from the request
+        customer_id = request.GET.get('customer_id')
+        
+        # Determine date range based on time frame
+        now = timezone.now()
+        if time_frame == '1d':
+            start_date = now - timedelta(days=1)
+        elif time_frame == '7d':
+            start_date = now - timedelta(days=7)
+        elif time_frame == '30d':
+            start_date = now - timedelta(days=30)
+        else:
+            start_date = now - timedelta(days=7)
+        
+        # Get driving data for the specified car or all customer's cars
+        if car_id and car_id != 'all':
+            driving_data = DrivingData.objects.filter(
+                car_id=car_id,
+                created_at__gte=start_date
+            ).order_by('created_at')
+            
+            car_info = {car_id: Car.objects.get(id=car_id)}
+        else:
+            # Get all cars for this customer
+            cars = Car.objects.filter(customer_id=customer_id)
+            car_ids = cars.values_list('id', flat=True)
+            car_info = {car.id: car for car in cars}
+            
+            driving_data = DrivingData.objects.filter(
+                car_id__in=car_ids,
+                created_at__gte=start_date
+            ).order_by('created_at')
+        
+        # Group data into trips (10-minute gap defines a new trip)
+        trips = []
+        current_trip_data = []
+        current_car_id = None
+        
+        for data in driving_data:
+            # New car always starts a new trip
+            if current_car_id is not None and current_car_id != data.car_id.id:
+                if current_trip_data:
+                    trips.append(process_trip(current_trip_data, car_info[current_car_id]))
+                    current_trip_data = []
+            
+            # If current trip has data, check time gap
+            if current_trip_data:
+                time_gap = data.created_at - current_trip_data[-1].created_at
+                if time_gap > timedelta(minutes=10):
+                    # Gap is more than 10 minutes, process the current trip and start a new one
+                    trips.append(process_trip(current_trip_data, car_info[current_car_id]))
+                    current_trip_data = []
+            
+            # Add this data point to the current trip
+            current_trip_data.append(data)
+            current_car_id = data.car_id.id
+        
+        # Process the last trip if any
+        if current_trip_data:
+            trips.append(process_trip(current_trip_data, car_info[current_car_id]))
+        
+        # Sort trips by start time (newest first)
+        trips.sort(key=lambda x: x['start_time'], reverse=True)
+        
+        return JsonResponse(trips, safe=False)
+        
+    except Exception as e:
+        print(f"Error in get_car_trips: {str(e)}")
+        return JsonResponse({'error': str(e)}, status=500)
+
+def process_trip(trip_data, car):
+    """Helper function to process a list of driving data into a trip summary"""
+    # Sort by time to ensure correct order
+    trip_data.sort(key=lambda x: x.created_at)
+    
+    start_time = trip_data[0].created_at
+    end_time = trip_data[-1].created_at
+    duration = (end_time - start_time).total_seconds() / 60  # minutes
+    
+    # Calculate total distance
+    total_distance = sum(data.distance for data in trip_data)
+    
+    # Calculate average score
+    avg_score = sum(data.score for data in trip_data) / len(trip_data) if trip_data else 0
+    
+    # Count events
+    harsh_braking = sum(data.harsh_braking_events for data in trip_data)
+    harsh_acceleration = sum(data.harsh_acceleration_events for data in trip_data)
+    swerving = sum(data.swerving_events for data in trip_data)
+    over_speed = sum(data.over_speed_events for data in trip_data)
+    
+    return {
+        'trip_id': f"{car.id}-{start_time.strftime('%Y%m%d%H%M%S')}",
+        'car_id': car.id,
+        'car_model': car.Model_of_car,
+        'plate_number': car.Plate_number,
+        'start_time': start_time.isoformat(),
+        'end_time': end_time.isoformat(),
+        'duration_minutes': round(duration, 1),
+        'distance_km': round(total_distance, 2),
+        'score': round(avg_score, 1),
+        'events': {
+            'harsh_braking': harsh_braking,
+            'harsh_acceleration': harsh_acceleration,
+            'swerving': swerving,
+            'over_speed': over_speed
+        }
+    }

@@ -435,7 +435,10 @@ export default function CustomerOverview(): React.JSX.Element {
 
         {/* Trip History */}
         <Grid item xs={12}>
-          <TripHistory data={tripHistory} timeFrame={timeFrame} />
+          <TripHistory 
+            selectedCar={selectedCar || 'all'} 
+            timeFrame={timeFrame} 
+          />
         </Grid>
       </Grid>
     </Box>
