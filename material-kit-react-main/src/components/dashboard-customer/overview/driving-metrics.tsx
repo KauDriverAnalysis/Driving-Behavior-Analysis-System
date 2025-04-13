@@ -1,17 +1,20 @@
-// DrivingMetrics.tsx
 import * as React from 'react';
 import Card from '@mui/material/Card';
 import CardContent from '@mui/material/CardContent';
 import Stack from '@mui/material/Stack';
 import Typography from '@mui/material/Typography';
 import Box from '@mui/material/Box';
-import Grid from '@mui/material/Grid'; // Changed from Unstable_Grid2
+import Grid from '@mui/material/Grid';
 import LinearProgress from '@mui/material/LinearProgress';
-import dynamic from 'next/dynamic';
-import type { ApexOptions } from 'apexcharts';
-
-// Dynamically import ApexCharts to avoid SSR issues
-const Chart = dynamic(() => import('react-apexcharts'), { ssr: false });
+import {
+  RadarChart,
+  PolarGrid,
+  PolarAngleAxis,
+  PolarRadiusAxis,
+  Radar,
+  ResponsiveContainer,
+  Tooltip
+} from 'recharts';
 
 interface DrivingMetricsProps {
   data: {
@@ -30,48 +33,14 @@ export function DrivingMetrics({ data }: DrivingMetricsProps) {
     { name: 'Speeding', value: data.speeding, color: '#F44336' }
   ];
 
-  const radarChartOptions: ApexOptions = {
-    chart: {
-      background: 'transparent',
-      toolbar: {
-        show: false
-      }
-    },
-    xaxis: {
-      categories: metricsData.map(item => item.name)
-    },
-    yaxis: {
-      show: false,
-      min: 0,
-      max: 100
-    },
-    colors: metricsData.map(item => item.color),
-    fill: {
-      opacity: 0.5
-    },
-    stroke: {
-      width: 2
-    },
-    markers: {
-      size: 5
-    },
-    plotOptions: {
-      radar: {
-        polygons: {
-          strokeWidth: '1',
-          strokeColors: '#E2E8F0',  // Changed from strokeColor to strokeColors
-          fill: {
-            colors: ['#F8FAFC', '#F1F5F9']
-          }
-        }
-      }
-    }
-  };
-
-  const series = [{
-    name: 'Score',
-    data: metricsData.map(item => item.value)
-  }];
+  // Normalize data for chart visualization (0-100 scale)
+  const maxValue = Math.max(...metricsData.map(item => item.value));
+  const chartData = metricsData.map(item => ({
+    subject: item.name,
+    A: item.value > 0 ? Math.min(100, Math.max(10, (item.value / maxValue) * 100)) : 0,
+    fullMark: 100,
+    color: item.color
+  }));
 
   return (
     <Card>
@@ -88,14 +57,21 @@ export function DrivingMetrics({ data }: DrivingMetricsProps) {
           
           <Box sx={{ display: 'flex', flexDirection: { xs: 'column', md: 'row' }}}>
             <Box sx={{ width: { xs: '100%', md: '50%' }, height: '300px' }}>
-              {typeof window !== 'undefined' && (
-                <Chart
-                  height={300}
-                  options={radarChartOptions}
-                  series={series}
-                  type="radar"
-                />
-              )}
+              <ResponsiveContainer width="100%" height="100%">
+                <RadarChart cx="50%" cy="50%" outerRadius="75%" data={chartData}>
+                  <PolarGrid stroke="#E2E8F0" />
+                  <PolarAngleAxis dataKey="subject" tick={{ fill: '#818E9B', fontSize: 12 }} />
+                  <PolarRadiusAxis angle={90} domain={[0, 100]} tick={false} axisLine={false} />
+                  <Radar 
+                    name="Events" 
+                    dataKey="A" 
+                    stroke="#3f51b5" 
+                    fill="#3f51b5" 
+                    fillOpacity={0.5} 
+                  />
+                  <Tooltip formatter={(value) => [value, 'Score']} />
+                </RadarChart>
+              </ResponsiveContainer>
             </Box>
             
             <Grid container spacing={2} sx={{ width: { xs: '100%', md: '50%' }, pl: { md: 3 } }}>
@@ -110,7 +86,7 @@ export function DrivingMetrics({ data }: DrivingMetricsProps) {
                     </Typography>
                   </Box>
                   <LinearProgress
-                    value={metric.value}
+                    value={metric.value > 100 ? 100 : metric.value}
                     variant="determinate"
                     color="primary"
                     sx={{ 
@@ -130,3 +106,5 @@ export function DrivingMetrics({ data }: DrivingMetricsProps) {
     </Card>
   );
 }
+
+export default DrivingMetrics;

@@ -195,29 +195,54 @@ export default function CustomerOverview(): React.JSX.Element {
           speeding: data.summary?.total_over_speed || 0
         });
         
-        // Set performance trend - we'll need to build this from historical data
-        // For now, we'll create a simple trend based on the average score
-        const score = data.summary?.avg_score || 100;
-        let trendLabels;
-        if (timeFrame === '1d') {
-          trendLabels = ['00:00', '03:00', '06:00', '09:00', '12:00', '15:00', '18:00', '21:00'];
-        } else if (timeFrame === '7d') {
-          trendLabels = ['Mon', 'Tue', 'Wed', 'Thu', 'Fri', 'Sat', 'Sun'];
+        // Set performance trend with real historical data
+        if (data.history && data.history.length > 0) {
+          // Use actual historical data
+          const historyItems = data.history.slice(-8); // Get up to 8 most recent items
+          
+          let trendLabels;
+          let scores;
+          
+          if (timeFrame === '1d') {
+            // For 1d, use hours from timestamps
+            trendLabels = historyItems.map(item => {
+              const date = new Date(item.created_at);
+              return date.getHours() + ':00';
+            });
+            scores = historyItems.map(item => item.score || 0);
+          } else if (timeFrame === '7d') {
+            // For 7d, use day of week from timestamps
+            const days = ['Sun', 'Mon', 'Tue', 'Wed', 'Thu', 'Fri', 'Sat'];
+            trendLabels = historyItems.map(item => {
+              const date = new Date(item.created_at);
+              return days[date.getDay()];
+            });
+            scores = historyItems.map(item => item.score || 0);
+          } else {
+            // For 30d, use week number
+            trendLabels = historyItems.map((item, index) => `Week ${Math.floor(index / 7) + 1}`);
+            scores = historyItems.map(item => item.score || 0);
+          }
+          
+          setPerformanceTrend({
+            hours: timeFrame === '1d' ? trendLabels : [],
+            days: timeFrame === '7d' ? trendLabels : [],
+            weeks: timeFrame === '30d' ? trendLabels : [],
+            scores: scores
+          });
         } else {
-          trendLabels = ['Week 1', 'Week 2', 'Week 3', 'Week 4'];
+          // Fallback to a single data point with the average score
+          const score = data.summary?.avg_score || 100;
+          const label = timeFrame === '1d' ? 'Now' : 
+                       timeFrame === '7d' ? 'This Week' : 'This Month';
+                       
+          setPerformanceTrend({
+            hours: timeFrame === '1d' ? [label] : [],
+            days: timeFrame === '7d' ? [label] : [],
+            weeks: timeFrame === '30d' ? [label] : [],
+            scores: [score]
+          });
         }
-        
-        const scores = trendLabels.map(() => {
-          // Simulate variation around the average score
-          return Math.max(0, Math.min(100, score + (Math.random() * 10 - 5)));
-        });
-        
-        setPerformanceTrend({
-          hours: timeFrame === '1d' ? trendLabels : [],
-          days: timeFrame === '7d' ? trendLabels : [],
-          weeks: timeFrame === '30d' ? trendLabels : [],
-          scores: scores
-        });
         
         // Set a simple trip history based on the time frame with trip numbers
         const trips = [];
