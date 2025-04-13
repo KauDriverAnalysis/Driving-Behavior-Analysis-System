@@ -1,12 +1,14 @@
 import React, { useEffect, useState } from 'react';
-import { Box, Grid, CircularProgress, Alert } from '@mui/material';
+import { Box, Grid } from '@mui/material';
 import StatCard from '../cards/StatCard';
 import DrivingScoreChart from '../charts/DrivingScoreChart';
 import DrivingMetricsChart from '../charts/DrivingMetricsChart';
 import ShieldIcon from '@mui/icons-material/Shield';
 import WarningIcon from '@mui/icons-material/Warning';
 import NotificationsIcon from '@mui/icons-material/Notifications';
-import SpeedIcon from '@mui/icons-material/Speed';
+
+// Import mock data
+import { drivingHistoryData } from '../data/mockData';
 
 // Import the interface from the chart component to ensure type consistency
 import type { DrivingMetricsData } from '../charts/DrivingMetricsChart';
@@ -16,16 +18,33 @@ interface OverviewTabProps {
   selectedCar: string;
 }
 
-function OverviewTab({ selectedCar }: OverviewTabProps): React.JSX.Element {
-  const [metricsData, setMetricsData] = useState<DrivingMetricsData[]>([]);
-  const [loading, setLoading] = useState(true);
-  const [error, setError] = useState<string | null>(null);
-  const [safetyScore, setSafetyScore] = useState(0);
-  const [eventCount, setEventCount] = useState(0);
-  const [alertCount, setAlertCount] = useState(0);
-  const [distanceDriven, setDistanceDriven] = useState(0);
+// Transform the mock data to match what the charts expect
+const transformToMetricsData = (rawData: any): DrivingMetricsData[] => {
+  // If rawData is not an array, make it one with a single item
+  const dataArray = Array.isArray(rawData) ? rawData : [rawData];
+  
+  // Map the data to the expected format
+  return dataArray.map(item => ({
+    date: item.date || new Date().toISOString().split('T')[0], // Default to today if missing
+    harshBraking: Number(item.harsh_braking || 0),
+    hardAcceleration: Number(item.hard_acceleration || 0),
+    swerving: Number(item.swerving || 0),
+    overSpeed: Number(item.over_speed || 0)
+  }));
+};
 
-  // Fetch data when selectedCar changes
+// Update component to receive selectedCar prop
+const OverviewTab: React.FC<OverviewTabProps> = ({ selectedCar }) => {
+  // Add state for raw car data
+  const [rawData, setRawData] = useState(drivingHistoryData);
+  // Add state for transformed metrics data
+  const [metricsData, setMetricsData] = useState<DrivingMetricsData[]>(() => 
+    transformToMetricsData(drivingHistoryData)
+  );
+  const [loading, setLoading] = useState(false);
+  const [error, setError] = useState<string | null>(null);
+  
+  // Update useEffect to fetch data based on car selection
   useEffect(() => {
     const fetchDrivingData = async () => {
       setLoading(true);
@@ -59,33 +78,6 @@ function OverviewTab({ selectedCar }: OverviewTabProps): React.JSX.Element {
         const data = await response.json();
         const processedData = dataFormatter(data);
         
-        // Set summary data
-        if (selectedCar && selectedCar !== 'all') {
-          setSafetyScore(data.summary?.avg_score || data.current?.score || 0);
-          setDistanceDriven(data.summary?.total_distance || 0);
-          // Calculate total events
-          const totalEvents = (
-            (data.summary?.total_harsh_braking || 0) +
-            (data.summary?.total_harsh_acceleration || 0) +
-            (data.summary?.total_swerving || 0) +
-            (data.summary?.total_over_speed || 0)
-          );
-          setEventCount(totalEvents);
-          // Use total events as alert count for now (could be refined)
-          setAlertCount(totalEvents);
-        } else {
-          // For fleet data
-          setSafetyScore(data.fleet_stats?.avg_score || 0);
-          setDistanceDriven(data.fleet_stats?.total_distance_km || 0);
-          const totalEvents = data.events?.total_events || 
-                             ((data.events?.harsh_braking || 0) +
-                             (data.events?.harsh_acceleration || 0) +
-                             (data.events?.swerving || 0) +
-                             (data.events?.over_speed || 0));
-          setEventCount(totalEvents);
-          setAlertCount(totalEvents);
-        }
-        
         setMetricsData(processedData);
         setLoading(false);
       } catch (error) {
@@ -97,7 +89,7 @@ function OverviewTab({ selectedCar }: OverviewTabProps): React.JSX.Element {
     
     // Data processing functions
     const processSingleCarData = (data) => {
-      const { summary, history = [], current } = data;
+      const { summary, history = [] } = data;
       
       // Process historical data if available
       if (history.length > 0) {
@@ -111,14 +103,14 @@ function OverviewTab({ selectedCar }: OverviewTabProps): React.JSX.Element {
         }));
       }
       
-      // Fallback to summary or current data
+      // Fallback to summary data
       return [{
         date: new Date().toISOString().split('T')[0],
-        harshBraking: summary?.total_harsh_braking || current?.harsh_braking_events || 0,
-        hardAcceleration: summary?.total_harsh_acceleration || current?.harsh_acceleration_events || 0,
-        swerving: summary?.total_swerving || current?.swerving_events || 0,
-        overSpeed: summary?.total_over_speed || current?.over_speed_events || 0,
-        score: summary?.avg_score || current?.score || 0
+        harshBraking: summary?.total_harsh_braking || 0,
+        hardAcceleration: summary?.total_harsh_acceleration || 0,
+        swerving: summary?.total_swerving || 0,
+        overSpeed: summary?.total_over_speed || 0,
+        score: summary?.avg_score || 0
       }];
     };
     
@@ -151,71 +143,49 @@ function OverviewTab({ selectedCar }: OverviewTabProps): React.JSX.Element {
     fetchDrivingData();
   }, [selectedCar]);
 
-  // Format score data for DrivingScoreChart
-  const scoreData = metricsData.map(item => ({
-    date: item.date,
-    score: item.score
-  }));
-
   return (
     <Box sx={{ mt: 3, width: '100%' }}>
-      {loading && (
-        <Box sx={{ display: 'flex', justifyContent: 'center', my: 4 }}>
-          <CircularProgress />
-        </Box>
-      )}
+      {/* Stats Cards */}
+      <Grid container spacing={3} sx={{ mb: 3 }}>
+        <Grid item xs={12} md={4}>
+          <StatCard 
+            title="Safety Score"
+            value="82/100"
+            subtitle="↓ 4% from last week"
+            icon={<ShieldIcon />}
+            iconColor="primary.main"
+            iconBgColor="primary.light"
+          />
+        </Grid>
+        
+        <Grid item xs={12} md={4}>
+          <StatCard 
+            title="Top Speed"
+            value="72 mph"
+            subtitle="Highway 101 on Wednesday"
+            icon={<WarningIcon />}
+            iconColor="#F44336"
+            iconBgColor="#FFEBEE"
+          />
+        </Grid>
+        
+        <Grid item xs={12} md={4}>
+          <StatCard 
+            title="Recent Alerts"
+            value="4"
+            subtitle="Past 48 hours"
+            icon={<NotificationsIcon />}
+            iconColor="#FF9800"
+            iconBgColor="#FFF8E1"
+          />
+        </Grid>
+      </Grid>
       
-      {error && (
-        <Alert severity="error" sx={{ mb: 3 }}>
-          {error}
-        </Alert>
-      )}
-      
-      {!loading && !error && (
-        <>
-          {/* Stats Cards */}
-          <Grid container spacing={3} sx={{ mb: 3 }}>
-            <Grid item xs={12} md={3}>
-              <StatCard 
-                title="Safety Score"
-                value={`${Math.round(safetyScore)}/100`}
-                icon={<ShieldIcon sx={{ fontSize: 40, color: '#4caf50' }} />}
-                color="#4caf50"
-              />
-            </Grid>
-            <Grid item xs={12} md={3}>
-              <StatCard 
-                title="Driving Events"
-                value={String(eventCount)}
-                icon={<WarningIcon sx={{ fontSize: 40, color: '#ff9800' }} />}
-                color="#ff9800"
-              />
-            </Grid>
-            <Grid item xs={12} md={3}>
-              <StatCard 
-                title="Alerts Generated"
-                value={String(alertCount)}
-                icon={<NotificationsIcon sx={{ fontSize: 40, color: '#f44336' }} />}
-                color="#f44336"
-              />
-            </Grid>
-            <Grid item xs={12} md={3}>
-              <StatCard 
-                title="Distance Driven"
-                value={`${distanceDriven.toFixed(1)} km`}
-                icon={<SpeedIcon sx={{ fontSize: 40, color: '#2196f3' }} />}
-                color="#2196f3"
-              />
-            </Grid>
-          </Grid>
-          
-          {/* Charts - pass the correctly transformed data */}
-          <DrivingScoreChart data={scoreData} />
-          <DrivingMetricsChart data={metricsData} />
-        </>
-      )}
+      {/* Charts - pass the correctly transformed data */}
+      <DrivingScoreChart data={rawData} />
+      <DrivingMetricsChart data={metricsData} />
     </Box>
   );
-}
+};
 
 export default OverviewTab;

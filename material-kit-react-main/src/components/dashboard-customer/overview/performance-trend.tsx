@@ -3,18 +3,19 @@
 import * as React from 'react';
 import Card from '@mui/material/Card';
 import CardContent from '@mui/material/CardContent';
+import Stack from '@mui/material/Stack';
 import Typography from '@mui/material/Typography';
 import Box from '@mui/material/Box';
-import {
-  LineChart,
-  Line,
-  XAxis,
-  YAxis,
-  CartesianGrid,
-  Tooltip,
-  ResponsiveContainer,
-  ReferenceLine
-} from 'recharts';
+import dynamic from 'next/dynamic';
+import type { ApexOptions } from 'apexcharts';
+
+// Dynamically import ApexCharts to avoid SSR issues with proper typing
+const ReactApexChart = dynamic(() => import('react-apexcharts'), { 
+  ssr: false,
+  loading: () => <Box sx={{ height: 300, display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
+    <Typography color="text.secondary">Loading chart...</Typography>
+  </Box>
+});
 
 interface PerformanceTrendData {
   hours?: string[];
@@ -39,108 +40,148 @@ function PerformanceTrend({ timeFrame, data }: PerformanceTrendProps) {
 
   const labels = getLabels();
 
-  // Safety check - ensure data exists
+  // Safety check - ensure data exists and has the expected format
   const hasValidData = Boolean(data && 
     ((timeFrame === '1d' && data.hours && Array.isArray(data.hours) && data.hours.length > 0) ||
      (timeFrame === '7d' && data.days && Array.isArray(data.days) && data.days.length > 0) ||
      (timeFrame === '30d' && data.weeks && Array.isArray(data.weeks) && data.weeks.length > 0)));
-  
+
   // Ensure scores is an array of valid numbers
   const scores = Array.isArray(data?.scores) 
     ? data.scores.map(score => Number(score) || 0) 
     : [];
   
-  // Calculate real average from actual scores
+  // Calculate average and trend only if we have valid data
   const average = scores.length > 0 ? scores.reduce((a, b) => a + b, 0) / scores.length : 0;
   
-  // Prepare chart data
-  const chartData = labels.map((label, index) => ({
-    name: label,
-    score: scores[index] || 0
-  }));
+  // Calculate trend as difference between last and first value
+  const trend = scores.length >= 2 ? scores[scores.length - 1] - scores[0] : 0;
+  
+  // Chart options with safe data
+  const chartOptions: ApexOptions = {
+    chart: {
+      background: 'transparent',
+      toolbar: {
+        show: false
+      }
+    },
+    dataLabels: {
+      enabled: false
+    },
+    grid: {
+      borderColor: '#EAEDF2',
+      strokeDashArray: 4,
+      xaxis: {
+        lines: {
+          show: true
+        }
+      },
+      yaxis: {
+        lines: {
+          show: true
+        }
+      }
+    },
+    stroke: {
+      curve: 'smooth',
+      width: 3
+    },
+    theme: {
+      mode: 'light'
+    },
+    tooltip: {
+      enabled: true,
+      y: {
+        formatter: function(val: number): string {
+          return Math.round(val).toString();
+        }
+      }
+    },
+    xaxis: {
+      axisBorder: {
+        show: false
+      },
+      axisTicks: {
+        show: false
+      },
+      categories: labels,
+      labels: {
+        style: {
+          colors: '#818E9B'
+        }
+      }
+    },
+    yaxis: {
+      min: 0,
+      max: 100,
+      labels: {
+        style: {
+          colors: '#818E9B'
+        },
+        formatter: function(val: number): string {
+          return Math.round(val).toString();
+        }
+      }
+    }
+  };
+
+  const series = [{
+    name: 'Score',
+    data: scores
+  }];
 
   return (
     <Card>
       <CardContent>
-        <Typography variant="h6" gutterBottom>
-          Performance Trend
-        </Typography>
-        <Typography color="text.secondary" variant="body2" sx={{ mb: 3 }}>
-          Driving score over {timeFrame === '1d' ? 'the last 24 hours' : 
-                          timeFrame === '7d' ? 'the last 7 days' : 
-                          'the last 30 days'}
-        </Typography>
-        
-        <Box sx={{ height: 300 }}>
-          {hasValidData ? (
-            <ResponsiveContainer width="100%" height="100%">
-              <LineChart
-                data={chartData}
-                margin={{
-                  top: 5,
-                  right: 30,
-                  left: 20,
-                  bottom: 5,
-                }}
-              >
-                <CartesianGrid strokeDasharray="3 3" />
-                <XAxis 
-                  dataKey="name"
-                  tick={{ fill: '#818E9B' }}
-                />
-                <YAxis 
-                  domain={[0, 100]}
-                  tick={{ fill: '#818E9B' }}
-                  tickFormatter={(value) => Math.round(value).toString()}
-                />
-                <Tooltip 
-                  formatter={(value) => [Math.round(Number(value)), 'Score']}
-                  labelFormatter={(label) => `Time: ${label}`}
-                />
-                {/* Reference line showing the real average */}
-                <ReferenceLine 
-                  y={average} 
-                  stroke="#8884d8" 
-                  strokeDasharray="3 3"
-                  label={{ 
-                    value: `Avg: ${Math.round(average)}`, 
-                    position: 'right',
-                    fill: '#8884d8'
-                  }}
-                />
-                <Line
-                  type="linear"
-                  dataKey="score"
-                  stroke="#3f51b5"
-                  strokeWidth={2}
-                  dot={{
-                    r: 6,
-                    strokeWidth: 2,
-                    fill: 'white',
-                    stroke: '#3f51b5'
-                  }}
-                  activeDot={{ 
-                    r: 8, 
-                    stroke: '#3f51b5',
-                    strokeWidth: 2,
-                    fill: 'white'
-                  }}
-                  connectNulls={true}
-                />
-              </LineChart>
-            </ResponsiveContainer>
-          ) : (
-            <Box sx={{ height: 300, display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
-              <Typography color="text.secondary">No data available</Typography>
+        <Stack spacing={3}>
+          <Box>
+            <Typography variant="h6" gutterBottom>
+              Performance Trend
+            </Typography>
+            <Typography color="text.secondary" variant="body2">
+              Driving score over {timeFrame === '1d' ? 'the last 24 hours' : 
+                              timeFrame === '7d' ? 'the last 7 days' : 
+                              'the last 30 days'}
+            </Typography>
+          </Box>
+          
+          <Box sx={{ height: 300 }}>
+            {hasValidData ? (
+              <ReactApexChart 
+                height={300}
+                options={chartOptions}
+                series={series}
+                type="line"
+              />
+            ) : (
+              <Box sx={{ height: 300, display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
+                <Typography color="text.secondary">No data available</Typography>
+              </Box>
+            )}
+          </Box>
+          
+          <Box sx={{ display: 'flex', justifyContent: 'space-between' }}>
+            <Box>
+              <Typography variant="subtitle2" color="text.secondary">
+                Average
+              </Typography>
+              <Typography variant="h6">
+                {Math.round(average)}
+              </Typography>
             </Box>
-          )}
-        </Box>
-        
-        <Box sx={{ display: 'flex', justifyContent: 'center', mt: 2 }}>
-          <Typography variant="body2" color="text.secondary">
-            Average Score: <Typography component="span" fontWeight="bold">{Math.round(average)}/100</Typography>
-          </Typography>
-        </Box>
+            <Box>
+              <Typography variant="subtitle2" color="text.secondary">
+                Trend
+              </Typography>
+              <Typography 
+                variant="h6" 
+                sx={{ color: trend >= 0 ? 'success.main' : 'error.main' }}
+              >
+                {trend >= 0 ? '+' : ''}{Math.round(trend)}
+              </Typography>
+            </Box>
+          </Box>
+        </Stack>
       </CardContent>
     </Card>
   );
