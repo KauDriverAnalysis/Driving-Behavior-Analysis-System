@@ -77,7 +77,7 @@ export function UserProvider({ children }: UserProviderProps): React.JSX.Element
         
         // If we have a user but no userType in localStorage, try to get it from the user data
         if (data && !localStorage.getItem('userType') && data.role) {
-          setUserType(data.role);
+          setUserType(data.role as string);
         }
       }
     } catch (err) {

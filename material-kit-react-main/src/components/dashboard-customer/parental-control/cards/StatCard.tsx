@@ -4,10 +4,10 @@ import { Paper, Box, Typography } from '@mui/material';
 interface StatCardProps {
   title: string;
   value: string;
-  subtitle: string;
+  subtitle: string;    // This is missing in your implementation
   icon: React.ReactNode;
-  iconColor: string;
-  iconBgColor: string;
+  iconColor: string;   // You're using 'color' instead of this
+  iconBgColor: string; // This is missing in your implementation
 }
 
 const StatCard: React.FC<StatCardProps> = ({ 

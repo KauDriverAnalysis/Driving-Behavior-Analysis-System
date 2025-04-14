@@ -72,7 +72,8 @@ export default function CustomerOverview(): React.JSX.Element {
     braking: 0,
     acceleration: 0,
     swerving: 0,
-    speeding: 0
+    speeding: 0,
+    score: 0 // Add this missing property
   });
 
   const [performanceTrend, setPerformanceTrend] = useState<PerformanceTrendData>({
@@ -192,7 +193,8 @@ export default function CustomerOverview(): React.JSX.Element {
           braking: data.summary?.total_harsh_braking || 0,
           acceleration: data.summary?.total_harsh_acceleration || 0,
           swerving: data.summary?.total_swerving || 0,
-          speeding: data.summary?.total_over_speed || 0
+          speeding: data.summary?.total_over_speed || 0,
+          score: data.summary?.avg_score || 100 // Include the average score
         });
         
         // Set performance trend - we'll need to build this from historical data

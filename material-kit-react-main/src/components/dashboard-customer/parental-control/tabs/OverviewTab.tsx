@@ -179,38 +179,46 @@ function OverviewTab({ selectedCar }: OverviewTabProps): React.JSX.Element {
               <StatCard 
                 title="Safety Score"
                 value={`${Math.round(safetyScore)}/100`}
+                subtitle="Overall driving safety rating"
                 icon={<ShieldIcon sx={{ fontSize: 40, color: '#4caf50' }} />}
-                color="#4caf50"
+                iconColor="#4caf50"
+                iconBgColor="rgba(76, 175, 80, 0.1)"
               />
             </Grid>
             <Grid item xs={12} md={3}>
               <StatCard 
                 title="Driving Events"
                 value={String(eventCount)}
+                subtitle="Total driving incidents detected"
                 icon={<WarningIcon sx={{ fontSize: 40, color: '#ff9800' }} />}
-                color="#ff9800"
+                iconColor="#ff9800"
+                iconBgColor="rgba(255, 152, 0, 0.1)"
               />
             </Grid>
             <Grid item xs={12} md={3}>
               <StatCard 
                 title="Alerts Generated"
                 value={String(alertCount)}
+                subtitle="Notifications sent to your device"
                 icon={<NotificationsIcon sx={{ fontSize: 40, color: '#f44336' }} />}
-                color="#f44336"
+                iconColor="#f44336"
+                iconBgColor="rgba(244, 67, 54, 0.1)"
               />
             </Grid>
             <Grid item xs={12} md={3}>
               <StatCard 
                 title="Distance Driven"
                 value={`${distanceDriven.toFixed(1)} km`}
+                subtitle="Total distance covered"
                 icon={<SpeedIcon sx={{ fontSize: 40, color: '#2196f3' }} />}
-                color="#2196f3"
+                iconColor="#2196f3"
+                iconBgColor="rgba(33, 150, 243, 0.1)"
               />
             </Grid>
           </Grid>
           
           {/* Charts - pass the correctly transformed data */}
-          <DrivingScoreChart data={scoreData} />
+          <DrivingScoreChart data={scoreData} selectedCar={selectedCar} />
           <DrivingMetricsChart data={metricsData} />
         </>
       )}

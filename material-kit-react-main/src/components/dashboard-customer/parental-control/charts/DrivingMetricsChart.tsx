@@ -27,6 +27,7 @@ export interface DrivingMetricsData {
   hardAcceleration: number;
   swerving: number;
   overSpeed: number;
+  score: number; // Add this missing property
 }
 
 interface DrivingMetricsChartProps {

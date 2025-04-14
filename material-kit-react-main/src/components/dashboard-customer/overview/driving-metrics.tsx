@@ -19,6 +19,8 @@ interface DrivingMetricsProps {
     acceleration: number;
     swerving: number;
     speeding: number;
+    score: number; // Add the score property
+
   };
 }
 
