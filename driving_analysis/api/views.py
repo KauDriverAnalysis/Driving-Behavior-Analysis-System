@@ -48,7 +48,7 @@ def get_latest_data(request):
     
     response = JsonResponse(data_list, safe=False)
     # Add CORS headers manually if needed
-    response["Access-Control-Allow-Origin"] = "http://http://localhost:3000/"
+    response["Access-Control-Allow-Origin"] = "http://https://driving-analysis.netlify.app/"
     response["Access-Control-Allow-Methods"] = "GET, OPTIONS"
     response["Access-Control-Allow-Headers"] = "Content-Type, Authorization"
     return response
@@ -1859,7 +1859,7 @@ def get_car_location(request, car_id=None):
             
             response = JsonResponse(car_locations, safe=False)
             # Add CORS headers
-            response["Access-Control-Allow-Origin"] = "http://http://localhost:3000/"
+            response["Access-Control-Allow-Origin"] = "http://https://driving-analysis.netlify.app/"
             response["Access-Control-Allow-Methods"] = "GET, OPTIONS"
             response["Access-Control-Allow-Headers"] = "Content-Type, Authorization"
             return response

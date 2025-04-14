@@ -52,12 +52,12 @@ if not DEBUG:
 # settings.py
 
 CORS_ORIGIN_WHITELIST = [
-    'http://localhost:3000',
+    'https://driving-analysis.netlify.app',
     'https://driving-analysis.netlify.app'  # Corrected format (no trailing slash)
 ]
 
 CSRF_TRUSTED_ORIGINS = [
-    'http://localhost:3000',
+    'https://driving-analysis.netlify.app',
     'https://driving-analysis.netlify.app'  # Corrected format (no trailing slash)
 ]
 
