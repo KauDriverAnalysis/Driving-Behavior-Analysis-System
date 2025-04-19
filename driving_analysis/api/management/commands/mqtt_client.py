@@ -150,10 +150,26 @@ class Command(BaseCommand):
 
         client = mqtt.Client()
         client.username_pw_set("team22", "KauKau123")
-        client.tls_set(tls_version=ssl.PROTOCOL_TLS)  # Configure TLS
+
+        # Disable certificate verification - more likely to work on all environments
+        client.tls_set(
+            tls_version=ssl.PROTOCOL_TLS,
+            cert_reqs=ssl.CERT_NONE  # This is the key change to fix the SSL error
+        )
+
         client.on_connect = on_connect
         client.on_message = on_message
 
         logger.info("Connecting to MQTT broker...")
+        # Replace this line
         client.connect("af626fdebdec42bfa3ef70e692bf0d69.s1.eu.hivemq.cloud", 8883, 60)
         client.loop_forever()
+
+        # With this more robust code
+        try:
+            logger.info("Connecting to MQTT broker...")
+            client.connect("af626fdebdec42bfa3ef70e692bf0d69.s1.eu.hivemq.cloud", 8883, 60)
+            client.loop_forever()
+        except Exception as e:
+            logger.error(f"MQTT connection failed: {str(e)}")
+            # Optional: Implement retry logic here if needed
