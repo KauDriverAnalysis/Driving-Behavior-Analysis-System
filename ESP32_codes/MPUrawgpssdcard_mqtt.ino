@@ -14,6 +14,7 @@
 #include <TinyGPS++.h>
 #include "MPU6050_6Axis_MotionApps20.h"
 #include "I2Cdev.h"
+#define MQTT_MAX_PACKET_SIZE 8192  // Increase to 8KB (was 128 bytes by default)
 #include <PubSubClient.h>  // MQTT library
 #include "ca_cert.h"        // Using the existing CA certificate file
 
@@ -28,11 +29,11 @@ const char* mqtt_username = "team22";
 const char* mqtt_password = "KauKau123";
 
 // GSM Modem configuration
+
 #define MODEM_UART_BAUD 115200
-#define MODEM_DTR 25
-#define MODEM_TX 17
-#define MODEM_RX 16
-#define MODEM_PWRKEY 4
+#define MODEM_TX 26
+#define MODEM_RX 25
+#define MODEM_PWRKEY 12
 #define LED_PIN 12
 
 // GPRS credentials
@@ -42,17 +43,18 @@ const char gprs_pass[] = "";          // Password
 const char simPIN[] = "";             // SIM card PIN code, if any
 
 // Hardware Defines
-#define RX_PIN 16  // Same as MODEM_RX
-#define TX_PIN 17  // Same as MODEM_TX
+#define RX_PIN 16  
+#define TX_PIN 17  
 #define CS_PIN 5
 
 // Update intervals
 #define WRITE_INTERVAL 2000
-#define MQTT_INTERVAL 10000     // Increased to 10 seconds for GSM optimization
-#define BULK_DATA_SIZE 4096     // Maximum size for bulk data transmission (4KB)
+#define MQTT_INTERVAL  100
+#define BULK_DATA_SIZE 10
+
 
 // Sensor objects
-HardwareSerial GPS(1);
+HardwareSerial GPS(2);  
 MPU6050 mpu;
 TinyGPSPlus gps;
 File dataFile;
@@ -79,7 +81,8 @@ unsigned long dataWriteCounter = 0;
 unsigned long lastMQTTTime = 0;
 
 // GSM and MQTT objects
-TinyGsm modem(Serial1);
+#define SerialAT Serial1
+TinyGsm modem(SerialAT);     // Use SerialAT instead of Serial1
 TinyGsmClient gsmClient(modem);
 SSLClient secureClient(&gsmClient);
 PubSubClient client(secureClient);
@@ -167,7 +170,7 @@ void setupModem() {
   turnModemOn();
   delay(5000);
   
-  Serial1.begin(MODEM_UART_BAUD, SERIAL_8N1, MODEM_RX, MODEM_TX);
+  SerialAT.begin(MODEM_UART_BAUD, SERIAL_8N1, MODEM_RX, MODEM_TX);
   delay(3000);
   
   Serial.print("Modem init...");
@@ -212,10 +215,26 @@ void reconnect() {
     String clientId = "ESP32Client-" + String(random(0xffff));
     if (client.connect(clientId.c_str(), mqtt_username, mqtt_password)) {
       Serial.println("connected");
+      
+      // Add debug publish to verify connection
+      client.publish("debug", "ESP32 connected");
+      
     } else {
       Serial.print("failed, rc=");
       Serial.print(client.state());
-      Serial.println(" retry in 5s");
+      // Print more detailed error information
+      switch(client.state()) {
+        case -4: Serial.println(" (MQTT_CONNECTION_TIMEOUT)"); break;
+        case -3: Serial.println(" (MQTT_CONNECTION_LOST)"); break;
+        case -2: Serial.println(" (MQTT_CONNECT_FAILED)"); break;
+        case -1: Serial.println(" (MQTT_DISCONNECTED)"); break;
+        case 1: Serial.println(" (MQTT_CONNECT_BAD_PROTOCOL)"); break;
+        case 2: Serial.println(" (MQTT_CONNECT_BAD_CLIENT_ID)"); break;
+        case 3: Serial.println(" (MQTT_CONNECT_UNAVAILABLE)"); break;
+        case 4: Serial.println(" (MQTT_CONNECT_BAD_CREDENTIALS)"); break;
+        case 5: Serial.println(" (MQTT_CONNECT_UNAUTHORIZED)"); break;
+        default: Serial.println(" (unknown error)");
+      }
       delay(5000);
       retries++;
     }
@@ -274,7 +293,7 @@ void sensorTask(void *parameter) {
   }
 }
 
-// Modified MQTT task for bulk data transmission
+// Revised MQTT task to send entire buffer at once
 void mqttTask(void *parameter) {
   unsigned long lastConnectionCheck = 0;
   
@@ -292,9 +311,6 @@ void mqttTask(void *parameter) {
       }
       
       // Print connection details periodically
-      IPAddress ip = modem.localIP();
-      Serial.println("Local IP: " + String(ip[0]) + "." + String(ip[1]) + "." + 
-                    String(ip[2]) + "." + String(ip[3]));
       int csq = modem.getSignalQuality();
       Serial.println("Signal quality: " + String(csq));
     }
@@ -311,28 +327,26 @@ void mqttTask(void *parameter) {
          (mqttBuffer.length() >= BULK_DATA_SIZE || 
           currentMillis - lastMQTTTime >= MQTT_INTERVAL)) {
         
-        // Send accumulated data in a single MQTT message
-        Serial.println("Publishing " + String(mqttBuffer.length()) + " bytes of data");
-        
-        // For larger payloads, we might need to chunk the data
-        if (mqttBuffer.length() > 5000) {
-          // Split into chunks of 5000 bytes
-          int chunks = (mqttBuffer.length() / 5000) + 1;
-          for (int i = 0; i < chunks; i++) {
-            int startPos = i * 5000;
-            int endPos = min((i + 1) * 5000, (int)mqttBuffer.length());
-            String chunk = mqttBuffer.substring(startPos, endPos);
-            
-            // Add chunk number to topic for proper reassembly
-            String chunkTopic = String(mqtt_topic) + "/chunk/" + String(i+1) + "/" + String(chunks);
-            client.publish(chunkTopic.c_str(), chunk.c_str());
-            delay(200); // Small delay between chunks
-          }
-        } else {
-          // Send as a single message
-          client.publish(mqtt_topic, mqttBuffer.c_str());
+        // Count lines for logging purposes only
+        int totalLines = 0;
+        for (int i = 0; i < mqttBuffer.length(); i++) {
+          if (mqttBuffer[i] == '\n') totalLines++;
         }
         
+        Serial.println("Publishing " + String(totalLines) + " lines of data (" + 
+                      String(mqttBuffer.length()) + " bytes) as a single message");
+        
+        // Send entire buffer at once
+        boolean published = client.publish(mqtt_topic, mqttBuffer.c_str());
+
+        if (published) {
+          Serial.println("Successfully published data");
+        } else {
+          Serial.println("Failed to publish data - message may be too large");
+          
+          // If publish failed, it might be due to size limitations
+        }
+
         mqttBuffer = "";  // Clear MQTT buffer after publishing
         lastMQTTTime = currentMillis;
       }
@@ -375,7 +389,8 @@ void setup() {
   secureClient.setCACert(root_ca); // Using the CA certificate
   client.setServer(mqtt_server, mqtt_port);
   client.setCallback(callback);
-  
+  client.setBufferSize(8192); // Explicitly set buffer size to match MQTT_MAX_PACKET_SIZE
+
   // Initialize GPS at lower baud rate first
   Serial.println("Initializing GPS...");
   GPS.begin(9600, SERIAL_8N1, RX_PIN, TX_PIN);

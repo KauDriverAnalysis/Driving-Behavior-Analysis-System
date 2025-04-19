@@ -22,110 +22,131 @@ class Command(BaseCommand):
         def on_message(client, userdata, msg):
             try:
                 # Log the raw message first
-                data = msg.payload.decode()
-                logger.info(f"Message received: {data}")
+                raw_data = msg.payload.decode()
+                logger.info(f"Message received with multiple lines")
                 
-                # Check if this is a valid data packet
-                data_list = data.split(',')
+                # Split the message by newlines to handle multiple records
+                data_lines = raw_data.replace('\r\n', '\n').replace('\r', '\n').strip().split('\n')
+                logger.info(f"Found {len(data_lines)} data lines in message")
                 
-                # Validate message format
-                if len(data_list) < 10:
-                    logger.warning(f"Received incomplete data format (expected 10+ values, got {len(data_list)}): {data}")
-                    return
-                    
-                # Now process the data safely
-                data_dict = {
-                    'device_name': data_list[0],
-                    'counter': int(data_list[1] if data_list[1] else 0),
-                    'timestamp': data_list[2],
-                    'latitude': float(data_list[3] if data_list[3] else 0.0),
-                    'longitude': float(data_list[4] if data_list[4] else 0.0),
-                    'speed': float(data_list[5] if data_list[5] else 0.0),
-                    'ax': float(data_list[6] if data_list[6] else 0),
-                    'ay': float(data_list[7] if data_list[7] else 0),
-                    'az': float(data_list[8] if data_list[8] else 0),
-                    'yaw': float(data_list[9] if data_list[9] else 0.0)
-                }
+                # Print the last line from the batch (newly added)
+                if data_lines:
+                    last_line = data_lines[-1]
+                    logger.info(f"Last line in batch: {last_line}")
+                    print(f"LAST LINE: {last_line}")
                 
-                # Store the latest location and speed in the cache
-                latest_location = {
-                    'latitude': data_dict['latitude'],
-                    'longitude': data_dict['longitude'],
-                    'speed': data_dict['speed'],
-                    'device_id': data_dict['device_name']  # Use device_name from data_dict instead
-                }
-
-                # Cache the latest location and speed
-                cache.set('latest_location', latest_location, timeout=None)
-                
-                # Get and update buffer in cache
-                buffer = cache.get('buffer', [])
-                buffer.append(data_dict)
-                cache.set('buffer', buffer, timeout=None)
-                
-                # When buffer reaches threshold, automatically cleanse and analyze
-                if len(buffer) >= 1000:  # You can adjust this threshold
-                    logger.info(f"Buffer reached 1000 data points - triggering automatic cleansing")
-                    
-                    # Cleansing
-                    from api.cleansing_data import cleanse_data
-                    cleaned_data = cleanse_data(buffer)
-                    
-                    # Get and update cleansed buffer in cache
-                    cleansed_buffer = cache.get('cleansed_buffer', [])
-                    cleansed_buffer.extend(cleaned_data.to_dict('records'))
-                    cache.set('cleansed_buffer', cleansed_buffer, timeout=None)
-                    
-                    # Analysis
-                    from api.analysis import analyze_data
-                    analysis_results = analyze_data(cleaned_data)
-                    cache.set('analysis_results', analysis_results, timeout=None)
-                    
-                    # Save the analysis results to the database
-                    from api.models import DrivingData, Car
-                    
-                    # Get the device_id from the data
-                    device_id = data_list[0]  # The device name is the first element
-                    
-                    # Find the car with this device_id
-                    try:
-                        car = Car.objects.get(device_id=device_id)
-                        logger.info(f"Found car with ID {car.id} for device {device_id}")
+                for data in data_lines:
+                    # Skip empty lines
+                    if not data.strip():
+                        continue
                         
-                        # Create DrivingData record with car_id
-                        DrivingData.objects.create(
-                            car_id=car,  # Link to the car
-                            distance=analysis_results.get('distance_km', 0.1),
-                            harsh_braking_events=analysis_results.get('harsh_braking_events', 0),
-                            harsh_acceleration_events=analysis_results.get('harsh_acceleration_events', 0),
-                            swerving_events=analysis_results.get('swerving_events', 0),
-                            potential_swerving_events=analysis_results.get('potential_swerving_events', 0),
-                            over_speed_events=analysis_results.get('over_speed_events', 0),
-                            score=analysis_results.get('score', 100)
-                        )
-                        logger.info(f"Data saved to database and linked to car ID {car.id}")
-                    except Car.DoesNotExist:
-                        logger.warning(f"No car found with device_id {device_id}")
-                        # Save data without car association as fallback
-                        DrivingData.objects.create(
-                            distance=analysis_results.get('distance_km', 0.1),
-                            harsh_braking_events=analysis_results.get('harsh_braking_events', 0),
-                            harsh_acceleration_events=analysis_results.get('harsh_acceleration_events', 0),
-                            swerving_events=analysis_results.get('swerving_events', 0),
-                            potential_swerving_events=analysis_results.get('potential_swerving_events', 0),
-                            over_speed_events=analysis_results.get('over_speed_events', 0),
-                            score=analysis_results.get('score', 100)
-                        )
-                        logger.info("Data saved to database without car association")
+                    # Process each line individually
+                    data_list = data.split(',')
                     
-                    logger.info("Data saved to database")
-                    
-                    # Clear buffer after processing
-                    cache.set('buffer', [], timeout=None)
-                    logger.info("Automatic cleansing and analysis complete")
+                    # Validate message format
+                    if len(data_list) < 10:
+                        logger.warning(f"Received incomplete data format (expected 10+ values, got {len(data_list)}): {data}")
+                        continue
+                        
+                    # Now process the data safely
+                    try:
+                        data_dict = {
+                            'device_name': data_list[0],
+                            'counter': int(data_list[1] if data_list[1] else 0),
+                            'timestamp': data_list[2],
+                            'latitude': float(data_list[3] if data_list[3] else 0.0),
+                            'longitude': float(data_list[4] if data_list[4] else 0.0),
+                            'speed': float(data_list[5] if data_list[5] else 0.0),
+                            'ax': float(data_list[6] if data_list[6] else 0),
+                            'ay': float(data_list[7] if data_list[7] else 0),
+                            'az': float(data_list[8] if data_list[8] else 0),
+                            'yaw': float(data_list[9].strip() if data_list[9] else 0.0)
+                        }
+                        
+                        # Rest of your processing code...
+                        # Store the latest location and speed in the cache
+                        latest_location = {
+                            'latitude': data_dict['latitude'],
+                            'longitude': data_dict['longitude'],
+                            'speed': data_dict['speed'],
+                            'device_id': data_dict['device_name']
+                        }
+
+                        # Cache the latest location and speed
+                        cache.set('latest_location', latest_location, timeout=None)
+                        
+                        # Get and update buffer in cache
+                        buffer = cache.get('buffer', [])
+                        buffer.append(data_dict)
+                        cache.set('buffer', buffer, timeout=None)
+                        
+                        # When buffer reaches threshold, automatically cleanse and analyze
+                        if len(buffer) >= 1000:  # You can adjust this threshold
+                            logger.info(f"Buffer reached 1000 data points - triggering automatic cleansing")
+                            
+                            # Cleansing
+                            from api.cleansing_data import cleanse_data
+                            cleaned_data = cleanse_data(buffer)
+                            
+                            # Get and update cleansed buffer in cache
+                            cleansed_buffer = cache.get('cleansed_buffer', [])
+                            cleansed_buffer.extend(cleaned_data.to_dict('records'))
+                            cache.set('cleansed_buffer', cleansed_buffer, timeout=None)
+                            
+                            # Analysis
+                            from api.analysis import analyze_data
+                            analysis_results = analyze_data(cleaned_data)
+                            cache.set('analysis_results', analysis_results, timeout=None)
+                            
+                            # Save the analysis results to the database
+                            from api.models import DrivingData, Car
+                            
+                            # Get the device_id from the data
+                            device_id = data_list[0]  # The device name is the first element
+                            
+                            # Find the car with this device_id
+                            try:
+                                car = Car.objects.get(device_id=device_id)
+                                logger.info(f"Found car with ID {car.id} for device {device_id}")
+                                
+                                # Create DrivingData record with car_id
+                                DrivingData.objects.create(
+                                    car_id=car,  # Link to the car
+                                    distance=analysis_results.get('distance_km', 0.1),
+                                    harsh_braking_events=analysis_results.get('harsh_braking_events', 0),
+                                    harsh_acceleration_events=analysis_results.get('harsh_acceleration_events', 0),
+                                    swerving_events=analysis_results.get('swerving_events', 0),
+                                    potential_swerving_events=analysis_results.get('potential_swerving_events', 0),
+                                    over_speed_events=analysis_results.get('over_speed_events', 0),
+                                    score=analysis_results.get('score', 100)
+                                )
+                                logger.info(f"Data saved to database and linked to car ID {car.id}")
+                            except Car.DoesNotExist:
+                                logger.warning(f"No car found with device_id {device_id}")
+                                # Save data without car association as fallback
+                                DrivingData.objects.create(
+                                    distance=analysis_results.get('distance_km', 0.1),
+                                    harsh_braking_events=analysis_results.get('harsh_braking_events', 0),
+                                    harsh_acceleration_events=analysis_results.get('harsh_acceleration_events', 0),
+                                    swerving_events=analysis_results.get('swerving_events', 0),
+                                    potential_swerving_events=analysis_results.get('potential_swerving_events', 0),
+                                    over_speed_events=analysis_results.get('over_speed_events', 0),
+                                    score=analysis_results.get('score', 100)
+                                )
+                                logger.info("Data saved to database without car association")
+                            
+                            logger.info("Data saved to database")
+                            
+                            # Clear buffer after processing
+                            cache.set('buffer', [], timeout=None)
+                            logger.info("Automatic cleansing and analysis complete")
+                    except Exception as e:
+                        logger.exception(f"Error processing individual data line: {e}")
+                        logger.error(f"Problematic data line: {data}")
+                        
             except Exception as e:
                 logger.exception(f"Error processing message: {e}")
-                logger.error(f"Raw message data: {data}")
+                logger.error(f"Raw message data: {raw_data}")
 
         client = mqtt.Client()
         client.username_pw_set("team22", "KauKau123")
