@@ -14,7 +14,7 @@
 #include <TinyGPS++.h>
 #include "MPU6050_6Axis_MotionApps20.h"
 #include "I2Cdev.h"
-#define MQTT_MAX_PACKET_SIZE 8192  // Increase to 8KB (was 128 bytes by default)
+#define MQTT_MAX_PACKET_SIZE 20000  // Increase to 8KB (was 128 bytes by default)
 #include <PubSubClient.h>  // MQTT library
 #include "ca_cert.h"        // Using the existing CA certificate file
 
@@ -31,10 +31,10 @@ const char* mqtt_password = "KauKau123";
 // GSM Modem configuration
 
 #define MODEM_UART_BAUD 115200
-#define MODEM_TX 26
+#define MODEM_TX 27
 #define MODEM_RX 25
 #define MODEM_PWRKEY 12
-#define LED_PIN 12
+#define LED_PIN 15
 
 // GPRS credentials
 const char apn[] = "jawalnet.com.sa";  // Your APN

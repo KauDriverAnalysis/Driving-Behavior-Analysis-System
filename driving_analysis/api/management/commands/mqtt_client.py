@@ -34,11 +34,6 @@ class Command(BaseCommand):
                     last_line = data_lines[-1]
                     logger.info(f"Last line in batch: {last_line}")
                     print(f"LAST LINE: {last_line}")
-                    # Add this to print the current cache contents
-                    latest_location = cache.get('latest_location')
-                    buffer = cache.get('buffer', [])
-                    print(f"Cache contents - Latest location: {latest_location}")
-                    print(f"Cache buffer length: {len(buffer)}")
                 
                 for data in data_lines:
                     # Skip empty lines
@@ -88,7 +83,6 @@ class Command(BaseCommand):
                         # When buffer reaches threshold, automatically cleanse and analyze
                         if len(buffer) >= 1000:  # You can adjust this threshold
                             logger.info(f"Buffer reached 1000 data points - triggering automatic cleansing")
-                            
                             
                             # Cleansing
                             from api.cleansing_data import cleanse_data
@@ -154,52 +148,12 @@ class Command(BaseCommand):
                 logger.exception(f"Error processing message: {e}")
                 logger.error(f"Raw message data: {raw_data}")
 
-        # Replace standard MQTT client with WebSockets client
-        client = mqtt.Client(transport="websockets")
+        client = mqtt.Client()
         client.username_pw_set("team22", "KauKau123")
-        
-        # Configure TLS for WebSockets
-        import certifi
-        try:
-            logger.info("Attempting WebSocket connection with system CA certificates...")
-            client.tls_set(
-                ca_certs=certifi.where(),
-                tls_version=ssl.PROTOCOL_TLS
-            )
-        except Exception as cert_err:
-            logger.warning(f"Certificate setup failed: {str(cert_err)}, trying without verification")
-            client.tls_set(
-                cert_reqs=ssl.CERT_NONE,
-                tls_version=ssl.PROTOCOL_TLS
-            )
-            
-        # Set WebSockets path
-        client.ws_set_options(path="/mqtt")  # Check HiveMQ documentation for correct path
-        
-        # Connect using WebSockets port (typically 443)
-        client.connect("af626fdebdec42bfa3ef70e692bf0d69.s1.eu.hivemq.cloud", 8884, 60)  # Use 8884 for WebSockets
-
+        client.tls_set(tls_version=ssl.PROTOCOL_TLS)  # Configure TLS
         client.on_connect = on_connect
         client.on_message = on_message
 
-        # Using a more robust connection approach
-        max_retries = 3
-        retry_count = 0
-        
-        while retry_count < max_retries:
-            try:
-                logger.info(f"Connecting to MQTT broker (attempt {retry_count+1}/{max_retries})...")
-                client.connect("af626fdebdec42bfa3ef70e692bf0d69.s1.eu.hivemq.cloud", 8883, 60)
-                logger.info("Connection successful, starting message loop")
-                client.loop_forever()
-                break  # If we get here, loop_forever() returned normally (unlikely)
-            except Exception as e:
-                logger.error(f"MQTT connection failed: {str(e)}")
-                retry_count += 1
-                if retry_count < max_retries:
-                    logger.info(f"Retrying in 5 seconds...")
-                    import time
-                    time.sleep(5)
-                else:
-                    logger.error("Max retries reached. MQTT client failed to connect.")
-
+        logger.info("Connecting to MQTT broker...")
+        client.connect("af626fdebdec42bfa3ef70e692bf0d69.s1.eu.hivemq.cloud", 8883, 60)
+        client.loop_forever()
