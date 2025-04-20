@@ -1,4 +1,5 @@
 
+
 # Driving Behavior Analysis System
 
 This project is a **graduation project** aimed at analyzing driving behavior using a combination of advanced hardware and software technologies. The system is designed to collect, process, and analyze data from various sensors, and present actionable insights to ensure flexibility, ease of use, and reliability.
@@ -10,9 +11,11 @@ This project is a **graduation project** aimed at analyzing driving behavior usi
 The Driving Behavior Analysis System is comprised of two major parts:
 
 ### 1. **Hardware Components**
-- **IMU (Inertial Measurement Unit) + GPS**: Collects real-time data on vehicle movement and location. The IMU provides acceleration and angular velocity data, while the GPS ensures precise location tracking.
+- **IMU (Inertial Measurement Unit) + GPS**: 
+  - The IMU collects acceleration and angular velocity data for motion analysis.
+  - The GPS operates at **10 Hz**, providing high-frequency and precise location tracking.
 - **ESP Microcontroller**: Utilizes **FreeRTOS** for efficient multitasking and real-time data processing.
-- **GSM Module**: Transmits sensor data to the cloud via secure communication protocols.
+- **GSM Module (SIM7600)**: A 4G-enabled communication module that ensures fast and reliable data transmission to the cloud.
 
 ### 2. **Software Components**
 - **MQTT Protocol**: Ensures lightweight and efficient data transfer between the hardware and backend systems.
@@ -23,11 +26,11 @@ The Driving Behavior Analysis System is comprised of two major parts:
 
 ## Data Flow Overview
 
-The system follows a streamlined data processing pipeline, ensuring high performance and accuracy:
+The system follows a structured data processing pipeline to ensure high performance and accuracy:
 
 1. **Sensors (IMU + GPS)**: Collect raw motion and location data from the vehicle.
-2. **ESP Microcontroller**: Processes the data locally and sends it via GSM.
-3. **GSM Module**: Transmits data to the cloud using the MQTT protocol.
+2. **ESP Microcontroller**: Processes the data locally using **FreeRTOS** and sends it via the GSM module.
+3. **GSM Module (SIM7600)**: Transmits data over a **4G network** to the cloud using the **MQTT protocol**.
 4. **Django Backend**: Receives, processes, and organizes the data for analysis.
 5. **React Frontend**: Visualizes the analyzed data in an interactive and flexible manner, offering insights into driving behavior.
 6. **Netlify Deployment**: Ensures the frontend is accessible on any device, providing a seamless user experience.
@@ -36,12 +39,16 @@ The system follows a streamlined data processing pipeline, ensuring high perform
 
 ## Features
 
-- **Real-Time Data Collection**: Captures data from IMU and GPS sensors with high precision.
-- **Robust Communication**: Utilizes **MQTT** for reliable and efficient data transfer.
-- **Advanced Backend Processing**: Built with Django, ensuring scalable and secure data handling.
+- **Real-Time Data Collection**: 
+  - IMU and GPS sensors capture high-frequency data for precise driving behavior analysis.
+  - The GPS operates at **10 Hz**, ensuring accurate location tracking.
+- **Robust Communication**: 
+  - The **SIM7600 GSM Module** enables fast and reliable **4G** data transmission.
+  - The **MQTT protocol** ensures lightweight and efficient communication.
+- **Advanced Backend Processing**: Built with Django, ensuring scalable and secure data handling capabilities.
 - **Interactive Frontend**: Developed using React, offering a responsive and intuitive user interface.
 - **Cloud Deployment**: Hosted on **Netlify**, ensuring quick and easy access from anywhere.
-- **Efficient Multitasking**: Leverages **FreeRTOS** for real-time processing on the ESP microcontroller.
+- **Real-Time Efficiency**: Uses **FreeRTOS** on the ESP microcontroller for multitasking and real-time processing.
 
 ---
 
@@ -49,13 +56,13 @@ The system follows a streamlined data processing pipeline, ensuring high perform
 
 - **Ease of Use**: The software interface is designed to be user-friendly, requiring minimal technical expertise.
 - **Flexibility**: The modular architecture allows for easy integration of new sensors and features in the future.
-- **Technical Excellence**: Incorporates cutting-edge tools like FreeRTOS, Django, React, MQTT, and Netlify to demonstrate advanced development skills.
+- **Technical Excellence**: Incorporates cutting-edge tools like **FreeRTOS**, **Django**, **React**, **MQTT**, and **Netlify**, demonstrating advanced development skills.
 
 ---
 
 ## Technologies Used
 
-- **Hardware**: IMU, GPS, ESP Microcontroller, GSM Module
+- **Hardware**: IMU, GPS (10 Hz), ESP Microcontroller, GSM Module (SIM7600 4G)
 - **Software**:
   - **FreeRTOS**: Real-time operating system for efficient microcontroller task management.
   - **MQTT**: Lightweight messaging protocol for efficient data communication.
