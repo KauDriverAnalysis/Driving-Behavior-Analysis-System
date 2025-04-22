@@ -17,6 +17,7 @@
 #define MQTT_MAX_PACKET_SIZE 20000  // Increase to 8KB (was 128 bytes by default)
 #include <PubSubClient.h>  // MQTT library
 #include "ca_cert.h"        // Using the existing CA certificate file
+#include <TFT_eSPI.h>              // Graphics and font library
 
 // Device identification
 const String DEVICE_NAME = "DBAS-001"; // Unique identifier for this device
@@ -34,7 +35,6 @@ const char* mqtt_password = "KauKau123";
 #define MODEM_TX 27
 #define MODEM_RX 25
 #define MODEM_PWRKEY 12
-#define LED_PIN 15
 
 // GPRS credentials
 const char apn[] = "jawalnet.com.sa";  // Your APN
@@ -52,6 +52,28 @@ const char simPIN[] = "";             // SIM card PIN code, if any
 #define MQTT_INTERVAL  100
 #define BULK_DATA_SIZE 10
 
+// Hardware Defines
+#define RX_PIN 16  
+#define TX_PIN 17  
+#define CS_PIN 5
+
+// Remove these display pin definitions:
+// Display configuration - using second SPI bus with custom pin assignments
+//#define TFT_SCLK    33    // SPI clock (Serial Clock)
+//#define TFT_MOSI    32    // SPI MOSI (Master Out Slave In)
+//#define TFT_CS      13    // Display chip select (Slave Select)
+//#define TFT_DC      26    // Data/Command control pin
+//#define TFT_RST     15    // Display reset (from the input-capable pin list)
+//#define TFT_MISO    35    // SPI MISO (Master In Slave Out, input-only pin)
+
+// Remove display SPI setup:
+// SPIClass displaySPI = SPIClass(VSPI);
+// Adafruit_ST7789 display = Adafruit_ST7789(TFT_CS, TFT_DC, TFT_MOSI, TFT_SCLK, TFT_RST);
+
+// Add this instead:
+TFT_eSPI display = TFT_eSPI();     // Create display object
+
+volatile bool updateDisplay = false;
 
 // Sensor objects
 HardwareSerial GPS(2);  
@@ -146,7 +168,6 @@ void parseNMEA(String line) {
 
 // GSM Modem functions
 void turnModemOn() {
-  digitalWrite(LED_PIN, LOW);
   pinMode(MODEM_PWRKEY, OUTPUT);
   digitalWrite(MODEM_PWRKEY, LOW);
   delay(1000); // Datasheet Ton minutes = 1S
@@ -157,11 +178,9 @@ void turnModemOff() {
   digitalWrite(MODEM_PWRKEY, LOW);
   delay(1500); // Datasheet Ton minutes = 1.2S
   digitalWrite(MODEM_PWRKEY, HIGH);
-  digitalWrite(LED_PIN, LOW);
 }
 
 void setupModem() {
-  pinMode(LED_PIN, OUTPUT);
   pinMode(MODEM_PWRKEY, OUTPUT);
   
   Serial.println("Initializing modem...");
@@ -204,7 +223,6 @@ void setupModem() {
   }
   Serial.println("OK");
   
-  digitalWrite(LED_PIN, HIGH); // Turn on LED to show connected
 }
 
 // Simplified MQTT reconnect function (publishing only)
@@ -250,6 +268,7 @@ void callback(char* topic, byte* payload, unsigned int length) {
 TaskHandle_t sensorTaskHandle;
 TaskHandle_t mqttTaskHandle;
 TaskHandle_t sdCardTaskHandle;
+TaskHandle_t displayTaskHandle;
 SemaphoreHandle_t dataMutex;
 
 // Separate buffers for MQTT and SD card
@@ -258,8 +277,34 @@ String sdCardBuffer = "";
 
 // Task for sensor reading (MPU6050 & GPS)
 void sensorTask(void *parameter) {
+  // Variables for accident detection
+  const float ACCIDENT_THRESHOLD = 3.0;  // Threshold in G's (adjust as needed)
+  const int16_t RAW_PER_G = 16384;       // MPU6050 in ±2G mode gives ~16384 per G
+  float accMagnitude = 0;
+  bool possibleAccident = false;
+  int accidentCounter = 0;
+  const int ACCIDENT_CONFIRM_COUNT = 3;  // Number of consecutive readings needed
+  
   while (true) {
     mpu.getMotion6(&ax, &ay, &az, &gx, &gy, &gz);
+
+    // Calculate acceleration magnitude in G's
+    accMagnitude = sqrt(pow(ax/RAW_PER_G, 2) + pow(ay/RAW_PER_G, 2) + pow(az/RAW_PER_G, 2));
+    
+    // Check for possible accident (high G-force)
+    if (accMagnitude > ACCIDENT_THRESHOLD) {
+      accidentCounter++;
+      if (accidentCounter >= ACCIDENT_CONFIRM_COUNT) {
+        Serial.println("ACCIDENT DETECTED! Magnitude: " + String(accMagnitude) + "G");
+        updateDisplay = true;  // Trigger display update
+        accidentCounter = 0;   // Reset counter to avoid multiple triggers
+        
+        // Add a delay to prevent multiple detections for the same incident
+        vTaskDelay(5000 / portTICK_PERIOD_MS);
+      }
+    } else {
+      accidentCounter = 0;  // Reset counter if acceleration drops below threshold
+    }
 
     while (GPS.available() > 0) {
       char c = GPS.read();
@@ -377,6 +422,121 @@ void sdCardTask(void *parameter) {
   }
 }
 
+// Display task with optimized resource usage
+void displayTask(void *parameter) {
+  bool displayingWarning = false;
+  
+  // No initial draw here - already done in setup()
+  
+  while (true) {
+    if (updateDisplay) {
+      // New accident detected, show enhanced warning
+      drawWarningScreen();
+      
+      // Reset the flag
+      updateDisplay = false;
+      displayingWarning = true;
+      
+      // Wait for 10 seconds before clearing
+      vTaskDelay(10000 / portTICK_PERIOD_MS);
+      
+      // Return to system OK screen
+      drawSystemOkScreen();
+      displayingWarning = false;
+    }
+    
+    // Check flag less frequently to reduce CPU usage
+    vTaskDelay(5000 / portTICK_PERIOD_MS);
+  }
+}
+
+// Enhanced warning screen with decorations
+void drawWarningScreen() {
+  // Animated warning effect
+  for (int i = 0; i < 3; i++) {
+    display.fillScreen(TFT_RED);
+    vTaskDelay(100 / portTICK_PERIOD_MS);
+    display.fillScreen(TFT_BLACK);
+    vTaskDelay(100 / portTICK_PERIOD_MS);
+  }
+  
+  // Set main background
+  display.fillScreen(TFT_BLACK);
+  
+  // Draw warning triangles - shifted 30px right
+  display.fillTriangle(60, 60, 130, 30, 200, 60, TFT_YELLOW);
+  display.fillTriangle(60, 60, 130, 90, 200, 60, TFT_YELLOW);
+  
+  // Draw exclamation mark - shifted 30px right
+  display.fillRect(125, 40, 10, 30, TFT_RED);
+  display.fillCircle(130, 80, 5, TFT_RED);
+  
+  // Draw decorative borders
+  for (int i = 0; i < 10; i += 3) {
+    display.drawRect(i, i, 400-i*2, 400-i*2, TFT_RED);
+  }
+  
+  // Set text properties - larger and more prominent
+  display.setTextSize(4);
+  display.setTextColor(TFT_WHITE, TFT_RED);
+  
+  // Create text background for better readability - shifted 30px right
+  display.fillRoundRect(50, 120, 200, 50, 10, TFT_RED);
+  display.fillRoundRect(70, 180, 160, 50, 10, TFT_RED);
+  
+  // Draw text - shifted 30px right
+  display.setCursor(60, 130);
+  display.print("ARE YOU");
+  display.setCursor(80, 190);
+  display.print("OKAY?");
+}
+
+// Enhanced system OK screen with decorations
+void drawSystemOkScreen() {
+  // Start with clean background
+  display.fillScreen(TFT_BLUE);
+  
+  // Draw decorative circular border - shifted 30px right
+  for (int r = 190; r >= 180; r--) {
+    display.drawCircle(130, 100, r, TFT_CYAN);
+  }
+  
+  // Add gradient background effect with concentric circles - shifted 30px right
+  for (int r = 170; r > 0; r -= 15) {
+    uint16_t color;
+    if (r > 120) color = TFT_BLUE;
+    else if (r > 60) color = TFT_WHITE;
+    else color = TFT_BLUE;
+    display.fillCircle(130, 100, r, color);
+  }
+  
+  // Draw DBAS system logo - shifted 30px right
+  display.fillTriangle(100, 40, 130, 20, 160, 40, TFT_CYAN);
+  display.fillRoundRect(105, 40, 50, 30, 5, TFT_CYAN);
+  
+  // Draw decorative lines
+  for (int i = 0; i < 400; i += 20) {
+    display.drawLine(0, i, i, 0, TFT_BLUE);
+    display.drawLine(400-i, 0, 400, i, TFT_BLUE);
+  }
+  
+  // Draw status box with shadow effect - shifted 30px right
+  display.fillRoundRect(55, 115, 155, 50, 10, TFT_DARKGREEN);
+  display.fillRoundRect(50, 110, 155, 50, 10, TFT_GREEN);
+  
+  // Draw text with better contrast - changed from "SYSTEM OK" to "AWAKE"
+  display.setTextSize(3);
+  display.setTextColor(TFT_BLACK);
+  display.setCursor(70, 122);
+  display.print("AWAKE");
+  
+  // Draw DBAS text at bottom - shifted 30px right
+  display.setTextSize(2);
+  display.setTextColor(TFT_WHITE);
+  display.setCursor(40, 200);
+  display.print("DBAS ACTIVE");
+}
+
 void setup() {
   Serial.begin(115200);
   delay(5000);
@@ -386,26 +546,26 @@ void setup() {
   setupModem();
   
   // Setup MQTT client
-  secureClient.setCACert(root_ca); // Using the CA certificate
+  secureClient.setCACert(root_ca);
   client.setServer(mqtt_server, mqtt_port);
   client.setCallback(callback);
-  client.setBufferSize(8192); // Explicitly set buffer size to match MQTT_MAX_PACKET_SIZE
+  client.setBufferSize(8192);
 
   // Initialize GPS at lower baud rate first
   Serial.println("Initializing GPS...");
   GPS.begin(9600, SERIAL_8N1, RX_PIN, TX_PIN);
   delay(100); 
-  GPS.print("$PCAS03,1,0,0,0,0,1,0,0*02\r\n"); // Enable only the GGA and VTG sentences
-  GPS.print("$PCAS01,5*19\r\n"); // Set GPS to 115200 bps
-  GPS.print("$PCAS02,100*1E\r\n"); // Set GPS update rate to 10Hz
+  GPS.print("$PCAS03,1,0,0,0,0,1,0,0*02\r\n");
+  GPS.print("$PCAS01,5*19\r\n");
+  GPS.print("$PCAS02,100*1E\r\n");
   delay(100);
   GPS.end();
   delay(100); 
   GPS.begin(115200, SERIAL_8N1, RX_PIN, TX_PIN);
   delay(100); 
-  GPS.print("$PCAS03,1,0,0,0,0,1,0,0*02\r\n"); // Enable only the GGA and VTG sentences
-  GPS.print("$PCAS01,5*19\r\n"); // Set GPS to 115200 bps
-  GPS.print("$PCAS02,100*1E\r\n"); // Set GPS update rate to 10Hz
+  GPS.print("$PCAS03,1,0,0,0,0,1,0,0*02\r\n");
+  GPS.print("$PCAS01,5*19\r\n");
+  GPS.print("$PCAS02,100*1E\r\n");
   Serial.println("GPS initialized");
 
   // Initialize I2C for MPU6050
@@ -422,21 +582,11 @@ void setup() {
   // Initialize DMP on the MPU6050
   devStatus = mpu.dmpInitialize();
   if (devStatus == 0) {
-    // Enhanced calibration for better accuracy
     mpu.CalibrateAccel(30);
     mpu.CalibrateGyro(30);
-    
-    // Set DMP configuration options for optimal filtering
     mpu.setDMPEnabled(true);
-    
-    // Set DMP output rate - lower rate = more filtering
-    // 9 = ~100Hz output, 19 = ~50Hz output (more filtering)
     mpu.setRate(9);
-    
-    // Configure DMP filtering strength for motion sensors
-    // Lower values = stronger filtering
-    mpu.setDLPFMode(6);  // Set to maximum filtering (MPU6050_DLPF_BW_5)
-    
+    mpu.setDLPFMode(6);
     dmpReady = true;
     packetSize = mpu.dmpGetFIFOPacketSize();
     Serial.println("MPU6050 DMP initialized with enhanced filtering!");
@@ -453,21 +603,29 @@ void setup() {
   
   dataFile = SD.open("/datalog.csv", FILE_WRITE);
   if (dataFile) {
-    // Streamlined header with only the needed fields
     dataFile.println("Device,Counter,Time,Latitude,Longitude,Speed(km/h),Ax,Ay,Az,Yaw");
     dataFile.close();
     Serial.println("SD card ready!");
   } else {
     Serial.println("Failed to create file!");
   }
+  
+  // Initialize display ONCE in setup
+  Serial.println("Initializing display...");
+  display.init();
+  
+  // Draw the enhanced system OK screen here once
+  drawSystemOkScreen();
+  Serial.println("Display initialized with system OK screen");
 
   // Create mutex
   dataMutex = xSemaphoreCreateMutex();
 
   // Create FreeRTOS tasks with adjusted priorities
   xTaskCreatePinnedToCore(sensorTask, "Sensor Task", 8192, NULL, 3, &sensorTaskHandle, 1);
-  xTaskCreatePinnedToCore(mqttTask, "MQTT Task", 8192, NULL, 2, &mqttTaskHandle, 0);
-  xTaskCreatePinnedToCore(sdCardTask, "SD Card Task", 4096, NULL, 1, &sdCardTaskHandle, 0);
+  xTaskCreatePinnedToCore(mqttTask, "MQTT Task", 8192, NULL, 3, &mqttTaskHandle, 0);
+  xTaskCreatePinnedToCore(sdCardTask, "SD Card Task", 4096, NULL, 2, &sdCardTaskHandle, 0);
+  xTaskCreatePinnedToCore(displayTask, "Display Task", 4096, NULL, 1, &displayTaskHandle, 0);
   
   Serial.println("Setup complete, tasks running");
 }
