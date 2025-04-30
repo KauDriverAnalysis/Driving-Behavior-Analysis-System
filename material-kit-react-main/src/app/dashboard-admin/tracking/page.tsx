@@ -37,17 +37,21 @@ export interface CarMetrics {
 // Define an interface for your Car type (rename to avoid conflicts)
 export interface Car {
   id: string | number;
+  device_id: string; // <-- Add this line
   model?: string;
   plate_number?: string;
   status?: string;
   isActive?: boolean;
   speed?: number | null;
   score?: number | null;
+  latitude?: number | null;
+  longitude?: number | null;
   // Add all required properties
 }
 
 export default function Tracking(): React.JSX.Element {
   const [cars, setCars] = useState<Car[]>([]);
+  const [locations, setLocations] = useState<any[]>([]);
   const [loading, setLoading] = useState(true);
   const [selectedCar, setSelectedCar] = useState<string | null>(null);
   const [drivingData, setDrivingData] = useState<any | null>(null);
@@ -118,17 +122,13 @@ export default function Tracking(): React.JSX.Element {
         // Add status field based on state property
         const processedCars = data.map((car: any) => {
           const stateValue = car.state?.toLowerCase() || '';
-          const carId = car.id.toString();
-          
-          // Preserve existing metrics if available
-          const existingMetrics = lastMetricsRef.current[carId] || {};
-          
           return {
             ...car,
+            device_id: car.device_id,
             status: stateValue === 'online' ? 'Active' : 'Non-Active',
             isActive: stateValue === 'online',
-            speed: (existingMetrics as any).speed !== undefined ? (existingMetrics as any).speed : null,
-            score: (existingMetrics as any).score !== undefined ? (existingMetrics as any).score : null
+            speed: null,
+            score: null
           };
         });
 
@@ -256,6 +256,22 @@ export default function Tracking(): React.JSX.Element {
       });
   };
 
+  // Fetch live locations (from /api/get-car-location/)
+  useEffect(() => {
+    fetch('/api/get-car-location/').then(res => res.json()).then(setLocations);
+  }, []);
+
+  // Merge speed/location into car list
+  const carsWithLiveData = cars.map(car => {
+    const live = locations.find(loc => loc.device_id === car.device_id);
+    return {
+      ...car,
+      speed: live ? live.speed : null,
+      latitude: live ? live.latitude : null,
+      longitude: live ? live.longitude : null,
+    };
+  });
+
   // Handle car selection
   const handleSelectCar = (carId: string | number) => {
     // Toggle behavior: if clicking the same car again, close the panel
@@ -303,7 +319,7 @@ export default function Tracking(): React.JSX.Element {
                 </Box>
               ) : (
                 <CarsTable 
-                  cars={cars as any} // Type assertion to bypass type checking
+                  cars={carsWithLiveData as any} // Type assertion to bypass type checking
                   onSelectCar={handleSelectCar} 
                   selectedCar={selectedCar}
                 />
