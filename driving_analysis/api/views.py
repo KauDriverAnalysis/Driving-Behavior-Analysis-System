@@ -21,13 +21,13 @@ from django.core.mail import send_mail
 from django.conf import settings
 from django.template.loader import render_to_string
 from datetime import timedelta
-
+import os
 # Add these imports at the top of your views.py
 from .models import Geofence
 from .forms import GeofenceForm
 
 
-
+LOCATION_DIR = os.path.join(os.path.dirname(os.path.dirname(os.path.abspath(__file__))), 'location_data')
 
 from django.http import JsonResponse
 from django.core.cache import cache
@@ -1794,7 +1794,6 @@ def get_car_location(request, car_id=None):
     try:
         # Get all cars with their device IDs
         cars = list(Car.objects.all().values('id', 'device_id', 'Model_of_car', 'Plate_number'))
-        latest_location = cache.get('latest_location')
         
         if car_id:
             # Get the device_id for the requested car
@@ -1804,11 +1803,27 @@ def get_car_location(request, car_id=None):
             
             device_id = car['device_id']
             print(f"Looking for car with device_id: {device_id}")
-            print(f"Latest location data: {latest_location}")
             
-            # Check if we have location data for this device (case insensitive comparison)
-            if latest_location and latest_location.get('device_id', '').lower() == device_id.lower():
-                # We found location data for this specific car
+            # Try to get location from the file first
+            location_file = os.path.join(LOCATION_DIR, f'location_{device_id}.json')
+            latest_location = None
+            
+            if os.path.exists(location_file):
+                try:
+                    with open(location_file, 'r') as f:
+                        latest_location = json.load(f)
+                    print(f"Loaded location from file for device: {device_id}")
+                except Exception as e:
+                    print(f"Error reading location file: {e}")
+            
+            # If file read failed, try from cache as backup
+            if not latest_location:
+                # Try to get from device-specific cache key
+                latest_location = cache.get(f'latest_location_{device_id}')
+                print(f"Cache location data: {latest_location}")
+            
+            # Return the location data if found
+            if latest_location:
                 return JsonResponse({
                     'latitude': latest_location['latitude'],
                     'longitude': latest_location['longitude'],
@@ -1834,14 +1849,27 @@ def get_car_location(request, car_id=None):
             # For each car, check if we have location data matching its device_id
             for car in cars:
                 device_id = car['device_id']
+                location_data = None
                 
-                # If we have data for this device, use it, otherwise use default values
-                if latest_location and latest_location.get('device_id', '').lower() == device_id.lower():
+                # Try file first
+                location_file = os.path.join(LOCATION_DIR, f'location_{device_id}.json')
+                if os.path.exists(location_file):
+                    try:
+                        with open(location_file, 'r') as f:
+                            location_data = json.load(f)
+                    except Exception as e:
+                        print(f"Error reading location file for device {device_id}: {e}")
+                
+                # Try cache as backup
+                if not location_data:
+                    location_data = cache.get(f'latest_location_{device_id}')
+                
+                if location_data:
                     car_locations.append({
                         'id': car['id'],
-                        'latitude': latest_location['latitude'],
-                        'longitude': latest_location['longitude'],
-                        'speed': latest_location.get('speed', 0),
+                        'latitude': location_data['latitude'],
+                        'longitude': location_data['longitude'],
+                        'speed': location_data.get('speed', 0),
                         'device_id': device_id,
                         'model': car['Model_of_car'],
                         'plate': car['Plate_number']
@@ -1867,8 +1895,6 @@ def get_car_location(request, car_id=None):
     except Exception as e:
         print(f"Error in get_car_location: {str(e)}")
         return JsonResponse({'error': str(e)}, status=500)
-
-# Add these functions to your views.py file
 
 @csrf_exempt
 def get_company(request, company_id):

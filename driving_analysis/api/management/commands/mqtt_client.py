@@ -1,12 +1,21 @@
 import paho.mqtt.client as mqtt
 import ssl
 import logging
+import os
+import json
 from django.core.cache import cache
 from django.core.management.base import BaseCommand
 #from api.cleansing_data import cleanse_data
 
 # Create a logger for this module
 logger = logging.getLogger('mqtt_client')
+
+# Define a directory to store location files
+LOCATION_DIR = os.path.join(os.path.dirname(os.path.dirname(os.path.dirname(os.path.abspath(__file__)))), 'location_data')
+
+# Create the directory if it doesn't exist
+if not os.path.exists(LOCATION_DIR):
+    os.makedirs(LOCATION_DIR)
 
 class Command(BaseCommand):
     help = 'Starts the MQTT client to receive data from the MQTT server'
@@ -72,9 +81,14 @@ class Command(BaseCommand):
                             'device_id': data_dict['device_name']
                         }
 
+                        # Store the latest location in a file
+                        location_file = os.path.join(LOCATION_DIR, f'location_{data_dict["device_name"]}.json')
+                        with open(location_file, 'w') as f:
+                            json.dump(latest_location, f)
+                        print(f"Location saved to file for device: {data_dict['device_name']}")
+                        
                         # Cache the latest location and speed
-                        # Cache the latest location and speed
-                        cache_success = cache.set('latest_location', latest_location, timeout=None)
+                        cache_success = cache.set(f'latest_location_{data_dict["device_name"]}', latest_location, timeout=None)
                         if cache_success:
                             print(f"Cache set for latest_location: SUCCESS (device: {data_dict['device_name']})")
                         else:
