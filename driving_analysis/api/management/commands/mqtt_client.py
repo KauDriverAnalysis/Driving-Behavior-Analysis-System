@@ -73,8 +73,12 @@ class Command(BaseCommand):
                         }
 
                         # Cache the latest location and speed
-                        cache.set('latest_location', latest_location, timeout=None)
-                        
+                        # Cache the latest location and speed
+                        cache_success = cache.set('latest_location', latest_location, timeout=None)
+                        if cache_success:
+                            print(f"Cache set for latest_location: SUCCESS (device: {data_dict['device_name']})")
+                        else:
+                            print(f"Cache set for latest_location: FAILED (device: {data_dict['device_name']})")
                         # Get and update buffer in cache
                         buffer = cache.get('buffer', [])
                         buffer.append(data_dict)
