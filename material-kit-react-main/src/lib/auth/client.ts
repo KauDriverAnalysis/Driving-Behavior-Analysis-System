@@ -175,6 +175,12 @@ class AuthClient {
         // Remove console.log for production
       }
       
+      if (data.role === 'admin' || data.userType === 'admin') {
+        localStorage.setItem('is-admin', 'true');
+        localStorage.setItem('userType', 'admin');
+        localStorage.setItem('user-type', 'admin');
+      }
+      
       // Remove console.log for production
       
       // Return consistent userType

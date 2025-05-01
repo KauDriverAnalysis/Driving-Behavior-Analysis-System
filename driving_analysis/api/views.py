@@ -1143,8 +1143,8 @@ def company_login(request):
                             'token': token,
                             'id': company.id,
                             'Company_name': company.Company_name,
-                            'role': 'company',
-                            'userType': 'company',
+                            'role': 'admin',  # <-- Set role as admin
+                            'userType': 'admin',  # <-- Set userType as admin
                             'userId': company.id
                         }, status=200)
                 except Company.DoesNotExist:
