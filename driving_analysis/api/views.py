@@ -25,7 +25,68 @@ import os
 # Add these imports at the top of your views.py
 from .models import Geofence
 from .forms import GeofenceForm
+import math
 
+def haversine(lat1, lon1, lat2, lon2):
+    R = 6371000
+    phi1 = math.radians(lat1)
+    phi2 = math.radians(lat2)
+    dphi = math.radians(lat2 - lat1)
+    dlambda = math.radians(lon2 - lon1)
+    a = math.sin(dphi/2)**2 + math.cos(phi1)*math.cos(phi2)*math.sin(dlambda/2)**2
+    return R * 2 * math.atan2(math.sqrt(a), math.sqrt(1 - a))
+
+def point_in_circle(lat, lon, center, radius):
+    return haversine(lat, lon, center[0], center[1]) <= radius
+
+def point_in_polygon(lat, lon, polygon):
+    x, y = lon, lat
+    inside = False
+    n = len(polygon)
+    p1x, p1y = polygon[0][1], polygon[0][0]
+    for i in range(n+1):
+        p2x, p2y = polygon[i % n][1], polygon[i % n][0]
+        if min(p1y, p2y) < y <= max(p1y, p2y):
+            if x <= max(p1x, p2x):
+                xinters = (y-p1y)*(p2x-p1x)/(p2y-p1y+1e-10)+p1x if p1y != p2y else p1x
+                if p1x == p2x or x <= xinters:
+                    inside = not inside
+        p1x, p1y = p2x, p2y
+    return inside
+
+def check_geofence_for_car(car, lat, lon):
+    from .models import Geofence
+    geofences = Geofence.objects.filter(active=True).filter(
+        company_id=car.company_id_id
+    ) | Geofence.objects.filter(active=True).filter(
+        customer_id=car.customer_id_id
+    )
+    if not geofences.exists():
+        return None
+
+    for geofence in geofences:
+        coords = geofence.get_coordinates()
+        if geofence.type == 'circle':
+            center = coords
+            radius = geofence.radius
+            if point_in_circle(lat, lon, center, radius):
+                return None
+        elif geofence.type == 'polygon':
+            if point_in_polygon(lat, lon, coords):
+                return None
+    return {
+        'id': f'geofence-{car.id}-{int(timezone.now().timestamp())}',
+        'type': 'geofence',
+        'message': f"Car {car.Model_of_car} ({car.Plate_number}) is outside its geofence!",
+        'severity': 'warning',
+        'isRead': False,
+        'timestamp': timezone.now().isoformat(),
+        'carInfo': {
+            'id': car.id,
+            'model': car.Model_of_car,
+            'plateNumber': car.Plate_number
+        }
+    }
 
 LOCATION_DIR = os.path.join(os.path.dirname(os.path.dirname(os.path.abspath(__file__))), 'location_data')
 
@@ -1006,7 +1067,6 @@ def delete_employee(request, employee_id):
 @csrf_exempt
 def get_car_driving_data(request, car_id):
     try:
-        # Get the car
         car = get_object_or_404(Car, pk=car_id)
         
         # Check if this request is to mark notifications as read
@@ -1065,6 +1125,13 @@ def get_car_driving_data(request, car_id):
                     'total_over_speed': total_over_speed
                 }
             }
+            # --- Geofence alert logic ---
+            lat = latest_driving_data.latitude if hasattr(latest_driving_data, 'latitude') else None
+            lon = latest_driving_data.longitude if hasattr(latest_driving_data, 'longitude') else None
+            geofence_alert = None
+            if lat and lon:
+                geofence_alert = check_geofence_for_car(car, lat, lon)
+            data['geofence_alert'] = geofence_alert
             return JsonResponse(data)
         else:
             # Return default data when no driving data is found
