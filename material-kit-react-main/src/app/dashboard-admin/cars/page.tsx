@@ -68,8 +68,8 @@ export default function CarsPage(): React.JSX.Element {
   const [statusFilter, setStatusFilter] = useState('all');
 
   // Get user info from local storage - fixed to match client.ts implementation
-  const userType = localStorage.getItem('userType') || localStorage.getItem('user-type');
-  const userId = localStorage.getItem('userId') || localStorage.getItem('user-id');
+  const userType = localStorage.getItem('company-id') ? 'company' : (localStorage.getItem('userType') || localStorage.getItem('user-type'));
+  const userId = localStorage.getItem('company-id') || localStorage.getItem('userId') || localStorage.getItem('user-id');
   
   // Debug
   console.log('Cars page - userType:', userType, 'userId:', userId);
@@ -80,7 +80,7 @@ export default function CarsPage(): React.JSX.Element {
       setLoading(true);
       try {
         // Update the URL to point to your Django backend
-        const response = await fetch(`https://driving-behavior-analysis-system.onrender.com/api/cars/?userType=${userType || ''}&userId=${userId || ''}`);
+        const response = await fetch(`https://driving-behavior-analysis-system.onrender.com/api/cars/?userType=${userType}&userId=${userId}`);
         
         if (!response.ok) {
           throw new Error(`HTTP error! status: ${response.status}`);
