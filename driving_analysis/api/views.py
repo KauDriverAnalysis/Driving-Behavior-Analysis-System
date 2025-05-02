@@ -1858,8 +1858,7 @@ def get_car_location(request, car_id=None):
     """
     try:
         # Get all cars with their device IDs
-        cars = list(Car.objects.all().values('id', 'device_id', 'Model_of_car', 'Plate_number'))
-        
+        cars = list(Car.objects.all().values('id', 'device_id', 'Model_of_car', 'Plate_number', 'company_id', 'customer_id'))        
         if car_id:
             # Get the device_id for the requested car
             car = next((c for c in cars if c['id'] == car_id), None)
