@@ -26,6 +26,7 @@ import os
 from .models import Geofence
 from .forms import GeofenceForm
 import math
+from .models import Geofence, Car
 
 def haversine(lat1, lon1, lat2, lon2):
     R = 6371000
@@ -55,11 +56,10 @@ def point_in_polygon(lat, lon, polygon):
     return inside
 
 def check_geofence_for_car(car, lat, lon):
-    from .models import Geofence
     geofences = Geofence.objects.filter(active=True).filter(
-        company_id=car.company_id_id
+        company_id=car['company_id']
     ) | Geofence.objects.filter(active=True).filter(
-        customer_id=car.customer_id_id
+        customer_id=car['customer_id']
     )
     if not geofences.exists():
         return None
@@ -75,18 +75,15 @@ def check_geofence_for_car(car, lat, lon):
             if point_in_polygon(lat, lon, coords):
                 return None
     return {
-        'id': f'geofence-{car.id}-{int(timezone.now().timestamp())}',
         'type': 'geofence',
-        'message': f"Car {car.Model_of_car} ({car.Plate_number}) is outside its geofence!",
+        'message': f"Car {car['Model_of_car']} ({car['Plate_number']}) is outside its geofence!",
         'severity': 'warning',
-        'isRead': False,
-        'timestamp': timezone.now().isoformat(),
-        'carInfo': {
-            'id': car.id,
-            'model': car.Model_of_car,
-            'plateNumber': car.Plate_number
-        }
+        'car_id': car['id'],
+        'device_id': car['device_id'],
+        'latitude': lat,
+        'longitude': lon
     }
+
 
 LOCATION_DIR = os.path.join(os.path.dirname(os.path.dirname(os.path.abspath(__file__))), 'location_data')
 
@@ -1933,6 +1930,7 @@ def get_car_location(request, car_id=None):
                     location_data = cache.get(f'latest_location_{device_id}')
                 
                 if location_data:
+                    geofence_alert = check_geofence_for_car(car, location_data['latitude'], location_data['longitude'])
                     car_locations.append({
                         'id': car['id'],
                         'latitude': location_data['latitude'],
@@ -1940,7 +1938,8 @@ def get_car_location(request, car_id=None):
                         'speed': location_data.get('speed', 0),
                         'device_id': device_id,
                         'model': car['Model_of_car'],
-                        'plate': car['Plate_number']
+                        'plate': car['Plate_number'],
+                        'geofence_alert': geofence_alert  # <-- Add this
                     })
                 else:
                     car_locations.append({
@@ -1950,7 +1949,8 @@ def get_car_location(request, car_id=None):
                         'speed': 0,
                         'device_id': device_id,
                         'model': car['Model_of_car'],
-                        'plate': car['Plate_number']
+                        'plate': car['Plate_number'],
+                        'geofence_alert': None
                     })
             
             response = JsonResponse(car_locations, safe=False)
