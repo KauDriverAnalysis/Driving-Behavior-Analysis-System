@@ -115,8 +115,10 @@ export default function Tracking(): React.JSX.Element {
         const processedCars = data.map((car: any) => {
           const stateValue = car.state?.toLowerCase() || '';
           const carId = car.id.toString();
+          
+          // Preserve existing metrics if available
           const existingMetrics = lastMetricsRef.current[carId] || {};
-
+          
           return {
             ...car,
             status: stateValue === 'online' ? 'Active' : 'Non-Active',
