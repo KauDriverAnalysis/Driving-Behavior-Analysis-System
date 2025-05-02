@@ -1852,42 +1852,51 @@ def create_geofence(request):
 
 @csrf_exempt
 def get_car_location(request, car_id=None):
-    """
-    Get location data for a specific car or all cars.
-    If car_id is provided, return data for that specific car.
-    Otherwise, return location data for all cars.
-    """
     try:
-        # Get all cars with their device IDs
-        cars = list(Car.objects.all().values('id', 'device_id', 'Model_of_car', 'Plate_number', 'company_id', 'customer_id'))        
+        user_type = request.GET.get('userType')
+        user_id = request.GET.get('userId')
+
+        # Filter cars based on user type
+        if user_type == 'company' and user_id:
+            cars = list(Car.objects.filter(company_id=user_id).values(
+                'id', 'device_id', 'Model_of_car', 'Plate_number', 'company_id', 'customer_id'
+            ))
+        elif user_type in ['employee', 'admin'] and user_id:
+            try:
+                employee = Employee.objects.get(id=user_id)
+                if employee.company_id:
+                    cars = list(Car.objects.filter(company_id=employee.company_id.id).values(
+                        'id', 'device_id', 'Model_of_car', 'Plate_number', 'company_id', 'customer_id'
+                    ))
+                else:
+                    cars = []
+            except Employee.DoesNotExist:
+                cars = []
+        elif user_type == 'customer' and user_id:
+            cars = list(Car.objects.filter(customer_id=user_id).values(
+                'id', 'device_id', 'Model_of_car', 'Plate_number', 'company_id', 'customer_id'
+            ))
+        else:
+            cars = list(Car.objects.all().values(
+                'id', 'device_id', 'Model_of_car', 'Plate_number', 'company_id', 'customer_id'
+            ))
+
         if car_id:
-            # Get the device_id for the requested car
-            car = next((c for c in cars if c['id'] == car_id), None)
+            # Single car lookup (not used in most tracking pages)
+            car = next((c for c in cars if str(c['id']) == str(car_id)), None)
             if not car:
-                return JsonResponse({'error': f'Car with id {car_id} not found'}, status=404)
-            
+                return JsonResponse({'error': 'Car not found'}, status=404)
             device_id = car['device_id']
-            print(f"Looking for car with device_id: {device_id}")
-            
-            # Try to get location from the file first
             location_file = os.path.join(LOCATION_DIR, f'location_{device_id}.json')
             latest_location = None
-            
             if os.path.exists(location_file):
                 try:
                     with open(location_file, 'r') as f:
                         latest_location = json.load(f)
-                    print(f"Loaded location from file for device: {device_id}")
                 except Exception as e:
                     print(f"Error reading location file: {e}")
-            
-            # If file read failed, try from cache as backup
             if not latest_location:
-                # Try to get from device-specific cache key
                 latest_location = cache.get(f'latest_location_{device_id}')
-                print(f"Cache location data: {latest_location}")
-            
-            # Return the location data if found
             if latest_location:
                 return JsonResponse({
                     'latitude': latest_location['latitude'],
@@ -1898,9 +1907,8 @@ def get_car_location(request, car_id=None):
                     'plate': car['Plate_number']
                 })
             else:
-                # No location data for this car yet
                 return JsonResponse({
-                    'latitude': 21.4858,  # Default to Jeddah coordinates if no data
+                    'latitude': 21.4858,
                     'longitude': 39.1925,
                     'speed': 0,
                     'device_id': device_id,
@@ -1910,13 +1918,9 @@ def get_car_location(request, car_id=None):
         else:
             # Return all cars with their locations or default coordinates
             car_locations = []
-            
-            # For each car, check if we have location data matching its device_id
             for car in cars:
                 device_id = car['device_id']
                 location_data = None
-                
-                # Try file first
                 location_file = os.path.join(LOCATION_DIR, f'location_{device_id}.json')
                 if os.path.exists(location_file):
                     try:
@@ -1924,11 +1928,8 @@ def get_car_location(request, car_id=None):
                             location_data = json.load(f)
                     except Exception as e:
                         print(f"Error reading location file for device {device_id}: {e}")
-                
-                # Try cache as backup
                 if not location_data:
                     location_data = cache.get(f'latest_location_{device_id}')
-                
                 if location_data:
                     geofence_alert = check_geofence_for_car(car, location_data['latitude'], location_data['longitude'])
                     car_locations.append({
@@ -1939,12 +1940,12 @@ def get_car_location(request, car_id=None):
                         'device_id': device_id,
                         'model': car['Model_of_car'],
                         'plate': car['Plate_number'],
-                        'geofence_alert': geofence_alert  # <-- Add this
+                        'geofence_alert': geofence_alert
                     })
                 else:
                     car_locations.append({
                         'id': car['id'],
-                        'latitude': 21.4858,  # Default to Jeddah coordinates if no data
+                        'latitude': 21.4858,
                         'longitude': 39.1925,
                         'speed': 0,
                         'device_id': device_id,
@@ -1952,18 +1953,16 @@ def get_car_location(request, car_id=None):
                         'plate': car['Plate_number'],
                         'geofence_alert': None
                     })
-            
             response = JsonResponse(car_locations, safe=False)
-            # Add CORS headers
             response["Access-Control-Allow-Origin"] = "http://https://driving-analysis.netlify.app/"
             response["Access-Control-Allow-Methods"] = "GET, OPTIONS"
             response["Access-Control-Allow-Headers"] = "Content-Type, Authorization"
             return response
-            
+
     except Exception as e:
         print(f"Error in get_car_location: {str(e)}")
         return JsonResponse({'error': str(e)}, status=500)
-
+    
 @csrf_exempt
 def get_company(request, company_id):
     """Get details for a specific company"""

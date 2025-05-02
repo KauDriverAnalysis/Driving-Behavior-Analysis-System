@@ -12,7 +12,8 @@ import {
   Skeleton, 
   Divider,
   Card,
-  CardHeader
+  CardHeader,
+  Alert
 } from '@mui/material';
 import { CarsTable } from '@/components/dashboard-admin/tracking/CarsTableTrack';
 import dynamic from 'next/dynamic';
@@ -43,6 +44,9 @@ export interface Car {
   isActive?: boolean;
   speed?: number | null;
   score?: number | null;
+  geofence_alert?: {
+    message: string;
+  };
   // Add all required properties
 }
 
@@ -302,11 +306,21 @@ export default function Tracking(): React.JSX.Element {
                   <Skeleton variant="rectangular" height={300} animation="wave" />
                 </Box>
               ) : (
-                <CarsTable 
-                  cars={cars as any} // Type assertion to bypass type checking
-                  onSelectCar={handleSelectCar} 
-                  selectedCar={selectedCar}
-                />
+                <>
+                  {cars
+                    .filter(car => car.geofence_alert)
+                    .map(car => (
+                      <Alert key={car.id} severity="warning" sx={{ mb: 2 }}>
+                        {car.geofence_alert.message}
+                      </Alert>
+                    ))
+                  }
+                  <CarsTable 
+                    cars={cars as any} // Type assertion to bypass type checking
+                    onSelectCar={handleSelectCar} 
+                    selectedCar={selectedCar}
+                  />
+                </>
               )}
             </Card>
           </Grid>

@@ -16,7 +16,8 @@ import {
   Divider,
   IconButton,
   Tooltip,
-  Badge
+  Badge,
+  Alert as MuiAlert
 } from '@mui/material';
 import SearchIcon from '@mui/icons-material/Search';
 import NotificationsActiveIcon from '@mui/icons-material/NotificationsActive';
@@ -125,24 +126,34 @@ function AlertsTab(): React.JSX.Element {
           throw new Error('No company ID found');
         }
         
-        // Get all cars for this company
-        const carsResponse = await fetch(`https://driving-behavior-analysis-system.onrender.com/api/cars/?userType=company&userId=${companyId}`);
-        
-        if (!carsResponse.ok) {
-          throw new Error(`Failed to fetch cars: ${carsResponse.status} ${carsResponse.statusText}`);
-        }
-        
-        const cars = await carsResponse.json() as Car[];
-        
-        if (!Array.isArray(cars) || cars.length === 0) {
-          setAlerts([]);
-          setLoading(false);
-          return;
-        }
-        
+        // Fetch all cars for this company
+        const carsResp = await fetch(`https://driving-behavior-analysis-system.onrender.com/api/cars/?userType=company&userId=${companyId}`);
+        const cars = await carsResp.json();
+
+        // --- Fetch geofence alerts from get-car-location ---
+        const geoResp = await fetch(`https://driving-behavior-analysis-system.onrender.com/api/get-car-location/?userType=company&userId=${companyId}`);
+        const geoData = await geoResp.json();
+        const geofenceAlerts = geoData
+          .filter((car: any) => car.geofence_alert)
+          .map((car: any) => ({
+            id: `geofence-${car.id}`,
+            type: 'geofence',
+            message: car.geofence_alert.message,
+            severity: car.geofence_alert.severity || 'warning',
+            isRead: false,
+            timestamp: new Date().toISOString(),
+            carInfo: {
+              id: car.id,
+              model: car.model,
+              plateNumber: car.plate
+            }
+          }));
+
         // Collect alerts for all company's cars
         const allAlerts: Alert[] = [];
-        
+
+        allAlerts.push(...geofenceAlerts);
+
         for (const car of cars) {
           try {
             // Fetch driving data for this car
