@@ -74,6 +74,7 @@ def check_geofence_for_car(car, lat, lon):
         elif geofence.type == 'polygon':
             if point_in_polygon(lat, lon, coords):
                 return None
+    print(f"GEOFENCE VIOLATION: Car {car['Model_of_car']} ({car['Plate_number']}) is outside its geofence!")
     return {
         'type': 'geofence',
         'message': f"Car {car['Model_of_car']} ({car['Plate_number']}) is outside its geofence!",
