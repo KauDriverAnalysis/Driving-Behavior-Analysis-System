@@ -505,20 +505,7 @@ def car_list(request):
                         print(f"Employee ID: {user_id} has no company association")
                 except Employee.DoesNotExist:
                     return JsonResponse({'error': 'Employee not found'}, status=404)
-            elif user_type == 'admin':
-                # Try to find a company with this ID
-                if Company.objects.filter(id=user_id).exists():
-                    cars_queryset = Car.objects.filter(company_id=user_id)
-                else:
-                    # Fallback to employee logic
-                    try:
-                        employee = Employee.objects.get(id=user_id)
-                        if employee.company_id:
-                            cars_queryset = Car.objects.filter(company_id=employee.company_id.id)
-                        else:
-                            cars_queryset = Car.objects.none()
-                    except Employee.DoesNotExist:
-                        cars_queryset = Car.objects.none()
+
             else:
                 print(f"Unknown user type: {user_type}")
         else:
@@ -1224,8 +1211,8 @@ def company_login(request):
                             'token': token,
                             'id': company.id,
                             'Company_name': company.Company_name,
-                            'role': 'admin',  # <-- Set role as admin
-                            'userType': 'admin',  # <-- Set userType as admin
+                            'role': 'company',
+                            'userType': 'company',
                             'userId': company.id
                         }, status=200)
                 except Company.DoesNotExist:

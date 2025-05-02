@@ -175,25 +175,7 @@ class AuthClient {
         // Remove console.log for production
       }
       
-      if (data.role === 'admin' || data.userType === 'admin') {
-        localStorage.setItem('is-admin', 'true');
-        localStorage.setItem('userType', 'admin');
-        localStorage.setItem('user-type', 'admin');
-      }
-      
-      // ...inside AuthClient.signInWithPassword, after a successful company login:
-      if (accountType === 'company' || userRole === 'admin') {
-        // Store company ID under all possible keys
-        localStorage.setItem('company-id', userId);
-        localStorage.setItem('company_id', userId);
-        localStorage.setItem('companyId', userId);
-        localStorage.setItem('userId', userId); // For consistency
-        // Optionally, store company name if available
-        if (data.Company_name) {
-          localStorage.setItem('company-name', data.Company_name);
-        }
-      }
-      
+
       // Remove console.log for production
       
       // Return consistent userType
