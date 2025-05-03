@@ -430,21 +430,26 @@ void mpuTask(void *parameter) {
     // Read data from MPU6050
     mpu.getMotion6(&ax, &ay, &az, &gx, &gy, &gz);
 
-
     if (dmpReady && mpu.dmpGetCurrentFIFOPacket(fifoBuffer)) {
       mpu.dmpGetQuaternion(&quat, fifoBuffer);
       mpu.dmpGetGravity(&gravity, &quat);
       mpu.dmpGetYawPitchRoll(ypr, &quat, &gravity);
       Serial.println("entered the dmp loop");
+
+      // Accident indicator: 1 if accidentDetected, 0 otherwise
+      int accidentIndicator = accidentDetected ? 1 : 0;
+
       // Create data line using global GPS variables
       char dataLine[256]; // Fixed buffer for data line
       int lineLength = snprintf(dataLine, sizeof(dataLine), 
-                                "%s,%lu,%s,%s,%s,%.2f,%d,%d,%d,%.2f,%.2f,%.2f\n",
-                                DEVICE_NAME.c_str(), dataWriteCounter++, 
-                                globalTimeG.c_str(), globalLatitude.c_str(), 
-                                globalLongitude.c_str(), globalSpeedKmh,
-                                ax, ay, az, 
-                                ypr[0] * 180/M_PI, ypr[1] * 180/M_PI, ypr[2] * 180/M_PI);
+        "%s,%lu,%s,%s,%s,%.2f,%d,%d,%d,%.2f,%d\n",
+        DEVICE_NAME.c_str(), dataWriteCounter++, 
+        globalTimeG.c_str(), globalLatitude.c_str(), 
+        globalLongitude.c_str(), globalSpeedKmh,
+        ax, ay, az, 
+        ypr[0] * 180/M_PI, // Yaw only
+        accidentIndicator   // 1 for accident, 0 for no accident
+      );
 
       // Take mutex with timeout instead of MAX_DELAY
       if (xSemaphoreTake(dataMutex, pdMS_TO_TICKS(500))) {
@@ -480,7 +485,6 @@ void mpuTask(void *parameter) {
     vTaskDelay(30 / portTICK_PERIOD_MS);  // Run at ~20Hz
   }
 }
-
 // Revised MQTT task to send entire buffer at once
 void mqttTask(void *parameter) {
   unsigned long lastConnectionCheck = 0;

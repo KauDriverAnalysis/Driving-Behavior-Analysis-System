@@ -45,19 +45,16 @@ class Command(BaseCommand):
                     print(f"LAST LINE: {last_line}")
                 
                 for data in data_lines:
-                    # Skip empty lines
                     if not data.strip():
                         continue
-                        
-                    # Process each line individually
+
                     data_list = data.split(',')
-                    
-                    # Validate message format
-                    if len(data_list) < 10:
-                        logger.warning(f"Received incomplete data format (expected 10+ values, got {len(data_list)}): {data}")
+
+                    # Now expecting at least 11 values (accident is the last)
+                    if len(data_list) < 11:
+                        logger.warning(f"Received incomplete data format (expected 11+ values, got {len(data_list)}): {data}")
                         continue
-                        
-                    # Now process the data safely
+
                     try:
                         data_dict = {
                             'device_name': data_list[0],
@@ -69,7 +66,8 @@ class Command(BaseCommand):
                             'ax': float(data_list[6] if data_list[6] else 0),
                             'ay': float(data_list[7] if data_list[7] else 0),
                             'az': float(data_list[8] if data_list[8] else 0),
-                            'yaw': float(data_list[9].strip() if data_list[9] else 0.0)
+                            'yaw': float(data_list[9].strip() if data_list[9] else 0.0),
+                            'accident': int(data_list[10].strip() if data_list[10] else 0)
                         }
                         
                         # Rest of your processing code...
@@ -136,7 +134,8 @@ class Command(BaseCommand):
                                     swerving_events=analysis_results.get('swerving_events', 0),
                                     potential_swerving_events=analysis_results.get('potential_swerving_events', 0),
                                     over_speed_events=analysis_results.get('over_speed_events', 0),
-                                    score=analysis_results.get('score', 100)
+                                    score=analysis_results.get('score', 100),
+                                    accident_detection=bool(data_dict['accident'])  # <-- Only in DB
                                 )
                                 logger.info(f"Data saved to database and linked to car ID {car.id}")
                             except Car.DoesNotExist:
@@ -149,7 +148,8 @@ class Command(BaseCommand):
                                     swerving_events=analysis_results.get('swerving_events', 0),
                                     potential_swerving_events=analysis_results.get('potential_swerving_events', 0),
                                     over_speed_events=analysis_results.get('over_speed_events', 0),
-                                    score=analysis_results.get('score', 100)
+                                    score=analysis_results.get('score', 100),
+                                    accident_detection=bool(data_dict['accident'])  # <-- Only in DB
                                 )
                                 logger.info("Data saved to database without car association")
                             
