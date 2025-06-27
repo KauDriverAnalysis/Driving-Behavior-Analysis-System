@@ -48,6 +48,17 @@ def cleanse_data(buffer):
 
         # 4. Remove duplicates while keeping first occurrence
         data = data.drop_duplicates(subset=['timestamp'], keep='first') 
+        # 5. Handle stationary points (speed = 0): keep only first occurrence
+        if 'speed' in data.columns:
+            # Split data into moving and stationary
+            moving = data[data['speed'] > 0]
+            stationary = data[data['speed'] == 0]
+            
+            # Keep only first occurrence of stationary points with same location
+            stationary = stationary.drop_duplicates(subset=['latitude', 'longitude'], keep='first')
+            
+            # Recombine the data
+            data = pd.concat([moving, stationary]).sort_values('timestamp')
         # Reset index after cleaning
         data = data.reset_index(drop=True)
 
