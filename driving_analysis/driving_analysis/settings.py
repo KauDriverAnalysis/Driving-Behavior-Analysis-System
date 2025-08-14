@@ -16,7 +16,7 @@ import os
 SECRET_KEY = os.environ.get('SECRET_KEY', 'django-insecure-default-dev-only-key')
 
 # Set DEBUG based on environment variable
-DEBUG = 'True'
+DEBUG = 'False'
 
 # Frontend URL configuration
 FRONTEND_URL = os.environ.get(
