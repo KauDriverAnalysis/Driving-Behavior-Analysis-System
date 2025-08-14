@@ -22,7 +22,7 @@ export const paths = {
     employees: '/dashboard-admin/employees',
     drivers: '/dashboard-admin/drivers ',
     account: '/dashboard-admin/account',
-    simulation: '/dashboard-admin/simulation',
+    simulation: '/dashboard-admin/Simulation',
   },
   errors: { 
     notFound: '/errors/not-found' 
