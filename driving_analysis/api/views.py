@@ -1900,6 +1900,7 @@ def get_car_location(request, car_id=None):
             if latest_location:
                 return JsonResponse({
                     'latitude': latest_location['latitude'],
+                   
                     'longitude': latest_location['longitude'],
                     'speed': latest_location.get('speed', 0),
                     'device_id': device_id,
@@ -2601,3 +2602,90 @@ def process_trip(trip_data, car):
             'over_speed': over_speed
         }
     }
+
+@csrf_exempt
+def simulate_driving_data(request):
+    """
+    Process uploaded CSV file and return simulation data
+    """
+    if request.method == 'POST':
+        try:
+            if 'csv_file' not in request.FILES:
+                return JsonResponse({'error': 'No CSV file provided'}, status=400)
+            
+            csv_file = request.FILES['csv_file']
+            
+            # Read CSV data
+            df = pd.read_csv(csv_file)
+            
+            # Validate required columns
+            required_columns = ['Time', 'Latitude', 'Longitude', 'Speed(km/h)', 'Ax', 'Ay', 'Az']
+            missing_columns = [col for col in required_columns if col not in df.columns]
+            
+            if missing_columns:
+                return JsonResponse({
+                    'error': f'Missing required columns: {", ".join(missing_columns)}'
+                }, status=400)
+            
+            # Process the data using your existing analysis functions
+            from .cleansing_data import cleanse_data
+            # Import your analysis functions here
+            
+            # Clean and analyze the data
+            segments, analysis_results = analyze_driving_data(df)
+            
+            # Prepare response data
+            response_data = {
+                'summary': {
+                    'totalRecords': len(df),
+                    'duration': calculate_duration(df),
+                    'distance': analysis_results.get('total_distance', 0),
+                    'avgSpeed': df['Speed(km/h)'].mean(),
+                    'maxSpeed': df['Speed(km/h)'].max(),
+                    'score': analysis_results.get('overall_score', 0)
+                },
+                'events': {
+                    'harshBraking': analysis_results.get('harsh_braking_events', 0),
+                    'harshAcceleration': analysis_results.get('harsh_acceleration_events', 0),
+                    'swerving': analysis_results.get('swerving_events', 0),
+                    'overSpeed': analysis_results.get('over_speed_events', 0)
+                },
+                'segments': prepare_segments_data(segments),
+                'chartData': prepare_chart_data(df, segments)
+            }
+            
+            return JsonResponse(response_data)
+            
+        except Exception as e:
+            return JsonResponse({'error': str(e)}, status=500)
+    
+    return JsonResponse({'error': 'Method not allowed'}, status=405)
+
+def analyze_driving_data(df):
+    """
+    Analyze the driving data similar to your existing analysis
+    """
+    # Use your existing analysis logic from Analysis_cleansing/analysis_intialy_done.py
+    # This should return segments and analysis results
+    pass
+
+def calculate_duration(df):
+    """Calculate trip duration from timestamps"""
+    if len(df) == 0:
+        return "0"
+    
+    start_time = pd.to_datetime(df['Time'].iloc[0])
+    end_time = pd.to_datetime(df['Time'].iloc[-1])
+    duration = (end_time - start_time).total_seconds() / 60
+    
+    return f"{duration:.1f}"
+
+def prepare_segments_data(segments):
+    """Prepare segments data for 3D visualization"""
+    # Convert your segment data to the format needed by the frontend
+    pass
+
+def prepare_chart_data(df, segments):
+    """Prepare data for charts"""
+    # Prepare time series data for speed and score charts
+    pass

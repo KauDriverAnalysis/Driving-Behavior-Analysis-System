@@ -25,6 +25,12 @@ const baseNavItems: NavItemConfig[] = [
     title: 'Drivers',
     href: paths.dashboardAdmin.drivers,
     icon: 'driver',
+  },
+  {
+    key: 'simulation',
+    title: 'Simulation',
+    href: paths.dashboardAdmin.simulation,
+    icon: 'cube', // or any appropriate icon
   }
 ];
 

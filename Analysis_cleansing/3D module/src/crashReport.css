@@ -1,0 +1,687 @@
+.crash-detection-app {
+  padding: 20px;
+  max-width: 1200px;
+  margin: 0 auto;
+  font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', 'Roboto', sans-serif;
+  background: #1a1a1a; /* Add dark background */
+  color: white; /* Add white text */
+  min-height: 100vh;
+}
+
+.app-header {
+  text-align: center;
+  margin-bottom: 30px;
+}
+
+.app-header h1 {
+  color: #ff6b6b; /* Changed from #d32f2f to a more visible red */
+  margin-bottom: 10px;
+}
+
+.app-header p {
+  color: #ccc; /* Light gray for subtitle */
+}
+
+.upload-section {
+  background: #2a2a2a; /* Dark background instead of light */
+  color: white; /* White text */
+  padding: 30px;
+  border-radius: 8px;
+  margin-bottom: 30px;
+  border: 1px solid #444; /* Add border for definition */
+}
+
+.upload-box {
+  text-align: center;
+}
+
+.upload-box p {
+  color: #ccc; /* Light gray for description text */
+  margin-top: 10px;
+}
+
+.upload-label {
+  display: inline-block;
+  padding: 15px 30px;
+  background: #2196f3;
+  color: white;
+  border-radius: 5px;
+  cursor: pointer;
+  font-size: 16px;
+  margin-bottom: 10px;
+}
+
+.upload-label:hover {
+  background: #1976d2;
+}
+
+#crash-file-upload {
+  display: none;
+}
+
+.data-info {
+  margin-top: 20px;
+  padding: 15px;
+  background: #2d4a2d; /* Dark green background */
+  color: white; /* White text */
+  border-radius: 5px;
+  border: 1px solid #4caf50;
+}
+
+.analyzing {
+  text-align: center;
+  padding: 40px;
+  color: white; /* White text */
+}
+
+.spinner {
+  border: 4px solid #333; /* Darker border */
+  border-top: 4px solid #ff6b6b; /* Red accent */
+  border-radius: 50%;
+  width: 40px;
+  height: 40px;
+  animation: spin 1s linear infinite;
+  margin: 0 auto 20px;
+}
+
+@keyframes spin {
+  0% { transform: rotate(0deg); }
+  100% { transform: rotate(360deg); }
+}
+
+.crash-results {
+  margin-top: 30px;
+}
+
+.crash-results h2 {
+  color: #ff6b6b; /* Red for crash results header */
+  margin-bottom: 20px;
+}
+
+.crash-list {
+  display: flex;
+  flex-direction: column;
+  gap: 20px;
+}
+
+.crash-item {
+  border: 2px solid #ff6b6b; /* Red border */
+  border-radius: 8px;
+  padding: 20px;
+  background: #2a2a2a; /* Dark background */
+  color: white; /* White text */
+}
+
+.crash-header {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  margin-bottom: 15px;
+}
+
+.crash-header h3 {
+  color: #ff6b6b; /* Red for crash event title */
+  margin: 0;
+}
+
+.severity-badge {
+  padding: 5px 12px;
+  border-radius: 15px;
+  font-weight: bold;
+  text-transform: uppercase;
+  font-size: 12px;
+}
+
+.severity-severe { background: #d32f2f; color: white; }
+.severity-major { background: #ff9800; color: white; }
+.severity-moderate { background: #ffeb3b; color: black; }
+.severity-minor { background: #8bc34a; color: white; }
+.severity-light { background: #4caf50; color: white; }
+
+.crash-summary {
+  display: grid;
+  grid-template-columns: 1fr auto;
+  gap: 20px;
+  margin-bottom: 15px;
+}
+
+.crash-details {
+  color: #ccc; /* Light gray for details */
+}
+
+.crash-details p {
+  margin: 5px 0;
+}
+
+.crash-details strong {
+  color: white; /* White for labels */
+}
+
+.crash-actions {
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
+}
+
+.btn-primary {
+  padding: 10px 20px;
+  background: #ff6b6b; /* Changed to match theme */
+  color: white;
+  border: none;
+  border-radius: 5px;
+  cursor: pointer;
+}
+
+.btn-primary:hover {
+  background: #ff5252;
+}
+
+.btn-secondary {
+  padding: 10px 20px;
+  background: #757575;
+  color: white;
+  border: none;
+  border-radius: 5px;
+  cursor: pointer;
+}
+
+.btn-secondary:hover {
+  background: #616161;
+}
+
+.crash-analysis-preview {
+  margin-top: 15px;
+}
+
+.crash-analysis-preview h4 {
+  color: #ffeb3b; /* Yellow for analysis header */
+  margin-bottom: 10px;
+}
+
+.crash-analysis-preview ul {
+  margin: 5px 0;
+  padding-left: 20px;
+  color: #ccc; /* Light gray for analysis items */
+}
+
+.crash-analysis-preview li {
+  margin: 3px 0;
+}
+
+.no-crashes {
+  text-align: center;
+  padding: 40px;
+  background: #2d4a2d; /* Dark green background */
+  color: white; /* White text */
+  border-radius: 8px;
+  border: 1px solid #4caf50;
+}
+
+.no-crashes h3 {
+  color: #4caf50; /* Green for no crashes title */
+  margin-bottom: 15px;
+}
+
+.thresholds-info {
+  margin-top: 20px;
+  text-align: left;
+  display: inline-block;
+}
+
+.thresholds-info h4 {
+  color: #ffeb3b; /* Yellow for thresholds header */
+  margin-bottom: 10px;
+}
+
+.thresholds-info ul {
+  color: #ccc; /* Light gray for threshold items */
+  padding-left: 20px;
+}
+
+.thresholds-info li {
+  margin: 5px 0;
+}
+
+/* Crash Report Modal Styles */
+.crash-report-overlay {
+  position: fixed;
+  top: 0;
+  left: 0;
+  width: 100vw;
+  height: 100vh;
+  background: rgba(0, 0, 0, 0.9); /* Darker overlay */
+  display: flex;
+  justify-content: center;
+  align-items: center;
+  z-index: 1000;
+}
+
+.crash-report-container {
+  width: 95vw;
+  height: 95vh;
+  background: #1a1a1a; /* Dark background */
+  color: white; /* White text */
+  border-radius: 8px;
+  display: flex;
+  flex-direction: column;
+  overflow: hidden;
+  border: 1px solid #444;
+}
+
+.crash-report-header {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  padding: 20px;
+  background: #ff6b6b; /* Red header */
+  color: white;
+}
+
+.close-button {
+  background: none;
+  border: none;
+  color: white;
+  font-size: 24px;
+  cursor: pointer;
+}
+
+.close-button:hover {
+  background: rgba(255, 255, 255, 0.1);
+  border-radius: 50%;
+  width: 40px;
+  height: 40px;
+}
+
+.crash-report-tabs {
+  display: flex;
+  background: #2a2a2a; /* Dark tab background */
+  border-bottom: 1px solid #444;
+}
+
+.tab, .tab-active {
+  padding: 15px 30px;
+  border: none;
+  background: none;
+  cursor: pointer;
+  border-bottom: 3px solid transparent;
+  color: #ccc; /* Light gray for inactive tabs */
+}
+
+.tab:hover {
+  background: #333;
+  color: white;
+}
+
+.tab-active {
+  background: #1a1a1a; /* Match main background */
+  border-bottom-color: #ff6b6b; /* Red accent */
+  color: white; /* White for active tab */
+}
+
+.crash-report-content {
+  flex: 1;
+  padding: 20px;
+  overflow-y: auto;
+  background: #1a1a1a; /* Dark background */
+  color: white; /* White text */
+}
+
+.summary-grid, .peak-grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(250px, 1fr));
+  gap: 15px;
+  margin-bottom: 20px;
+}
+
+.summary-item, .peak-item {
+  display: flex;
+  justify-content: space-between;
+  padding: 10px;
+  background: #2a2a2a; /* Dark item background */
+  color: white; /* White text */
+  border-radius: 5px;
+  border: 1px solid #444;
+}
+
+.severity-bars {
+  display: flex;
+  flex-direction: column;
+  gap: 15px;
+}
+
+.severity-bar {
+  display: grid;
+  grid-template-columns: 150px 1fr 50px;
+  gap: 10px;
+  align-items: center;
+  color: white; /* White text */
+}
+
+.bar {
+  height: 20px;
+  background: #333; /* Dark bar background */
+  border-radius: 10px;
+  overflow: hidden;
+}
+
+.bar-fill {
+  height: 100%;
+  background: linear-gradient(90deg, #4caf50, #ffeb3b, #ff9800, #d32f2f);
+  transition: width 0.3s ease;
+}
+
+.simulation-canvas {
+  height: 600px;
+  border: 2px solid #444;
+  border-radius: 10px;
+  overflow: hidden;
+  margin-top: 20px;
+  background: #0a0a0a; /* Very dark background for 3D canvas */
+}
+
+.playback-controls {
+  display: flex;
+  gap: 10px;
+  align-items: center;
+  margin-bottom: 20px;
+}
+
+.playback-controls button {
+  padding: 8px 16px;
+  background: #333;
+  color: white;
+  border: none;
+  border-radius: 4px;
+  cursor: pointer;
+}
+
+.playback-controls button:hover {
+  background: #555;
+}
+
+.playback-controls select {
+  background: #333;
+  color: white;
+  border: 1px solid #555;
+  border-radius: 4px;
+  padding: 5px;
+}
+
+.timeline-input {
+  width: 100%;
+  margin: 10px 0;
+}
+
+.timeline-markers {
+  position: relative;
+  height: 20px;
+}
+
+.marker {
+  position: absolute;
+  font-size: 12px;
+  transform: translateX(-50%);
+  color: white; /* White text for markers */
+}
+
+.marker.crash {
+  color: #ff6b6b; /* Red for crash marker */
+  font-weight: bold;
+}
+
+.current-readings {
+  margin-bottom: 20px;
+}
+
+.readings {
+  padding: 15px;
+  background: #2a2a2a; /* Dark readings background */
+  color: white; /* White text */
+  border-radius: 5px;
+  border-left: 5px solid #4caf50;
+}
+
+.readings.crash-active {
+  background: rgba(255, 0, 0, 0.1);
+  border: 2px solid #ff0000;
+  box-shadow: 0 0 20px rgba(255, 0, 0, 0.3);
+  animation: pulse 1s infinite;
+}
+
+@keyframes pulse {
+  0%, 100% { opacity: 1; }
+  50% { opacity: 0.8; }
+}
+
+.crash-indicator {
+  color: #ff6b6b; /* Red for crash indicator */
+  font-weight: bold;
+  margin-top: 10px;
+}
+
+/* Enhanced crash simulation styles */
+.crash-phases {
+  display: flex;
+  gap: 15px;
+  margin-bottom: 20px;
+  justify-content: center;
+}
+
+.crash-phases .phase {
+  padding: 12px 20px;
+  border-radius: 8px;
+  font-weight: bold;
+  font-size: 14px;
+  text-align: center;
+  background: #333;
+  color: #ccc;
+  border: 2px solid #555;
+  transition: all 0.3s ease;
+}
+
+.crash-phases .phase.active {
+  background: #ff6b6b;
+  color: white;
+  border-color: #ff6b6b;
+  box-shadow: 0 0 20px rgba(255, 107, 107, 0.5);
+  transform: scale(1.05);
+}
+
+.crash-phases .phase.crash.active {
+  background: #ff0000;
+  border-color: #ff0000;
+  animation: crashPulse 0.5s infinite;
+  box-shadow: 0 0 30px rgba(255, 0, 0, 0.8);
+}
+
+.timeline-info {
+  display: flex;
+  justify-content: space-between;
+  margin-top: 10px;
+  font-size: 12px;
+  color: #ccc;
+}
+
+.timeline-info .crash-active {
+  color: #ff0000;
+  font-weight: bold;
+  animation: crashPulse 1s infinite;
+}
+
+@keyframes crashPulse {
+  0%, 100% { opacity: 1; }
+  50% { opacity: 0.7; }
+}
+
+/* Additional fixes for text visibility */
+h1, h2, h3, h4, h5, h6 {
+  color: white;
+}
+
+p {
+  color: #ccc;
+}
+
+label {
+  color: white;
+}
+
+.tech-details {
+  color: #ccc;
+}
+
+.tech-details p {
+  margin: 10px 0;
+}
+
+.tech-details strong {
+  color: white;
+}
+
+.overview-tab h2,
+.overview-tab h3 {
+  color: #ff6b6b;
+  margin-bottom: 15px;
+}
+
+.timeline-tab h3,
+.timeline-tab h4 {
+  color: #ff6b6b;
+  margin-bottom: 15px;
+}
+
+.analysis-tab h3 {
+  color: #ff6b6b;
+  margin-bottom: 15px;
+}
+
+.simulation-tab h3 {
+  color: #ff6b6b;
+  margin-bottom: 15px;
+}
+
+.chart-placeholder {
+  background: #2a2a2a;
+  padding: 40px;
+  border-radius: 5px;
+  text-align: center;
+  color: #ccc;
+  border: 1px solid #444;
+}
+
+.timeline-phases {
+  display: flex;
+  gap: 20px;
+  margin-bottom: 20px;
+  justify-content: center;
+}
+
+.phase {
+  padding: 10px 15px;
+  border-radius: 5px;
+  font-weight: bold;
+  font-size: 14px;
+}
+
+.phase.pre-crash {
+  background: #2d4a2d;
+  color: #4caf50;
+  border: 2px solid #4caf50;
+}
+
+.phase.crash {
+  background: #4a2d2d;
+  color: #ff6b6b;
+  border: 2px solid #ff6b6b;
+  animation: pulse 2s infinite;
+}
+
+.phase.post-crash {
+  background: #2d3a4a;
+  color: #2196f3;
+  border: 2px solid #2196f3;
+}
+
+/* Add at the end of the file */
+
+/* Chart Styles */
+.chart-container {
+  background: #2a2a2a;
+  border-radius: 8px;
+  padding: 20px;
+  border: 1px solid #444;
+}
+
+
+.chart-container h5 {
+  color: #ff6b6b;
+  margin-bottom: 15px;
+  text-align: center;
+}
+
+.acceleration-chart {
+  background: #1a1a1a;
+  border-radius: 5px;
+  border: 1px solid #444;
+}
+
+.chart-legend {
+  display: flex;
+  justify-content: center;
+  gap: 20px;
+  margin-top: 15px;
+  flex-wrap: wrap;
+}
+
+.legend-item {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  color: #ccc;
+  font-size: 12px;
+}
+
+.legend-color {
+  width: 16px;
+  height: 16px;
+  border-radius: 2px;
+}
+
+/* Timing verification section */
+.timing-verification {
+  margin: 20px 0;
+  padding: 20px;
+  background: #2a2a2a;
+  border-radius: 8px;
+  border: 1px solid #444;
+}
+
+.timing-verification h3 {
+  color: #ffeb3b;
+  margin-bottom: 15px;
+}
+
+.timing-grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));
+  gap: 15px;
+}
+
+.timing-item {
+  display: flex;
+  justify-content: space-between;
+  padding: 10px;
+  background: #333;
+  border-radius: 5px;
+  border: 1px solid #555;
+}
+
+.timing-item label {
+  color: #ccc;
+  font-weight: 500;
+}
+
+.timing-item span {
+  color: #4caf50;
+  font-weight: bold;
+}
