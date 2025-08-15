@@ -51,20 +51,39 @@ if not DEBUG:
 
 # settings.py
 
+# CORS Configuration - Fix the duplicate and format issues
+CORS_ALLOWED_ORIGINS = [
+    'https://driving-analysis.netlify.app',
+    'http://localhost:3000',  # For local development
+    'http://127.0.0.1:3000',  # For local development
+]
+
 CORS_ORIGIN_WHITELIST = [
     'https://driving-analysis.netlify.app',
-    'https://driving-analysis.netlify.app'  # Corrected format (no trailing slash)
+    'http://localhost:3000',
+    'http://127.0.0.1:3000',
 ]
 
 CSRF_TRUSTED_ORIGINS = [
     'https://driving-analysis.netlify.app',
-    'https://driving-analysis.netlify.app'  # Corrected format (no trailing slash)
+    'http://localhost:3000',
+    'http://127.0.0.1:3000',
 ]
 
-# Make sure you have this too:
+# Make sure you have these settings
 CORS_ALLOW_CREDENTIALS = True
 CORS_ALLOW_ALL_ORIGINS = False  # Keep this false for security
-CORS_ALLOW_METHODS = ['GET', 'POST', 'PUT', 'PATCH', 'DELETE', 'OPTIONS']
+
+# Add these additional CORS settings
+CORS_ALLOW_METHODS = [
+    'DELETE',
+    'GET',
+    'OPTIONS',
+    'PATCH',
+    'POST',
+    'PUT',
+]
+
 CORS_ALLOW_HEADERS = [
     'accept',
     'accept-encoding',
@@ -73,10 +92,14 @@ CORS_ALLOW_HEADERS = [
     'dnt',
     'origin',
     'user-agent',
-    'x-csrftoken',  # This is what's missing
+    'x-csrftoken',
     'x-requested-with',
 ]
-CORS_EXPOSE_HEADERS = ['Content-Type', 'X-Requested-With']
+
+CORS_EXPOSE_HEADERS = [
+    'Content-Type', 
+    'X-Requested-With'
+]
 
 INSTALLED_APPS = [
     'django.contrib.admin',

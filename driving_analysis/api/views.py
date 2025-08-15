@@ -713,7 +713,7 @@ def create_driver(request):
                 company = Company.objects.get(id=data['company_id'])
                 data['company_id'] = company
             except Company.DoesNotExist:
-                return JsonResponse({'errors': {'company_id': ['Invalid company ID']}}, status=400)
+                return JsonResponse({'errors': {'company_id': 'Invalid company ID'}}, status=400)
             
             # Try to get car instance and validate it belongs to the same company
             try:
@@ -2654,9 +2654,13 @@ def simulate_driving_data(request):
                 'chartData': prepare_chart_data(df, segments)
             }
             
-            
-            return JsonResponse(response_data)
-            
+            # Make sure to include CORS headers in the response
+            response = JsonResponse(response_data)
+            response["Access-Control-Allow-Origin"] = "https://driving-analysis.netlify.app"
+            response["Access-Control-Allow-Methods"] = "GET, POST, OPTIONS"
+            response["Access-Control-Allow-Headers"] = "Content-Type"
+            return response
+    
         except Exception as e:
             return JsonResponse({'error': str(e)}, status=500)
     
