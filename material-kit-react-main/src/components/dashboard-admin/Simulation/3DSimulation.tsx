@@ -16,17 +16,17 @@ import ReplayIcon from '@mui/icons-material/Replay';
 import MapIcon from '@mui/icons-material/Map';
 
 interface Simulation3DProps {
-  data: Array<{
+  data: {
     time: string;
     lat: number;
     lng: number;
     speed: number;
     event?: string;
     score: number;
-  }>;
+  };
 }
 
-export function Simulation3D({ data }: Simulation3DProps) {
+export function Simulation3D({ data }: { data: Segment[] }) {
   const [isPlaying, setIsPlaying] = React.useState(false);
   const [currentIndex, setCurrentIndex] = React.useState(0);
   const [playbackSpeed, setPlaybackSpeed] = React.useState(1);
