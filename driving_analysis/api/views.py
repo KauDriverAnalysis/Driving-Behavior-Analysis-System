@@ -2654,6 +2654,7 @@ def simulate_driving_data(request):
                 'chartData': prepare_chart_data(df, segments)
             }
             
+            
             return JsonResponse(response_data)
             
         except Exception as e:
