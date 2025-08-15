@@ -41,20 +41,20 @@ interface SimulationData {
     swerving: number;
     overSpeed: number;
   };
-  segments: Array<{
+  segments: {
     time: string;
     lat: number;
     lng: number;
     speed: number;
     event?: string;
     score: number;
-  }>;
-  chartData: Array<{
+  }[];
+  chartData: {
     time: string;
     speed: number;
     acceleration: number;
     score: number;
-  }>;
+  }[];
 }
 
 export default function SimulationPage(): React.JSX.Element {
