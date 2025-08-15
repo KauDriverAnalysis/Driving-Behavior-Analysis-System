@@ -15,15 +15,18 @@ import PauseIcon from '@mui/icons-material/Pause';
 import ReplayIcon from '@mui/icons-material/Replay';
 import MapIcon from '@mui/icons-material/Map';
 
+// Add the missing Segment interface
+interface Segment {
+  time: string;
+  lat: number;
+  lng: number;
+  speed: number;
+  event?: string;
+  score: number;
+}
+
 interface Simulation3DProps {
-  data: {
-    time: string;
-    lat: number;
-    lng: number;
-    speed: number;
-    event?: string;
-    score: number;
-  };
+  data: Segment[];
 }
 
 export function Simulation3D({ data }: { data: Segment[] }) {
