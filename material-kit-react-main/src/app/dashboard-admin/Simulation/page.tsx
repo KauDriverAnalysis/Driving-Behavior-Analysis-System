@@ -22,9 +22,9 @@ import TimelineIcon from '@mui/icons-material/Timeline';
 import SpeedIcon from '@mui/icons-material/Speed';
 import WarningIcon from '@mui/icons-material/Warning';
 import CheckCircleIcon from '@mui/icons-material/CheckCircle';
-import { SimulationUpload } from '@/components/dashboard-admin/simulation/SimulationUpload';
-import { SimulationResults } from '@/components/dashboard-admin/simulation/SimulationResults';
-import { Simulation3D } from '@/components/dashboard-admin/simulation/Simulation3D';
+import { SimulationUpload } from '@/components/dashboard-admin/Simulation/Upload';
+import { SimulationResults } from '@/components/dashboard-admin/Simulation/Results';
+import { Simulation3D } from '@/components/dashboard-admin/Simulation/3DSimulation';
 
 interface SimulationData {
   summary: {
