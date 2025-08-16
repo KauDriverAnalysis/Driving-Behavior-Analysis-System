@@ -8,12 +8,15 @@ import {
   Typography,
   Button,
   IconButton,
-  Chip
+  Chip,
+  Tooltip
 } from '@mui/material';
 import PlayArrowIcon from '@mui/icons-material/PlayArrow';
 import PauseIcon from '@mui/icons-material/Pause';
 import ReplayIcon from '@mui/icons-material/Replay';
 import MapIcon from '@mui/icons-material/Map';
+import FullscreenIcon from '@mui/icons-material/Fullscreen';
+import FullscreenExitIcon from '@mui/icons-material/FullscreenExit';
 import { Car3D } from './3DCar';
 
 // Add the missing Segment interface
@@ -34,6 +37,8 @@ export function Simulation3D({ data }: { data: Segment[] }) {
   const [isPlaying, setIsPlaying] = React.useState(false);
   const [currentIndex, setCurrentIndex] = React.useState(0);
   const [playbackSpeed, setPlaybackSpeed] = React.useState(1);
+  const [isFullscreen, setIsFullscreen] = React.useState(false);
+  const containerRef = React.useRef<HTMLDivElement>(null);
 
   React.useEffect(() => {
     if (!isPlaying || currentIndex >= data.length - 1) return;
@@ -51,20 +56,67 @@ export function Simulation3D({ data }: { data: Segment[] }) {
     return () => clearInterval(interval);
   }, [isPlaying, currentIndex, data.length, playbackSpeed]);
 
-  const handlePlay = () => {
+  const handlePlay = React.useCallback(() => {
     if (currentIndex >= data.length - 1) {
       setCurrentIndex(0);
     }
     setIsPlaying(!isPlaying);
-  };
+  }, [currentIndex, data.length, isPlaying]);
 
-  const handleReset = () => {
+  const handleReset = React.useCallback(() => {
     setIsPlaying(false);
     setCurrentIndex(0);
-  };
+  }, []);
+
+  const toggleFullscreen = React.useCallback(() => {
+    setIsFullscreen(!isFullscreen);
+  }, [isFullscreen]);
+
+  // Add keyboard shortcuts
+  React.useEffect(() => {
+    const handleKeyPress = (event: KeyboardEvent) => {
+      if (event.key === 'f' || event.key === 'F') {
+        toggleFullscreen();
+      } else if (event.key === ' ') {
+        event.preventDefault();
+        handlePlay();
+      } else if (event.key === 'r' || event.key === 'R') {
+        handleReset();
+      } else if (event.key === 'Escape' && isFullscreen) {
+        setIsFullscreen(false);
+      }
+    };
+
+    window.addEventListener('keydown', handleKeyPress);
+    return () => window.removeEventListener('keydown', handleKeyPress);
+  }, [isFullscreen, handlePlay, handleReset, toggleFullscreen]);
 
   const currentPoint = data[currentIndex] || data[0];
   const progress = ((currentIndex + 1) / data.length) * 100;
+
+  // Calculate car position based on GPS bounds
+  const getCarPosition = (point: Segment, containerWidth: number, containerHeight: number) => {
+    if (!data.length) return { x: 0, y: 0 };
+    
+    // Find min/max bounds of the entire route
+    const lats = data.map(d => d.lat);
+    const lngs = data.map(d => d.lng);
+    const minLat = Math.min(...lats);
+    const maxLat = Math.max(...lats);
+    const minLng = Math.min(...lngs);
+    const maxLng = Math.max(...lngs);
+    
+    // Normalize position within bounds (0-1)
+    const normalizedX = maxLng !== minLng ? (point.lng - minLng) / (maxLng - minLng) : 0.5;
+    const normalizedY = maxLat !== minLat ? (point.lat - minLat) / (maxLat - minLat) : 0.5;
+    
+    // Convert to container coordinates with padding
+    const padding = 50;
+    const x = padding + normalizedX * (containerWidth - 2 * padding);
+    const y = padding + (1 - normalizedY) * (containerHeight - 2 * padding); // Invert Y for screen coordinates
+    
+    return { x, y };
+  };
 
   // Calculate car rotation based on movement direction
   const getCarRotation = (currentIdx: number) => {
@@ -92,22 +144,38 @@ export function Simulation3D({ data }: { data: Segment[] }) {
   };
 
   return (
-    <Card>
-      <CardContent>
-        <Typography variant="h6" gutterBottom sx={{ display: 'flex', alignItems: 'center' }}>
-          <MapIcon sx={{ mr: 1 }} />
-          3D Route Simulation
-        </Typography>
+    <Card sx={{ 
+      position: isFullscreen ? 'fixed' : 'relative',
+      top: isFullscreen ? 0 : 'auto',
+      left: isFullscreen ? 0 : 'auto',
+      width: isFullscreen ? '100vw' : 'auto',
+      height: isFullscreen ? '100vh' : 'auto',
+      zIndex: isFullscreen ? 9999 : 'auto',
+      backgroundColor: isFullscreen ? 'grey.900' : 'inherit'
+    }}>
+      <CardContent sx={{ height: isFullscreen ? '100%' : 'auto', display: 'flex', flexDirection: 'column' }}>
+        <Box sx={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', mb: 2 }}>
+          <Typography variant="h6" sx={{ display: 'flex', alignItems: 'center', color: isFullscreen ? 'white' : 'inherit' }}>
+            <MapIcon sx={{ mr: 1 }} />
+            3D Route Simulation
+          </Typography>
+          <Tooltip title={isFullscreen ? "Exit Fullscreen (F)" : "Enter Fullscreen (F)"}>
+            <IconButton onClick={toggleFullscreen} color="primary">
+              {isFullscreen ? <FullscreenExitIcon /> : <FullscreenIcon />}
+            </IconButton>
+          </Tooltip>
+        </Box>
 
         {/* 3D Visualization Area */}
         <Box 
           sx={{ 
-            height: 400, 
+            height: isFullscreen ? 'calc(100vh - 200px)' : 400, 
             bgcolor: 'grey.900', 
             borderRadius: 2, 
             position: 'relative',
             mb: 2,
-            overflow: 'hidden'
+            overflow: 'hidden',
+            flex: isFullscreen ? 1 : 'none'
           }}
         >
           {/* 3D Canvas will be rendered here */}
@@ -132,15 +200,19 @@ export function Simulation3D({ data }: { data: Segment[] }) {
                 textAlign: 'center'
               }}
             >
-              <Typography variant="h6" sx={{ mb: 2 }}>
-                3D Vehicle Simulation
-              </Typography>
+              {!isFullscreen && (
+                <Typography variant="h6" sx={{ mb: 2 }}>
+                  3D Vehicle Simulation
+                </Typography>
+              )}
               
               {/* 3D Scene Preview */}
               <Box 
+                ref={containerRef}
+                id="simulation-container"
                 sx={{ 
-                  width: '80%', 
-                  height: '80%', 
+                  width: isFullscreen ? '100%' : '80%', 
+                  height: isFullscreen ? '100%' : '80%', 
                   border: '1px solid #444',
                   borderRadius: 1,
                   position: 'relative',
@@ -179,18 +251,21 @@ export function Simulation3D({ data }: { data: Segment[] }) {
                   {data.slice(0, currentIndex + 1).map((point, index) => {
                     if (index === 0) return null;
                     const prevPoint = data[index - 1];
-                    const x1 = ((prevPoint.lng - data[0].lng) * 2000 + 50);
-                    const y1 = ((prevPoint.lat - data[0].lat) * 2000 + 50);
-                    const x2 = ((point.lng - data[0].lng) * 2000 + 50);
-                    const y2 = ((point.lat - data[0].lat) * 2000 + 50);
+                    
+                    // Get container dimensions
+                    const containerWidth = containerRef.current?.clientWidth || 400;
+                    const containerHeight = containerRef.current?.clientHeight || 320;
+                    
+                    const pos1 = getCarPosition(prevPoint, containerWidth, containerHeight);
+                    const pos2 = getCarPosition(point, containerWidth, containerHeight);
                     
                     return (
                       <line
                         key={index}
-                        x1={`${x1}%`}
-                        y1={`${y1}%`}
-                        x2={`${x2}%`}
-                        y2={`${y2}%`}
+                        x1={pos1.x}
+                        y1={pos1.y}
+                        x2={pos2.x}
+                        y2={pos2.y}
                         stroke={point.event ? getEventColor(point.event) : "url(#routeGradient)"}
                         strokeWidth={point.event ? "3" : "2"}
                         opacity={0.8}
@@ -201,13 +276,15 @@ export function Simulation3D({ data }: { data: Segment[] }) {
 
                 {/* 3D Car Model */}
                 <Car3D
-                  position={{
-                    x: ((currentPoint.lng - data[0].lng) * 2000 + 50) * 2 / 100 * 300 - 16, // Convert percentage to pixels and center
-                    y: ((currentPoint.lat - data[0].lat) * 2000 + 50) * 2 / 100 * 240 - 8   // Convert percentage to pixels and center
-                  }}
+                  position={(() => {
+                    const containerWidth = containerRef.current?.clientWidth || 400;
+                    const containerHeight = containerRef.current?.clientHeight || 320;
+                    const pos = getCarPosition(currentPoint, containerWidth, containerHeight);
+                    return { x: pos.x - 16, y: pos.y - 8 }; // Center the car
+                  })()}
                   rotation={getCarRotation(currentIndex)}
                   color={currentPoint.event ? getEventColor(currentPoint.event) : '#ff6b6b'}
-                  scale={1.2}
+                  scale={isFullscreen ? 1.5 : 1.2}
                   hasEvent={!!currentPoint.event}
                   eventColor={currentPoint.event ? getEventColor(currentPoint.event) : undefined}
                 />
@@ -220,21 +297,28 @@ export function Simulation3D({ data }: { data: Segment[] }) {
                 position: 'absolute',
                 top: 16,
                 left: 16,
-                bgcolor: 'rgba(255,255,255,0.9)',
-                p: 1,
+                bgcolor: 'rgba(255,255,255,0.95)',
+                p: isFullscreen ? 2 : 1,
                 borderRadius: 1,
-                minWidth: 120
+                minWidth: isFullscreen ? 160 : 120,
+                backdropFilter: 'blur(10px)',
+                border: '1px solid rgba(255,255,255,0.3)'
               }}
             >
-              <Typography variant="caption" display="block">
+              <Typography variant={isFullscreen ? "body2" : "caption"} display="block" fontWeight="bold">
                 Speed: {currentPoint.speed.toFixed(1)} km/h
               </Typography>
-              <Typography variant="caption" display="block">
+              <Typography variant={isFullscreen ? "body2" : "caption"} display="block">
                 Score: {currentPoint.score}/100
               </Typography>
-              <Typography variant="caption" display="block">
+              <Typography variant={isFullscreen ? "body2" : "caption"} display="block">
                 Time: {currentPoint.time}
               </Typography>
+              {isFullscreen && (
+                <Typography variant="caption" display="block" sx={{ mt: 1, opacity: 0.7 }}>
+                  Press F to exit fullscreen
+                </Typography>
+              )}
             </Box>
 
             {/* Event indicator */}
@@ -261,22 +345,37 @@ export function Simulation3D({ data }: { data: Segment[] }) {
         </Box>
 
         {/* Controls */}
-        <Box sx={{ display: 'flex', justifyContent: 'center', alignItems: 'center', gap: 1, mb: 2 }}>
-          <IconButton onClick={handleReset} size="small">
+        <Box sx={{ 
+          display: 'flex', 
+          justifyContent: 'center', 
+          alignItems: 'center', 
+          gap: 1, 
+          mb: 2,
+          flexWrap: 'wrap',
+          bgcolor: isFullscreen ? 'rgba(0,0,0,0.8)' : 'transparent',
+          p: isFullscreen ? 1 : 0,
+          borderRadius: isFullscreen ? 1 : 0
+        }}>
+          <IconButton onClick={handleReset} size="small" sx={{ color: isFullscreen ? 'white' : 'inherit' }}>
             <ReplayIcon />
           </IconButton>
           <IconButton onClick={handlePlay} color="primary">
             {isPlaying ? <PauseIcon /> : <PlayArrowIcon />}
           </IconButton>
           <Box sx={{ ml: 2 }}>
-            <Typography variant="caption" sx={{ mr: 1 }}>Speed:</Typography>
+            <Typography variant="caption" sx={{ mr: 1, color: isFullscreen ? 'white' : 'inherit' }}>Speed:</Typography>
             {[0.5, 1, 2, 4].map(speed => (
               <Button
                 key={speed}
                 size="small"
                 variant={playbackSpeed === speed ? "contained" : "outlined"}
                 onClick={() => setPlaybackSpeed(speed)}
-                sx={{ minWidth: 40, mr: 0.5 }}
+                sx={{ 
+                  minWidth: 40, 
+                  mr: 0.5,
+                  color: isFullscreen && playbackSpeed !== speed ? 'white' : 'inherit',
+                  borderColor: isFullscreen && playbackSpeed !== speed ? 'white' : 'inherit'
+                }}
               >
                 {speed}x
               </Button>
@@ -289,7 +388,7 @@ export function Simulation3D({ data }: { data: Segment[] }) {
           <Box 
             sx={{ 
               height: 4, 
-              bgcolor: 'grey.300', 
+              bgcolor: isFullscreen ? 'rgba(255,255,255,0.3)' : 'grey.300', 
               borderRadius: 2,
               position: 'relative',
               overflow: 'hidden'
@@ -307,7 +406,12 @@ export function Simulation3D({ data }: { data: Segment[] }) {
           </Box>
         </Box>
 
-        <Typography variant="caption" color="text.secondary" align="center" display="block">
+        <Typography 
+          variant="caption" 
+          color={isFullscreen ? "white" : "text.secondary"} 
+          align="center" 
+          display="block"
+        >
           Progress: {currentIndex + 1} / {data.length} points ({progress.toFixed(1)}%)
         </Typography>
       </CardContent>
