@@ -17,6 +17,7 @@ import ReplayIcon from '@mui/icons-material/Replay';
 import MapIcon from '@mui/icons-material/Map';
 import FullscreenIcon from '@mui/icons-material/Fullscreen';
 import FullscreenExitIcon from '@mui/icons-material/FullscreenExit';
+import DirectionsCarIcon from '@mui/icons-material/DirectionsCar';
 import { Car3D } from './3DCar';
 
 // Add the missing Segment interface
@@ -156,7 +157,7 @@ export function Simulation3D({ data }: { data: Segment[] }) {
       <CardContent sx={{ height: isFullscreen ? '100%' : 'auto', display: 'flex', flexDirection: 'column' }}>
         <Box sx={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', mb: 2 }}>
           <Typography variant="h6" sx={{ display: 'flex', alignItems: 'center', color: isFullscreen ? 'white' : 'inherit' }}>
-            <MapIcon sx={{ mr: 1 }} />
+            <DirectionsCarIcon sx={{ mr: 1 }} />
             3D Route Simulation
           </Typography>
           <Tooltip title={isFullscreen ? "Exit Fullscreen (F)" : "Enter Fullscreen (F)"}>
@@ -216,23 +217,68 @@ export function Simulation3D({ data }: { data: Segment[] }) {
                   border: '1px solid #444',
                   borderRadius: 1,
                   position: 'relative',
-                  background: 'linear-gradient(135deg, #1a237e 0%, #0d47a1 100%)',
-                  overflow: 'hidden'
+                  background: `
+                    radial-gradient(ellipse at center, rgba(15, 78, 154, 0.4) 0%, rgba(13, 71, 161, 0.8) 100%),
+                    linear-gradient(135deg, #0f1419 0%, #1a2332 25%, #2d3748 50%, #1a2332 75%, #0f1419 100%)
+                  `,
+                  overflow: 'hidden',
+                  boxShadow: 'inset 0 0 50px rgba(0,0,0,0.3)'
                 }}
               >
-                {/* Grid pattern */}
+                {/* Enhanced Grid pattern with road effect */}
                 <svg 
                   width="100%" 
                   height="100%" 
-                  style={{ position: 'absolute', top: 0, left: 0, opacity: 0.3 }}
+                  style={{ position: 'absolute', top: 0, left: 0, opacity: 0.4 }}
                 >
                   <defs>
-                    <pattern id="grid" width="20" height="20" patternUnits="userSpaceOnUse">
-                      <path d="M 20 0 L 0 0 0 20" fill="none" stroke="#444" strokeWidth="1"/>
+                    <pattern id="grid" width="40" height="40" patternUnits="userSpaceOnUse">
+                      <path d="M 40 0 L 0 0 0 40" fill="none" stroke="#4a5568" strokeWidth="0.8"/>
+                      <path d="M 20 0 L 20 40" fill="none" stroke="#2d3748" strokeWidth="0.4"/>
+                      <path d="M 0 20 L 40 20" fill="none" stroke="#2d3748" strokeWidth="0.4"/>
                     </pattern>
+                    <pattern id="smallGrid" width="10" height="10" patternUnits="userSpaceOnUse">
+                      <path d="M 10 0 L 0 0 0 10" fill="none" stroke="#2d3748" strokeWidth="0.2" opacity="0.5"/>
+                    </pattern>
+                    <linearGradient id="roadGradient" x1="0%" y1="0%" x2="100%" y2="100%">
+                      <stop offset="0%" stopColor="#4a5568" stopOpacity="0.3"/>
+                      <stop offset="50%" stopColor="#2d3748" stopOpacity="0.5"/>
+                      <stop offset="100%" stopColor="#1a202c" stopOpacity="0.3"/>
+                    </linearGradient>
                   </defs>
+                  
+                  {/* Fine grid */}
+                  <rect width="100%" height="100%" fill="url(#smallGrid)" />
+                  {/* Main grid */}
                   <rect width="100%" height="100%" fill="url(#grid)" />
+                  
+                  {/* Road-like paths between major grid lines */}
+                  <rect x="0" y="20%" width="100%" height="2" fill="url(#roadGradient)" opacity="0.6"/>
+                  <rect x="0" y="40%" width="100%" height="2" fill="url(#roadGradient)" opacity="0.6"/>
+                  <rect x="0" y="60%" width="100%" height="2" fill="url(#roadGradient)" opacity="0.6"/>
+                  <rect x="0" y="80%" width="100%" height="2" fill="url(#roadGradient)" opacity="0.6"/>
+                  <rect x="20%" y="0" width="2" height="100%" fill="url(#roadGradient)" opacity="0.6"/>
+                  <rect x="40%" y="0" width="2" height="100%" fill="url(#roadGradient)" opacity="0.6"/>
+                  <rect x="60%" y="0" width="2" height="100%" fill="url(#roadGradient)" opacity="0.6"/>
+                  <rect x="80%" y="0" width="2" height="100%" fill="url(#roadGradient)" opacity="0.6"/>
                 </svg>
+
+                {/* Ambient lighting effects */}
+                <Box
+                  sx={{
+                    position: 'absolute',
+                    top: 0,
+                    left: 0,
+                    right: 0,
+                    bottom: 0,
+                    background: `
+                      radial-gradient(circle at 20% 20%, rgba(59, 130, 246, 0.1) 0%, transparent 50%),
+                      radial-gradient(circle at 80% 80%, rgba(16, 185, 129, 0.1) 0%, transparent 50%),
+                      radial-gradient(circle at 50% 50%, rgba(139, 92, 246, 0.05) 0%, transparent 70%)
+                    `,
+                    pointerEvents: 'none'
+                  }}
+                />
 
                 {/* Route Path */}
                 <svg 
@@ -242,12 +288,31 @@ export function Simulation3D({ data }: { data: Segment[] }) {
                 >
                   <defs>
                     <linearGradient id="routeGradient" x1="0%" y1="0%" x2="100%" y2="100%">
-                      <stop offset="0%" stopColor="#2196f3" />
-                      <stop offset="100%" stopColor="#4caf50" />
+                      <stop offset="0%" stopColor="#3b82f6" />
+                      <stop offset="25%" stopColor="#10b981" />
+                      <stop offset="50%" stopColor="#f59e0b" />
+                      <stop offset="75%" stopColor="#ef4444" />
+                      <stop offset="100%" stopColor="#8b5cf6" />
                     </linearGradient>
+                    
+                    {/* Enhanced route gradient with glow */}
+                    <linearGradient id="routeGlowGradient" x1="0%" y1="0%" x2="100%" y2="100%">
+                      <stop offset="0%" stopColor="#60a5fa" />
+                      <stop offset="50%" stopColor="#34d399" />
+                      <stop offset="100%" stopColor="#a78bfa" />
+                    </linearGradient>
+                    
+                    {/* Filter for glow effect */}
+                    <filter id="glow">
+                      <feGaussianBlur stdDeviation="3" result="coloredBlur"/>
+                      <feMerge> 
+                        <feMergeNode in="coloredBlur"/>
+                        <feMergeNode in="SourceGraphic"/>
+                      </feMerge>
+                    </filter>
                   </defs>
                   
-                  {/* Draw route path */}
+                  {/* Draw route path with glow effect */}
                   {data.slice(0, currentIndex + 1).map((point, index) => {
                     if (index === 0) return null;
                     const prevPoint = data[index - 1];
@@ -260,16 +325,30 @@ export function Simulation3D({ data }: { data: Segment[] }) {
                     const pos2 = getCarPosition(point, containerWidth, containerHeight);
                     
                     return (
-                      <line
-                        key={index}
-                        x1={pos1.x}
-                        y1={pos1.y}
-                        x2={pos2.x}
-                        y2={pos2.y}
-                        stroke={point.event ? getEventColor(point.event) : "url(#routeGradient)"}
-                        strokeWidth={point.event ? "3" : "2"}
-                        opacity={0.8}
-                      />
+                      <g key={index}>
+                        {/* Glow layer */}
+                        <line
+                          x1={pos1.x}
+                          y1={pos1.y}
+                          x2={pos2.x}
+                          y2={pos2.y}
+                          stroke={point.event ? getEventColor(point.event) : "url(#routeGlowGradient)"}
+                          strokeWidth={point.event ? "8" : "6"}
+                          opacity={0.4}
+                          filter="url(#glow)"
+                        />
+                        {/* Main path */}
+                        <line
+                          x1={pos1.x}
+                          y1={pos1.y}
+                          x2={pos2.x}
+                          y2={pos2.y}
+                          stroke={point.event ? getEventColor(point.event) : "url(#routeGradient)"}
+                          strokeWidth={point.event ? "4" : "3"}
+                          opacity={0.9}
+                          strokeLinecap="round"
+                        />
+                      </g>
                     );
                   })}
                 </svg>
@@ -288,6 +367,81 @@ export function Simulation3D({ data }: { data: Segment[] }) {
                   hasEvent={!!currentPoint.event}
                   eventColor={currentPoint.event ? getEventColor(currentPoint.event) : undefined}
                 />
+
+                {/* Route start and end markers */}
+                {data.length > 0 && (
+                  <>
+                    {/* Start marker */}
+                    <Box
+                      sx={{
+                        position: 'absolute',
+                        left: (() => {
+                          const containerWidth = containerRef.current?.clientWidth || 400;
+                          const containerHeight = containerRef.current?.clientHeight || 320;
+                          const pos = getCarPosition(data[0], containerWidth, containerHeight);
+                          return pos.x - 12;
+                        })(),
+                        top: (() => {
+                          const containerWidth = containerRef.current?.clientWidth || 400;
+                          const containerHeight = containerRef.current?.clientHeight || 320;
+                          const pos = getCarPosition(data[0], containerWidth, containerHeight);
+                          return pos.y - 12;
+                        })(),
+                        width: 24,
+                        height: 24,
+                        borderRadius: '50%',
+                        background: 'linear-gradient(45deg, #10b981, #34d399)',
+                        border: '2px solid white',
+                        display: 'flex',
+                        alignItems: 'center',
+                        justifyContent: 'center',
+                        color: 'white',
+                        fontSize: '12px',
+                        fontWeight: 'bold',
+                        boxShadow: '0 0 10px rgba(16, 185, 129, 0.6)',
+                        zIndex: 10
+                      }}
+                    >
+                      S
+                    </Box>
+
+                    {/* End marker */}
+                    {data.length > 1 && (
+                      <Box
+                        sx={{
+                          position: 'absolute',
+                          left: (() => {
+                            const containerWidth = containerRef.current?.clientWidth || 400;
+                            const containerHeight = containerRef.current?.clientHeight || 320;
+                            const pos = getCarPosition(data[data.length - 1], containerWidth, containerHeight);
+                            return pos.x - 12;
+                          })(),
+                          top: (() => {
+                            const containerWidth = containerRef.current?.clientWidth || 400;
+                            const containerHeight = containerRef.current?.clientHeight || 320;
+                            const pos = getCarPosition(data[data.length - 1], containerWidth, containerHeight);
+                            return pos.y - 12;
+                          })(),
+                          width: 24,
+                          height: 24,
+                          borderRadius: '50%',
+                          background: 'linear-gradient(45deg, #ef4444, #f87171)',
+                          border: '2px solid white',
+                          display: 'flex',
+                          alignItems: 'center',
+                          justifyContent: 'center',
+                          color: 'white',
+                          fontSize: '12px',
+                          fontWeight: 'bold',
+                          boxShadow: '0 0 10px rgba(239, 68, 68, 0.6)',
+                          zIndex: 10
+                        }}
+                      >
+                        E
+                      </Box>
+                    )}
+                  </>
+                )}
               </Box>
             </Box>
 
