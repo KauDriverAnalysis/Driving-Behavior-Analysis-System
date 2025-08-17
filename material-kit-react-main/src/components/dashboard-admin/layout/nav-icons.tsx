@@ -11,12 +11,17 @@ import { IdentificationBadge } from '@phosphor-icons/react/dist/ssr/Identificati
 import { UserCircle } from '@phosphor-icons/react/dist/ssr/UserCircle';
 import { ChartLine } from '@phosphor-icons/react/dist/ssr/ChartLine';
 import { Shield } from '@phosphor-icons/react/dist/ssr/Shield'; // Add this import
+import { Play } from '@phosphor-icons/react/dist/ssr/Play';
+import { Cube } from '@phosphor-icons/react/dist/ssr/Cube';
 
 // Create a mapping of icon names to components
 export const navIcons = {
   'chart-pie': ChartPie,
   'chart-line': ChartLine,
   'shield': Shield,      // Add shield icon for Pattern Score
+  'play': Play,          // Add play icon for Simulation
+  'simulation': Cube,    // Use cube icon for 3D simulation
+  'cube': Cube,          // Cube icon
   'map': MapPin,
   'map-pin': MapPin,
   'user': User,
