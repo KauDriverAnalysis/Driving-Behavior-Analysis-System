@@ -11,6 +11,8 @@ import { IdentificationBadge } from '@phosphor-icons/react/dist/ssr/Identificati
 import { UserCircle } from '@phosphor-icons/react/dist/ssr/UserCircle';
 import { ChartLine } from '@phosphor-icons/react/dist/ssr/ChartLine';
 import { Shield } from '@phosphor-icons/react/dist/ssr/Shield'; // Add this import
+import { Cube } from '@phosphor-icons/react/dist/ssr/Cube'; // Add this import for simulation
+import { Play } from '@phosphor-icons/react/dist/ssr/Play'; // Better simulation icon
 
 // Create a mapping of icon names to components
 export const navIcons = {
@@ -29,4 +31,7 @@ export const navIcons = {
   'x-square': XSquare,
   'draw-polygon': Polygon,
   'user-circle': UserCircle,
+  'cube': Cube,
+  'play': Play,          // Better simulation icon
+  'simulation': Play,    // Alias for simulation
 };

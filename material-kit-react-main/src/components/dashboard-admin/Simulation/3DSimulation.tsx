@@ -1,6 +1,8 @@
 'use client';
 
 import * as React from 'react';
+import L from 'leaflet';
+import 'leaflet/dist/leaflet.css';
 import {
   Box,
   Card,
@@ -15,8 +17,10 @@ import PlayArrowIcon from '@mui/icons-material/PlayArrow';
 import PauseIcon from '@mui/icons-material/Pause';
 import ReplayIcon from '@mui/icons-material/Replay';
 import MapIcon from '@mui/icons-material/Map';
+import ViewInArIcon from '@mui/icons-material/ViewInAr';
 import FullscreenIcon from '@mui/icons-material/Fullscreen';
 import FullscreenExitIcon from '@mui/icons-material/FullscreenExit';
+import DirectionsCarIcon from '@mui/icons-material/DirectionsCar';
 import { Car3D } from './3DCar';
 
 // Add the missing Segment interface
@@ -38,7 +42,12 @@ export function Simulation3D({ data }: { data: Segment[] }) {
   const [currentIndex, setCurrentIndex] = React.useState(0);
   const [playbackSpeed, setPlaybackSpeed] = React.useState(1);
   const [isFullscreen, setIsFullscreen] = React.useState(false);
+  const [useMapView, setUseMapView] = React.useState(true);
   const containerRef = React.useRef<HTMLDivElement>(null);
+  const mapRef = React.useRef<HTMLDivElement>(null);
+  const mapInstanceRef = React.useRef<L.Map | null>(null);
+  const carMarkerRef = React.useRef<L.Marker | null>(null);
+  const routeRef = React.useRef<L.Polyline | null>(null);
 
   React.useEffect(() => {
     if (!isPlaying || currentIndex >= data.length - 1) return;
@@ -84,12 +93,141 @@ export function Simulation3D({ data }: { data: Segment[] }) {
         handleReset();
       } else if (event.key === 'Escape' && isFullscreen) {
         setIsFullscreen(false);
+      } else if (event.key === 'm' || event.key === 'M') {
+        setUseMapView(!useMapView);
       }
     };
 
     window.addEventListener('keydown', handleKeyPress);
     return () => window.removeEventListener('keydown', handleKeyPress);
-  }, [isFullscreen, handlePlay, handleReset, toggleFullscreen]);
+  }, [isFullscreen, handlePlay, handleReset, toggleFullscreen, useMapView]);
+
+  // Initialize OpenStreetMap
+  React.useEffect(() => {
+    if (useMapView && mapRef.current && !mapInstanceRef.current && data.length > 0) {
+      // Calculate center from data
+      const lats = data.map(d => d.lat);
+      const lngs = data.map(d => d.lng);
+      const centerLat = (Math.min(...lats) + Math.max(...lats)) / 2;
+      const centerLng = (Math.min(...lngs) + Math.max(...lngs)) / 2;
+
+      // Create map
+      const map = L.map(mapRef.current, {
+        zoomControl: true,
+        attributionControl: true
+      }).setView([centerLat, centerLng], 15);
+
+      // Add OpenStreetMap tiles
+      L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png', {
+        maxZoom: 19,
+        attribution: '&copy; <a href="https://www.openstreetmap.org/copyright">OpenStreetMap</a> contributors'
+      }).addTo(map);
+
+      // Create custom car icon
+      const carIcon = L.divIcon({
+        html: `
+          <div style="
+            width: 32px; 
+            height: 16px; 
+            background: linear-gradient(45deg, #ff6b6b, #ff8e8e);
+            border: 2px solid white;
+            border-radius: 4px;
+            transform: rotate(0deg);
+            box-shadow: 0 2px 4px rgba(0,0,0,0.3);
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            color: white;
+            font-size: 10px;
+            font-weight: bold;
+          ">🚗</div>
+        `,
+        className: 'car-marker',
+        iconSize: [32, 16],
+        iconAnchor: [16, 8]
+      });
+
+      // Add car marker
+      const carMarker = L.marker([data[0].lat, data[0].lng], { icon: carIcon }).addTo(map);
+      carMarkerRef.current = carMarker;
+
+      // Add route path
+      const routePoints = data.map(point => [point.lat, point.lng] as [number, number]);
+      const route = L.polyline(routePoints, {
+        color: '#2196f3',
+        weight: 4,
+        opacity: 0.7
+      }).addTo(map);
+      routeRef.current = route;
+
+      // Fit map to route bounds
+      map.fitBounds(route.getBounds(), { padding: [20, 20] });
+
+      mapInstanceRef.current = map;
+    }
+
+    // Cleanup map on component unmount or view change
+    return () => {
+      if (!useMapView && mapInstanceRef.current) {
+        mapInstanceRef.current.remove();
+        mapInstanceRef.current = null;
+        carMarkerRef.current = null;
+        routeRef.current = null;
+      }
+    };
+  }, [useMapView, data]);
+
+  // Update car position on map
+  React.useEffect(() => {
+    if (useMapView && carMarkerRef.current && data[currentIndex]) {
+      const currentPoint = data[currentIndex];
+      carMarkerRef.current.setLatLng([currentPoint.lat, currentPoint.lng]);
+      
+      // Update car icon color based on events
+      const carIcon = L.divIcon({
+        html: `
+          <div style="
+            width: 32px; 
+            height: 16px; 
+            background: linear-gradient(45deg, ${currentPoint.event ? getEventColor(currentPoint.event) : '#ff6b6b'}, ${currentPoint.event ? getEventColor(currentPoint.event) + '88' : '#ff8e8e'});
+            border: 2px solid white;
+            border-radius: 4px;
+            transform: rotate(${getCarRotation(currentIndex)}deg);
+            box-shadow: 0 2px 4px rgba(0,0,0,0.3);
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            color: white;
+            font-size: 10px;
+            font-weight: bold;
+            ${currentPoint.event ? 'animation: pulse 1s infinite;' : ''}
+          ">🚗</div>
+          <style>
+            @keyframes pulse {
+              0% { box-shadow: 0 2px 4px rgba(0,0,0,0.3); }
+              50% { box-shadow: 0 2px 8px ${currentPoint.event ? getEventColor(currentPoint.event) : '#ff6b6b'}66; }
+              100% { box-shadow: 0 2px 4px rgba(0,0,0,0.3); }
+            }
+          </style>
+        `,
+        className: 'car-marker',
+        iconSize: [32, 16],
+        iconAnchor: [16, 8]
+      });
+      carMarkerRef.current.setIcon(carIcon);
+
+      // Update route progress
+      if (routeRef.current) {
+        mapInstanceRef.current?.removeLayer(routeRef.current);
+        const progressPoints = data.slice(0, currentIndex + 1).map(point => [point.lat, point.lng] as [number, number]);
+        routeRef.current = L.polyline(progressPoints, {
+          color: '#2196f3',
+          weight: 4,
+          opacity: 0.9
+        }).addTo(mapInstanceRef.current!);
+      }
+    }
+  }, [currentIndex, useMapView, data]);
 
   const currentPoint = data[currentIndex] || data[0];
   const progress = ((currentIndex + 1) / data.length) * 100;
@@ -156,21 +294,33 @@ export function Simulation3D({ data }: { data: Segment[] }) {
       <CardContent sx={{ height: isFullscreen ? '100%' : 'auto', display: 'flex', flexDirection: 'column' }}>
         <Box sx={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', mb: 2 }}>
           <Typography variant="h6" sx={{ display: 'flex', alignItems: 'center', color: isFullscreen ? 'white' : 'inherit' }}>
-            <MapIcon sx={{ mr: 1 }} />
+            <DirectionsCarIcon sx={{ mr: 1 }} />
             3D Route Simulation
           </Typography>
-          <Tooltip title={isFullscreen ? "Exit Fullscreen (F)" : "Enter Fullscreen (F)"}>
-            <IconButton onClick={toggleFullscreen} color="primary">
-              {isFullscreen ? <FullscreenExitIcon /> : <FullscreenIcon />}
-            </IconButton>
-          </Tooltip>
+          <Box sx={{ display: 'flex', gap: 1 }}>
+            <Tooltip title={useMapView ? "Switch to 3D View (M)" : "Switch to Map View (M)"}>
+              <Button
+                variant={useMapView ? "contained" : "outlined"}
+                size="small"
+                onClick={() => setUseMapView(!useMapView)}
+                sx={{ color: isFullscreen && !useMapView ? 'white' : 'inherit', borderColor: isFullscreen && !useMapView ? 'white' : 'inherit' }}
+              >
+                {useMapView ? 'Map' : '3D'}
+              </Button>
+            </Tooltip>
+            <Tooltip title={isFullscreen ? "Exit Fullscreen (F)" : "Enter Fullscreen (F)"}>
+              <IconButton onClick={toggleFullscreen} color="primary">
+                {isFullscreen ? <FullscreenExitIcon /> : <FullscreenIcon />}
+              </IconButton>
+            </Tooltip>
+          </Box>
         </Box>
 
-        {/* 3D Visualization Area */}
+        {/* Visualization Area */}
         <Box 
           sx={{ 
             height: isFullscreen ? 'calc(100vh - 200px)' : 400, 
-            bgcolor: 'grey.900', 
+            bgcolor: useMapView ? 'transparent' : 'grey.900', 
             borderRadius: 2, 
             position: 'relative',
             mb: 2,
@@ -178,63 +328,134 @@ export function Simulation3D({ data }: { data: Segment[] }) {
             flex: isFullscreen ? 1 : 'none'
           }}
         >
-          {/* 3D Canvas will be rendered here */}
-          <div 
-            id="three-canvas-container"
-            style={{ 
-              width: '100%', 
-              height: '100%',
-              position: 'relative'
-            }}
-          >
-            {/* Fallback for when Three.js is not available */}
-            <Box 
-              sx={{ 
+          {useMapView ? (
+            /* OpenStreetMap View */
+            <Box
+              ref={mapRef}
+              sx={{
+                width: '100%',
+                height: '100%',
+                borderRadius: 2,
+                '& .leaflet-container': {
+                  borderRadius: 2
+                }
+              }}
+            />
+          ) : (
+            /* 3D Canvas View */
+            <div 
+              id="three-canvas-container"
+              style={{ 
                 width: '100%', 
-                height: '100%', 
-                display: 'flex',
-                alignItems: 'center',
-                justifyContent: 'center',
-                flexDirection: 'column',
-                color: 'white',
-                textAlign: 'center'
+                height: '100%',
+                position: 'relative'
               }}
             >
-              {!isFullscreen && (
-                <Typography variant="h6" sx={{ mb: 2 }}>
-                  3D Vehicle Simulation
-                </Typography>
-              )}
-              
-              {/* 3D Scene Preview */}
+              {/* Fallback for when Three.js is not available */}
               <Box 
-                ref={containerRef}
-                id="simulation-container"
                 sx={{ 
-                  width: isFullscreen ? '100%' : '80%', 
-                  height: isFullscreen ? '100%' : '80%', 
-                  border: '1px solid #444',
-                  borderRadius: 1,
-                  position: 'relative',
-                  background: 'linear-gradient(135deg, #1a237e 0%, #0d47a1 100%)',
-                  overflow: 'hidden'
+                  width: '100%', 
+                  height: '100%', 
+                  display: 'flex',
+                  alignItems: 'center',
+                  justifyContent: 'center',
+                  flexDirection: 'column',
+                  color: 'white',
+                  textAlign: 'center'
                 }}
               >
-                {/* Grid pattern */}
-                <svg 
-                  width="100%" 
-                  height="100%" 
-                  style={{ position: 'absolute', top: 0, left: 0, opacity: 0.3 }}
+                {!isFullscreen && (
+                  <Typography variant="h6" sx={{ mb: 2 }}>
+                    3D Vehicle Simulation
+                  </Typography>
+                )}
+                
+                {/* 3D Scene Preview */}
+                <Box 
+                  ref={containerRef}
+                  id="simulation-container"
+                  sx={{ 
+                    width: isFullscreen ? '100%' : '80%', 
+                    height: isFullscreen ? '100%' : '80%', 
+                    border: '1px solid #444',
+                    borderRadius: 1,
+                    position: 'relative',
+                    background: 'linear-gradient(135deg, #1a237e 0%, #0d47a1 100%)',
+                    overflow: 'hidden'
+                  }}
                 >
-                  <defs>
-                    <pattern id="grid" width="20" height="20" patternUnits="userSpaceOnUse">
-                      <path d="M 20 0 L 0 0 0 20" fill="none" stroke="#444" strokeWidth="1"/>
-                    </pattern>
-                  </defs>
-                  <rect width="100%" height="100%" fill="url(#grid)" />
-                </svg>
+                  {/* Grid pattern */}
+                  <svg 
+                    width="100%" 
+                    height="100%" 
+                    style={{ position: 'absolute', top: 0, left: 0, opacity: 0.3 }}
+                  >
+                    <defs>
+                      <pattern id="grid" width="20" height="20" patternUnits="userSpaceOnUse">
+                        <path d="M 20 0 L 0 0 0 20" fill="none" stroke="#444" strokeWidth="1"/>
+                      </pattern>
+                    </defs>
+                    <rect width="100%" height="100%" fill="url(#grid)" />
+                  </svg>
 
-                {/* Route Path */}
+                  {/* Route Path */}
+                  <svg 
+                    width="100%" 
+                    height="100%" 
+                    style={{ position: 'absolute', top: 0, left: 0 }}
+                  >
+                    <defs>
+                      <linearGradient id="routeGradient" x1="0%" y1="0%" x2="100%" y2="100%">
+                        <stop offset="0%" stopColor="#2196f3" />
+                        <stop offset="100%" stopColor="#4caf50" />
+                      </linearGradient>
+                    </defs>
+                    
+                    {/* Draw route path */}
+                    {data.slice(0, currentIndex + 1).map((point, index) => {
+                      if (index === 0) return null;
+                      const prevPoint = data[index - 1];
+                      
+                      // Get container dimensions
+                      const containerWidth = containerRef.current?.clientWidth || 400;
+                      const containerHeight = containerRef.current?.clientHeight || 320;
+                      
+                      const pos1 = getCarPosition(prevPoint, containerWidth, containerHeight);
+                      const pos2 = getCarPosition(point, containerWidth, containerHeight);
+                      
+                      return (
+                        <line
+                          key={index}
+                          x1={pos1.x}
+                          y1={pos1.y}
+                          x2={pos2.x}
+                          y2={pos2.y}
+                          stroke={point.event ? getEventColor(point.event) : "url(#routeGradient)"}
+                          strokeWidth={point.event ? "3" : "2"}
+                          opacity={0.8}
+                        />
+                      );
+                    })}
+                  </svg>
+
+                  {/* 3D Car Model */}
+                  <Car3D
+                    position={(() => {
+                      const containerWidth = containerRef.current?.clientWidth || 400;
+                      const containerHeight = containerRef.current?.clientHeight || 320;
+                      const pos = getCarPosition(currentPoint, containerWidth, containerHeight);
+                      return { x: pos.x - 16, y: pos.y - 8 }; // Center the car
+                    })()}
+                    rotation={getCarRotation(currentIndex)}
+                    color={currentPoint.event ? getEventColor(currentPoint.event) : '#ff6b6b'}
+                    scale={isFullscreen ? 1.5 : 1.2}
+                    hasEvent={!!currentPoint.event}
+                    eventColor={currentPoint.event ? getEventColor(currentPoint.event) : undefined}
+                  />
+                </Box>
+              </Box>
+            </div>
+          )}
                 <svg 
                   width="100%" 
                   height="100%" 
