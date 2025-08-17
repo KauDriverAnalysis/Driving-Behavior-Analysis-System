@@ -30,7 +30,7 @@ const baseNavItems: NavItemConfig[] = [
     key: 'simulation',
     title: 'Simulation',
     href: paths.dashboardAdmin.simulation,
-    icon: 'play', // Better simulation icon
+    icon: 'cube', // or any appropriate icon
   }
 ];
 
