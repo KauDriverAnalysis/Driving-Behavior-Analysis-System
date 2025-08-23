@@ -18,6 +18,7 @@ import MapIcon from '@mui/icons-material/Map';
 import FullscreenIcon from '@mui/icons-material/Fullscreen';
 import FullscreenExitIcon from '@mui/icons-material/FullscreenExit';
 import { Car3D } from './3DCar';
+import { Simulation3DThreeJS } from './Simulation3DThreeJS';
 
 // Add the missing Segment interface
 interface Segment {
@@ -38,6 +39,7 @@ export function Simulation3D({ data }: { data: Segment[] }) {
   const [currentIndex, setCurrentIndex] = React.useState(0);
   const [playbackSpeed, setPlaybackSpeed] = React.useState(1);
   const [isFullscreen, setIsFullscreen] = React.useState(false);
+  const [use3DEngine, setUse3DEngine] = React.useState(false);
   const containerRef = React.useRef<HTMLDivElement>(null);
 
   React.useEffect(() => {
@@ -157,27 +159,45 @@ export function Simulation3D({ data }: { data: Segment[] }) {
         <Box sx={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', mb: 2 }}>
           <Typography variant="h6" sx={{ display: 'flex', alignItems: 'center', color: isFullscreen ? 'white' : 'inherit' }}>
             <MapIcon sx={{ mr: 1 }} />
-            3D Route Simulation
+            {use3DEngine ? 'Real 3D Route Simulation' : '3D Route Simulation'}
           </Typography>
-          <Tooltip title={isFullscreen ? "Exit Fullscreen (F)" : "Enter Fullscreen (F)"}>
-            <IconButton onClick={toggleFullscreen} color="primary">
-              {isFullscreen ? <FullscreenExitIcon /> : <FullscreenIcon />}
-            </IconButton>
-          </Tooltip>
+          <Box sx={{ display: 'flex', gap: 1, alignItems: 'center' }}>
+            <Button
+              size="small"
+              variant={use3DEngine ? "contained" : "outlined"}
+              onClick={() => setUse3DEngine(!use3DEngine)}
+              sx={{ 
+                color: isFullscreen && !use3DEngine ? 'white' : 'inherit',
+                borderColor: isFullscreen && !use3DEngine ? 'white' : 'inherit'
+              }}
+            >
+              {use3DEngine ? 'Real 3D' : 'Enhanced 2D'}
+            </Button>
+            <Tooltip title={isFullscreen ? "Exit Fullscreen (F)" : "Enter Fullscreen (F)"}>
+              <IconButton onClick={toggleFullscreen} color="primary">
+                {isFullscreen ? <FullscreenExitIcon /> : <FullscreenIcon />}
+              </IconButton>
+            </Tooltip>
+          </Box>
         </Box>
 
         {/* 3D Visualization Area */}
-        <Box 
-          sx={{ 
-            height: isFullscreen ? 'calc(100vh - 200px)' : 400, 
-            bgcolor: 'grey.900', 
-            borderRadius: 2, 
-            position: 'relative',
-            mb: 2,
-            overflow: 'hidden',
-            flex: isFullscreen ? 1 : 'none'
-          }}
-        >
+        {use3DEngine ? (
+          // Real Three.js 3D Simulation
+          <Simulation3DThreeJS data={data} />
+        ) : (
+          // Enhanced CSS-based 3D Simulation
+          <Box 
+            sx={{ 
+              height: isFullscreen ? 'calc(100vh - 200px)' : 400, 
+              bgcolor: 'grey.900', 
+              borderRadius: 2, 
+              position: 'relative',
+              mb: 2,
+              overflow: 'hidden',
+              flex: isFullscreen ? 1 : 'none'
+            }}
+          >
           {/* 3D Canvas will be rendered here */}
           <div 
             id="three-canvas-container"
@@ -343,8 +363,10 @@ export function Simulation3D({ data }: { data: Segment[] }) {
             )}
           </div>
         </Box>
+        )}
 
-        {/* Controls */}
+        {/* Controls - only show for CSS version */}
+        {!use3DEngine && (
         <Box sx={{ 
           display: 'flex', 
           justifyContent: 'center', 
@@ -382,8 +404,9 @@ export function Simulation3D({ data }: { data: Segment[] }) {
             ))}
           </Box>
         </Box>
+        )}
 
-        {/* Progress bar */}
+        {/* Progress bar - shared by both versions */}
         <Box sx={{ width: '100%', mb: 1 }}>
           <Box 
             sx={{ 
