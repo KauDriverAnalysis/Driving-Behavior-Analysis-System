@@ -24,7 +24,7 @@ import WarningIcon from '@mui/icons-material/Warning';
 import CheckCircleIcon from '@mui/icons-material/CheckCircle';
 import { SimulationUpload } from '@/components/dashboard-admin/Simulation/Upload';
 import { SimulationResults } from '@/components/dashboard-admin/Simulation/Results';
-import { Simulation3D } from '@/components/dashboard-admin/Simulation/3DSimulation';
+import { Enhanced3DSimulation } from '@/components/dashboard-admin/Simulation/Enhanced3DSimulation';
 
 interface SimulationData {
   summary: {
@@ -48,6 +48,13 @@ interface SimulationData {
     speed: number;
     event?: string;
     score: number;
+    ax?: number;  // Adding IMU data fields
+    ay?: number;
+    az?: number;
+    gx?: number;
+    gy?: number;
+    gz?: number;
+    yaw?: number;
   }[];
   chartData: {
     time: string;
@@ -248,9 +255,9 @@ export default function SimulationPage(): React.JSX.Element {
             <SimulationResults data={simulationData} />
           </Grid>
 
-          {/* 3D Visualization */}
+          {/* Enhanced 3D Visualization */}
           <Grid item xs={12} lg={4}>
-            <Simulation3D data={simulationData.segments} />
+            <Enhanced3DSimulation data={simulationData.segments} />
           </Grid>
         </Grid>
       )}

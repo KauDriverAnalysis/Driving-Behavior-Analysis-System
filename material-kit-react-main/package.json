@@ -31,6 +31,8 @@
     "@mui/utils": "5.15.20",
     "@mui/x-date-pickers": "7.7.1",
     "@phosphor-icons/react": "2.1.6",
+    "@react-three/drei": "^9.80.0",
+    "@react-three/fiber": "^8.18.0",
     "@types/leaflet": "^1.9.16",
     "apexcharts": "^3.49.2",
     "chart.js": "^4.4.8",
@@ -47,6 +49,7 @@
     "react-hook-form": "7.52.0",
     "react-leaflet": "^4.2.1",
     "recharts": "^2.15.1",
+    "three": "^0.158.0",
     "uuid": "^11.1.0",
     "zod": "3.23.8"
   },
