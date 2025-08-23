@@ -8,7 +8,6 @@ import {
   Typography,
   Grid,
   Chip,
-  LinearProgress,
   Divider,
   List,
   ListItem,
@@ -34,6 +33,8 @@ import TrendingUpIcon from '@mui/icons-material/TrendingUp';
 import TrendingDownIcon from '@mui/icons-material/TrendingDown';
 import CompareArrowsIcon from '@mui/icons-material/CompareArrows';
 import WarningIcon from '@mui/icons-material/Warning';
+import CrisisAlertIcon from '@mui/icons-material/CrisisAlert';
+import CheckCircleIcon from '@mui/icons-material/CheckCircle';
 
 interface SimulationResultsProps {
   data: {
@@ -50,19 +51,39 @@ export function SimulationResults({ data }: SimulationResultsProps) {
   // Calculate percentages for events
   const totalEvents = Object.values(events).reduce((a: number, b: number) => a + b, 0);
   
+  // Detect accident based on harsh events and other indicators
+  const detectAccident = () => {
+    // Check if there's an explicit accident flag in summary
+    if (summary.accident_detected !== undefined) {
+      return summary.accident_detected;
+    }
+    
+    // Otherwise, detect based on multiple harsh events occurring together
+    const severityThreshold = {
+      harshBraking: 5,
+      harshAcceleration: 5,
+      swerving: 3,
+      overSpeed: 10
+    };
+    
+    const severeCombination = 
+      (events.harshBraking >= severityThreshold.harshBraking && events.swerving >= severityThreshold.swerving) ||
+      (events.harshBraking >= severityThreshold.harshBraking && events.harshAcceleration >= severityThreshold.harshAcceleration) ||
+      (events.swerving >= severityThreshold.swerving && events.overSpeed >= severityThreshold.overSpeed) ||
+      (events.harshBraking >= 10) || // Very high braking events
+      (events.swerving >= 8); // Very high swerving events
+    
+    return severeCombination;
+  };
+
+  const accidentDetected = detectAccident();
+  
   const eventData = [
     { name: 'Harsh Braking', value: events.harshBraking, color: '#f44336' },
     { name: 'Hard Acceleration', value: events.harshAcceleration, color: '#ff9800' },
     { name: 'Swerving', value: events.swerving, color: '#2196f3' },
     { name: 'Over Speed', value: events.overSpeed, color: '#4caf50' }
   ];
-
-  const getScoreColor = (score: number) => {
-    if (score >= 90) return '#4caf50';
-    if (score >= 80) return '#8bc34a';
-    if (score >= 70) return '#ff9800';
-    return '#f44336';
-  };
 
   return (
     <Box>
@@ -217,20 +238,51 @@ export function SimulationResults({ data }: SimulationResultsProps) {
                 <Grid item xs={12} sm={6} md={3}>
                   <Box sx={{ textAlign: 'center' }}>
                     <Typography variant="body2" color="text.secondary">
-                      Safety Score
+                      Accident Status
                     </Typography>
-                    <Typography 
-                      variant="h4" 
-                      fontWeight="bold"
-                      sx={{ color: getScoreColor(summary.score) }}
-                    >
-                      {summary.score}/100
-                    </Typography>
-                    <LinearProgress 
-                      variant="determinate" 
-                      value={summary.score} 
-                      sx={{ mt: 1, height: 8, borderRadius: 4 }}
-                    />
+                    <Box sx={{ display: 'flex', flexDirection: 'column', alignItems: 'center', mt: 1 }}>
+                      {accidentDetected ? (
+                        <>
+                          <CrisisAlertIcon 
+                            sx={{ 
+                              fontSize: 48, 
+                              color: '#f44336', 
+                              mb: 1 
+                            }} 
+                          />
+                          <Typography 
+                            variant="h6" 
+                            fontWeight="bold"
+                            sx={{ color: '#f44336' }}
+                          >
+                            ACCIDENT
+                          </Typography>
+                          <Typography variant="caption" color="error">
+                            Detected
+                          </Typography>
+                        </>
+                      ) : (
+                        <>
+                          <CheckCircleIcon 
+                            sx={{ 
+                              fontSize: 48, 
+                              color: '#4caf50', 
+                              mb: 1 
+                            }} 
+                          />
+                          <Typography 
+                            variant="h6" 
+                            fontWeight="bold"
+                            sx={{ color: '#4caf50' }}
+                          >
+                            SAFE
+                          </Typography>
+                          <Typography variant="caption" color="success.main">
+                            No accident detected
+                          </Typography>
+                        </>
+                      )}
+                    </Box>
                   </Box>
                 </Grid>
                 
