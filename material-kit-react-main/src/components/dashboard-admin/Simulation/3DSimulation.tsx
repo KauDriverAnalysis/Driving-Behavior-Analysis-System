@@ -9,7 +9,14 @@ import {
   Button,
   IconButton,
   Chip,
-  Tooltip
+  Tooltip,
+  Alert,
+  Dialog,
+  DialogTitle,
+  DialogContent,
+  DialogActions,
+  Badge,
+  LinearProgress
 } from '@mui/material';
 import PlayArrowIcon from '@mui/icons-material/PlayArrow';
 import PauseIcon from '@mui/icons-material/Pause';
@@ -17,6 +24,10 @@ import ReplayIcon from '@mui/icons-material/Replay';
 import MapIcon from '@mui/icons-material/Map';
 import FullscreenIcon from '@mui/icons-material/Fullscreen';
 import FullscreenExitIcon from '@mui/icons-material/FullscreenExit';
+import WarningIcon from '@mui/icons-material/Warning';
+import CrashIcon from '@mui/icons-material/CarCrash';
+import EmergencyIcon from '@mui/icons-material/LocalHospital';
+import ReportIcon from '@mui/icons-material/Assessment';
 import { Car3D } from './3DCar';
 
 // Add the missing Segment interface
@@ -27,6 +38,12 @@ interface Segment {
   speed: number;
   event?: string;
   score: number;
+  // Enhanced accident data
+  accidentType?: 'collision' | 'rollover' | 'near_miss' | 'impact';
+  severity?: 'low' | 'medium' | 'high' | 'critical';
+  accidentScore?: number; // 0-100 scale for accident severity
+  damageEstimate?: string;
+  emergencyRequired?: boolean;
 }
 
 interface Simulation3DProps {
@@ -38,7 +55,27 @@ export function Simulation3D({ data }: { data: Segment[] }) {
   const [currentIndex, setCurrentIndex] = React.useState(0);
   const [playbackSpeed, setPlaybackSpeed] = React.useState(1);
   const [isFullscreen, setIsFullscreen] = React.useState(false);
+  const [showAccidentReport, setShowAccidentReport] = React.useState(false);
+  const [selectedAccident, setSelectedAccident] = React.useState<Segment | null>(null);
   const containerRef = React.useRef<HTMLDivElement>(null);
+
+  // Calculate accident statistics
+  const accidentPoints = React.useMemo(() => {
+    return data.filter(point => 
+      point.accidentType || 
+      point.event === 'harsh_braking' || 
+      point.event === 'harsh_acceleration' || 
+      point.event === 'swerving'
+    );
+  }, [data]);
+
+  const criticalAccidents = React.useMemo(() => {
+    return accidentPoints.filter(point => 
+      point.severity === 'critical' || 
+      point.severity === 'high' ||
+      point.emergencyRequired
+    );
+  }, [accidentPoints]);
 
   React.useEffect(() => {
     if (!isPlaying || currentIndex >= data.length - 1) return;
@@ -133,13 +170,50 @@ export function Simulation3D({ data }: { data: Segment[] }) {
     return angle;
   };
 
-  const getEventColor = (event?: string) => {
+  const getEventColor = (event?: string, accidentType?: string, severity?: string) => {
+    if (accidentType) {
+      switch (accidentType) {
+        case 'collision': return '#d32f2f'; // Dark red
+        case 'rollover': return '#ff5722'; // Deep orange
+        case 'near_miss': return '#ff9800'; // Orange
+        case 'impact': return '#b71c1c'; // Very dark red
+        default: return '#f44336';
+      }
+    }
+    
+    if (severity) {
+      switch (severity) {
+        case 'critical': return '#b71c1c';
+        case 'high': return '#d32f2f';
+        case 'medium': return '#f57c00';
+        case 'low': return '#ffc107';
+        default: return '#ff5722';
+      }
+    }
+
     switch (event) {
       case 'harsh_braking': return '#f44336';
       case 'harsh_acceleration': return '#ff9800';
       case 'swerving': return '#2196f3';
       case 'over_speed': return '#4caf50';
       default: return '#9e9e9e';
+    }
+  };
+
+  const getAccidentIcon = (accidentType?: string, severity?: string) => {
+    if (accidentType === 'collision' || accidentType === 'impact') {
+      return <CrashIcon sx={{ fontSize: 16 }} />;
+    }
+    if (severity === 'critical' || severity === 'high') {
+      return <EmergencyIcon sx={{ fontSize: 16 }} />;
+    }
+    return <WarningIcon sx={{ fontSize: 16 }} />;
+  };
+
+  const handleAccidentClick = (point: Segment) => {
+    if (point.accidentType || point.severity) {
+      setSelectedAccident(point);
+      setShowAccidentReport(true);
     }
   };
 
@@ -155,15 +229,68 @@ export function Simulation3D({ data }: { data: Segment[] }) {
     }}>
       <CardContent sx={{ height: isFullscreen ? '100%' : 'auto', display: 'flex', flexDirection: 'column' }}>
         <Box sx={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', mb: 2 }}>
-          <Typography variant="h6" sx={{ display: 'flex', alignItems: 'center', color: isFullscreen ? 'white' : 'inherit' }}>
-            <MapIcon sx={{ mr: 1 }} />
-            3D Route Simulation
-          </Typography>
-          <Tooltip title={isFullscreen ? "Exit Fullscreen (F)" : "Enter Fullscreen (F)"}>
-            <IconButton onClick={toggleFullscreen} color="primary">
-              {isFullscreen ? <FullscreenExitIcon /> : <FullscreenIcon />}
-            </IconButton>
-          </Tooltip>
+          <Box sx={{ display: 'flex', alignItems: 'center', gap: 2 }}>
+            <Typography variant="h6" sx={{ display: 'flex', alignItems: 'center', color: isFullscreen ? 'white' : 'inherit' }}>
+              <MapIcon sx={{ mr: 1 }} />
+              Accident Analysis & 3D Simulation
+            </Typography>
+            
+            {/* Accident Statistics */}
+            <Box sx={{ display: 'flex', gap: 1, alignItems: 'center' }}>
+              <Badge badgeContent={criticalAccidents.length} color="error">
+                <Chip
+                  icon={<CrashIcon />}
+                  label={`${accidentPoints.length} Incidents`}
+                  color={criticalAccidents.length > 0 ? "error" : "warning"}
+                  size="small"
+                  onClick={() => {
+                    if (accidentPoints.length > 0) {
+                      const firstAccident = accidentPoints[0];
+                      const accidentIndex = data.findIndex(p => p === firstAccident);
+                      setCurrentIndex(accidentIndex);
+                      setSelectedAccident(firstAccident);
+                      setShowAccidentReport(true);
+                    }
+                  }}
+                  sx={{ cursor: accidentPoints.length > 0 ? 'pointer' : 'default' }}
+                />
+              </Badge>
+              
+              {criticalAccidents.length > 0 && (
+                <Chip
+                  icon={<EmergencyIcon />}
+                  label={`${criticalAccidents.length} Critical`}
+                  color="error"
+                  size="small"
+                  sx={{ 
+                    animation: 'pulse 2s infinite',
+                    '@keyframes pulse': {
+                      '0%': { opacity: 1 },
+                      '50%': { opacity: 0.7 },
+                      '100%': { opacity: 1 }
+                    }
+                  }}
+                />
+              )}
+            </Box>
+          </Box>
+          
+          <Box sx={{ display: 'flex', gap: 1 }}>
+            <Tooltip title="Generate Accident Report">
+              <IconButton 
+                onClick={() => setShowAccidentReport(true)} 
+                color="primary"
+                disabled={accidentPoints.length === 0}
+              >
+                <ReportIcon />
+              </IconButton>
+            </Tooltip>
+            <Tooltip title={isFullscreen ? "Exit Fullscreen (F)" : "Enter Fullscreen (F)"}>
+              <IconButton onClick={toggleFullscreen} color="primary">
+                {isFullscreen ? <FullscreenExitIcon /> : <FullscreenIcon />}
+              </IconButton>
+            </Tooltip>
+          </Box>
         </Box>
 
         {/* 3D Visualization Area */}
@@ -259,6 +386,9 @@ export function Simulation3D({ data }: { data: Segment[] }) {
                     const pos1 = getCarPosition(prevPoint, containerWidth, containerHeight);
                     const pos2 = getCarPosition(point, containerWidth, containerHeight);
                     
+                    const strokeColor = getEventColor(point.event, point.accidentType, point.severity);
+                    const strokeWidth = point.accidentType ? 5 : (point.event ? 3 : 2);
+                    
                     return (
                       <line
                         key={index}
@@ -266,10 +396,55 @@ export function Simulation3D({ data }: { data: Segment[] }) {
                         y1={pos1.y}
                         x2={pos2.x}
                         y2={pos2.y}
-                        stroke={point.event ? getEventColor(point.event) : "url(#routeGradient)"}
-                        strokeWidth={point.event ? "3" : "2"}
-                        opacity={0.8}
+                        stroke={point.event || point.accidentType ? strokeColor : "url(#routeGradient)"}
+                        strokeWidth={strokeWidth}
+                        opacity={point.accidentType ? 1 : 0.8}
+                        strokeDasharray={point.accidentType ? "5,5" : "none"}
                       />
+                    );
+                  })}
+                  
+                  {/* Accident markers */}
+                  {accidentPoints.map((accident, index) => {
+                    const accidentIndex = data.findIndex(p => p === accident);
+                    if (accidentIndex > currentIndex) return null;
+                    
+                    const containerWidth = containerRef.current?.clientWidth || 400;
+                    const containerHeight = containerRef.current?.clientHeight || 320;
+                    const pos = getCarPosition(accident, containerWidth, containerHeight);
+                    
+                    return (
+                      <g key={`accident-${index}`}>
+                        {/* Pulsing circle for accidents */}
+                        <circle
+                          cx={pos.x}
+                          cy={pos.y}
+                          r="12"
+                          fill={getEventColor(accident.event, accident.accidentType, accident.severity)}
+                          opacity="0.8"
+                          style={{
+                            cursor: 'pointer',
+                            animation: 'pulse 1.5s infinite'
+                          }}
+                          onClick={() => handleAccidentClick(accident)}
+                        >
+                          <animate attributeName="r" values="8;16;8" dur="2s" repeatCount="indefinite" />
+                          <animate attributeName="opacity" values="0.8;0.4;0.8" dur="2s" repeatCount="indefinite" />
+                        </circle>
+                        
+                        {/* Warning icon */}
+                        <text
+                          x={pos.x}
+                          y={pos.y + 4}
+                          textAnchor="middle"
+                          fill="white"
+                          fontSize="10"
+                          fontWeight="bold"
+                          style={{ cursor: 'pointer', pointerEvents: 'none' }}
+                        >
+                          ⚠
+                        </text>
+                      </g>
                     );
                   })}
                 </svg>
@@ -283,11 +458,60 @@ export function Simulation3D({ data }: { data: Segment[] }) {
                     return { x: pos.x - 16, y: pos.y - 8 }; // Center the car
                   })()}
                   rotation={getCarRotation(currentIndex)}
-                  color={currentPoint.event ? getEventColor(currentPoint.event) : '#ff6b6b'}
+                  color={currentPoint.accidentType ? 
+                    getEventColor(currentPoint.event, currentPoint.accidentType, currentPoint.severity) : 
+                    (currentPoint.event ? getEventColor(currentPoint.event) : '#ff6b6b')
+                  }
                   scale={isFullscreen ? 1.5 : 1.2}
-                  hasEvent={!!currentPoint.event}
-                  eventColor={currentPoint.event ? getEventColor(currentPoint.event) : undefined}
+                  hasEvent={!!(currentPoint.event || currentPoint.accidentType)}
+                  eventColor={currentPoint.accidentType ? 
+                    getEventColor(currentPoint.event, currentPoint.accidentType, currentPoint.severity) : 
+                    (currentPoint.event ? getEventColor(currentPoint.event) : undefined)
+                  }
                 />
+                
+                {/* Accident impact effect */}
+                {currentPoint.accidentType && (
+                  <Box
+                    sx={{
+                      position: 'absolute',
+                      left: (() => {
+                        const containerWidth = containerRef.current?.clientWidth || 400;
+                        const containerHeight = containerRef.current?.clientHeight || 320;
+                        const pos = getCarPosition(currentPoint, containerWidth, containerHeight);
+                        return pos.x - 30;
+                      })(),
+                      top: (() => {
+                        const containerWidth = containerRef.current?.clientWidth || 400;
+                        const containerHeight = containerRef.current?.clientHeight || 320;
+                        const pos = getCarPosition(currentPoint, containerWidth, containerHeight);
+                        return pos.y - 30;
+                      })(),
+                      width: 60,
+                      height: 60,
+                      borderRadius: '50%',
+                      border: '3px solid #f44336',
+                      animation: 'impactWave 1s infinite',
+                      '@keyframes impactWave': {
+                        '0%': { 
+                          transform: 'scale(0.5)', 
+                          opacity: 1,
+                          borderColor: '#f44336'
+                        },
+                        '50%': { 
+                          transform: 'scale(1)', 
+                          opacity: 0.7,
+                          borderColor: '#ff9800'
+                        },
+                        '100%': { 
+                          transform: 'scale(1.5)', 
+                          opacity: 0,
+                          borderColor: '#ffeb3b'
+                        }
+                      }
+                    }}
+                  />
+                )}
               </Box>
             </Box>
 
@@ -297,12 +521,13 @@ export function Simulation3D({ data }: { data: Segment[] }) {
                 position: 'absolute',
                 top: 16,
                 left: 16,
-                bgcolor: 'rgba(255,255,255,0.95)',
+                bgcolor: currentPoint.accidentType ? 'rgba(244, 67, 54, 0.95)' : 'rgba(255,255,255,0.95)',
+                color: currentPoint.accidentType ? 'white' : 'inherit',
                 p: isFullscreen ? 2 : 1,
                 borderRadius: 1,
-                minWidth: isFullscreen ? 160 : 120,
+                minWidth: isFullscreen ? 200 : 140,
                 backdropFilter: 'blur(10px)',
-                border: '1px solid rgba(255,255,255,0.3)'
+                border: currentPoint.accidentType ? '2px solid #f44336' : '1px solid rgba(255,255,255,0.3)'
               }}
             >
               <Typography variant={isFullscreen ? "body2" : "caption"} display="block" fontWeight="bold">
@@ -314,6 +539,34 @@ export function Simulation3D({ data }: { data: Segment[] }) {
               <Typography variant={isFullscreen ? "body2" : "caption"} display="block">
                 Time: {currentPoint.time}
               </Typography>
+              
+              {/* Accident Information */}
+              {currentPoint.accidentType && (
+                <>
+                  <Typography variant={isFullscreen ? "body2" : "caption"} display="block" fontWeight="bold" sx={{ mt: 1, color: currentPoint.accidentType ? 'white' : '#f44336' }}>
+                    🚨 ACCIDENT DETECTED
+                  </Typography>
+                  <Typography variant={isFullscreen ? "body2" : "caption"} display="block">
+                    Type: {currentPoint.accidentType?.toUpperCase()}
+                  </Typography>
+                  {currentPoint.severity && (
+                    <Typography variant={isFullscreen ? "body2" : "caption"} display="block">
+                      Severity: {currentPoint.severity?.toUpperCase()}
+                    </Typography>
+                  )}
+                  {currentPoint.accidentScore && (
+                    <Typography variant={isFullscreen ? "body2" : "caption"} display="block">
+                      Impact Score: {currentPoint.accidentScore}/100
+                    </Typography>
+                  )}
+                  {currentPoint.emergencyRequired && (
+                    <Typography variant={isFullscreen ? "body2" : "caption"} display="block" sx={{ fontWeight: 'bold', color: '#ffeb3b' }}>
+                      🚑 EMERGENCY REQUIRED
+                    </Typography>
+                  )}
+                </>
+              )}
+              
               {isFullscreen && (
                 <Typography variant="caption" display="block" sx={{ mt: 1, opacity: 0.7 }}>
                   Press F to exit fullscreen
@@ -321,24 +574,69 @@ export function Simulation3D({ data }: { data: Segment[] }) {
               )}
             </Box>
 
-            {/* Event indicator */}
-            {currentPoint.event && (
+            {/* Event and Accident indicators */}
+            {(currentPoint.event || currentPoint.accidentType) && (
               <Box
                 sx={{
                   position: 'absolute',
                   top: 16,
-                  right: 16
+                  right: 16,
+                  display: 'flex',
+                  flexDirection: 'column',
+                  gap: 1,
+                  alignItems: 'flex-end'
                 }}
               >
-                <Chip
-                  label={currentPoint.event.replace('_', ' ').toUpperCase()}
-                  size="small"
-                  sx={{
-                    bgcolor: getEventColor(currentPoint.event),
-                    color: 'white',
-                    fontWeight: 'bold'
-                  }}
-                />
+                {currentPoint.accidentType && (
+                  <Chip
+                    icon={getAccidentIcon(currentPoint.accidentType, currentPoint.severity)}
+                    label={`${currentPoint.accidentType.replace('_', ' ').toUpperCase()} ACCIDENT`}
+                    size={isFullscreen ? "medium" : "small"}
+                    sx={{
+                      bgcolor: getEventColor(currentPoint.event, currentPoint.accidentType, currentPoint.severity),
+                      color: 'white',
+                      fontWeight: 'bold',
+                      animation: 'blink 1s infinite',
+                      '@keyframes blink': {
+                        '0%': { opacity: 1 },
+                        '50%': { opacity: 0.7 },
+                        '100%': { opacity: 1 }
+                      }
+                    }}
+                    onClick={() => handleAccidentClick(currentPoint)}
+                  />
+                )}
+                
+                {currentPoint.event && !currentPoint.accidentType && (
+                  <Chip
+                    label={currentPoint.event.replace('_', ' ').toUpperCase()}
+                    size={isFullscreen ? "medium" : "small"}
+                    sx={{
+                      bgcolor: getEventColor(currentPoint.event),
+                      color: 'white',
+                      fontWeight: 'bold'
+                    }}
+                  />
+                )}
+                
+                {currentPoint.emergencyRequired && (
+                  <Chip
+                    icon={<EmergencyIcon />}
+                    label="EMERGENCY"
+                    size="small"
+                    sx={{
+                      bgcolor: '#b71c1c',
+                      color: '#ffeb3b',
+                      fontWeight: 'bold',
+                      animation: 'emergency 0.5s infinite',
+                      '@keyframes emergency': {
+                        '0%': { transform: 'scale(1)' },
+                        '50%': { transform: 'scale(1.1)' },
+                        '100%': { transform: 'scale(1)' }
+                      }
+                    }}
+                  />
+                )}
               </Box>
             )}
           </div>
@@ -413,8 +711,210 @@ export function Simulation3D({ data }: { data: Segment[] }) {
           display="block"
         >
           Progress: {currentIndex + 1} / {data.length} points ({progress.toFixed(1)}%)
+          {accidentPoints.length > 0 && (
+            <> • {accidentPoints.length} accidents detected</>
+          )}
         </Typography>
+        
+        {/* Accident Summary Alert */}
+        {criticalAccidents.length > 0 && !isFullscreen && (
+          <Alert 
+            severity="error" 
+            sx={{ mt: 2 }}
+            action={
+              <Button 
+                color="inherit" 
+                size="small" 
+                onClick={() => setShowAccidentReport(true)}
+              >
+                VIEW REPORT
+              </Button>
+            }
+          >
+            {criticalAccidents.length} critical accident{criticalAccidents.length > 1 ? 's' : ''} detected requiring immediate attention!
+          </Alert>
+        )}
       </CardContent>
+
+      {/* Accident Report Dialog */}
+      <Dialog 
+        open={showAccidentReport} 
+        onClose={() => setShowAccidentReport(false)}
+        maxWidth="md"
+        fullWidth
+      >
+        <DialogTitle sx={{ bgcolor: '#f44336', color: 'white', display: 'flex', alignItems: 'center', gap: 1 }}>
+          <CrashIcon />
+          Accident Analysis Report
+        </DialogTitle>
+        <DialogContent sx={{ pt: 2 }}>
+          {selectedAccident ? (
+            // Individual accident details
+            <Box>
+              <Typography variant="h6" gutterBottom color="error">
+                🚨 Accident Details
+              </Typography>
+              
+              <Box sx={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 2, mb: 3 }}>
+                <Box>
+                  <Typography variant="subtitle2" fontWeight="bold">Time:</Typography>
+                  <Typography>{selectedAccident.time}</Typography>
+                </Box>
+                <Box>
+                  <Typography variant="subtitle2" fontWeight="bold">Speed:</Typography>
+                  <Typography>{selectedAccident.speed.toFixed(1)} km/h</Typography>
+                </Box>
+                <Box>
+                  <Typography variant="subtitle2" fontWeight="bold">Accident Type:</Typography>
+                  <Typography color="error" fontWeight="bold">
+                    {selectedAccident.accidentType?.toUpperCase() || 'DRIVING INCIDENT'}
+                  </Typography>
+                </Box>
+                <Box>
+                  <Typography variant="subtitle2" fontWeight="bold">Severity:</Typography>
+                  <Typography 
+                    color={selectedAccident.severity === 'critical' ? 'error' : 
+                           selectedAccident.severity === 'high' ? 'warning' : 'info'}
+                    fontWeight="bold"
+                  >
+                    {selectedAccident.severity?.toUpperCase() || 'MEDIUM'}
+                  </Typography>
+                </Box>
+                {selectedAccident.accidentScore && (
+                  <Box>
+                    <Typography variant="subtitle2" fontWeight="bold">Impact Score:</Typography>
+                    <Box sx={{ display: 'flex', alignItems: 'center', gap: 1 }}>
+                      <LinearProgress 
+                        variant="determinate" 
+                        value={selectedAccident.accidentScore} 
+                        sx={{ flexGrow: 1, height: 8, borderRadius: 4 }}
+                        color={selectedAccident.accidentScore > 80 ? 'error' : 
+                               selectedAccident.accidentScore > 50 ? 'warning' : 'success'}
+                      />
+                      <Typography fontWeight="bold">
+                        {selectedAccident.accidentScore}/100
+                      </Typography>
+                    </Box>
+                  </Box>
+                )}
+                {selectedAccident.damageEstimate && (
+                  <Box>
+                    <Typography variant="subtitle2" fontWeight="bold">Damage Estimate:</Typography>
+                    <Typography>{selectedAccident.damageEstimate}</Typography>
+                  </Box>
+                )}
+              </Box>
+
+              {selectedAccident.emergencyRequired && (
+                <Alert severity="error" sx={{ mb: 2 }}>
+                  <Typography fontWeight="bold">🚑 EMERGENCY RESPONSE REQUIRED</Typography>
+                  <Typography>This accident requires immediate medical attention and emergency services.</Typography>
+                </Alert>
+              )}
+
+              <Typography variant="h6" gutterBottom sx={{ mt: 3 }}>
+                📊 Recommendations
+              </Typography>
+              <Box component="ul" sx={{ pl: 2 }}>
+                <li>Immediate driver assessment and potential suspension</li>
+                <li>Vehicle inspection for mechanical issues</li>
+                <li>Route safety analysis</li>
+                {selectedAccident.emergencyRequired && <li><strong>Contact emergency services immediately</strong></li>}
+                <li>Insurance claim documentation</li>
+                <li>Driver retraining program enrollment</li>
+              </Box>
+            </Box>
+          ) : (
+            // Overall accident summary
+            <Box>
+              <Typography variant="h6" gutterBottom>
+                📈 Accident Summary
+              </Typography>
+              
+              <Box sx={{ display: 'grid', gridTemplateColumns: '1fr 1fr 1fr', gap: 2, mb: 3 }}>
+                <Card sx={{ p: 2, bgcolor: '#ffebee' }}>
+                  <Typography variant="h4" color="error" fontWeight="bold">
+                    {accidentPoints.length}
+                  </Typography>
+                  <Typography variant="body2">Total Incidents</Typography>
+                </Card>
+                <Card sx={{ p: 2, bgcolor: '#ffcdd2' }}>
+                  <Typography variant="h4" color="error" fontWeight="bold">
+                    {criticalAccidents.length}
+                  </Typography>
+                  <Typography variant="body2">Critical Events</Typography>
+                </Card>
+                <Card sx={{ p: 2, bgcolor: '#f3e5f5' }}>
+                  <Typography variant="h4" color="primary" fontWeight="bold">
+                    {accidentPoints.filter(a => a.emergencyRequired).length}
+                  </Typography>
+                  <Typography variant="body2">Emergency Cases</Typography>
+                </Card>
+              </Box>
+
+              <Typography variant="h6" gutterBottom>
+                🔍 Incident Breakdown
+              </Typography>
+              
+              <Box sx={{ maxHeight: 300, overflow: 'auto' }}>
+                {accidentPoints.map((accident, index) => {
+                  const accidentIndex = data.findIndex(p => p === accident);
+                  return (
+                    <Card 
+                      key={index} 
+                      sx={{ 
+                        p: 2, 
+                        mb: 1, 
+                        cursor: 'pointer',
+                        border: accident.severity === 'critical' ? '2px solid #f44336' : '1px solid #ddd'
+                      }}
+                      onClick={() => {
+                        setSelectedAccident(accident);
+                        setCurrentIndex(accidentIndex);
+                      }}
+                    >
+                      <Box sx={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
+                        <Box>
+                          <Typography variant="subtitle2" fontWeight="bold">
+                            {accident.accidentType?.toUpperCase() || accident.event?.replace('_', ' ').toUpperCase()}
+                          </Typography>
+                          <Typography variant="body2" color="text.secondary">
+                            Time: {accident.time} | Speed: {accident.speed.toFixed(1)} km/h
+                          </Typography>
+                        </Box>
+                        <Box sx={{ textAlign: 'right' }}>
+                          <Chip 
+                            size="small"
+                            label={accident.severity?.toUpperCase() || 'MEDIUM'}
+                            color={accident.severity === 'critical' ? 'error' : 
+                                   accident.severity === 'high' ? 'warning' : 'default'}
+                          />
+                          {accident.emergencyRequired && (
+                            <Box sx={{ mt: 0.5 }}>
+                              <Chip size="small" label="EMERGENCY" color="error" />
+                            </Box>
+                          )}
+                        </Box>
+                      </Box>
+                    </Card>
+                  );
+                })}
+              </Box>
+            </Box>
+          )}
+        </DialogContent>
+        <DialogActions>
+          <Button onClick={() => setSelectedAccident(null)} disabled={!selectedAccident}>
+            Back to Summary
+          </Button>
+          <Button onClick={() => setShowAccidentReport(false)}>
+            Close
+          </Button>
+          <Button variant="contained" color="primary">
+            Export Report
+          </Button>
+        </DialogActions>
+      </Dialog>
     </Card>
   );
 }
