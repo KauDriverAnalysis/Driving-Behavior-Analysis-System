@@ -97,39 +97,38 @@ export function VehiclePhysics({ currentData, prevData, position, children }: Ve
   };
 
   // Add shake effect for harsh events
+  React.useEffect(() => {
+    if (!document.getElementById('vehicle-physics-styles')) {
+      const style = document.createElement('style');
+      style.id = 'vehicle-physics-styles';
+      style.textContent = `
+        @keyframes shake {
+          0%, 100% { transform: translate(0px, 0px) rotateZ(0deg); }
+          25% { transform: translate(1px, 1px) rotateZ(1deg); }
+          50% { transform: translate(-1px, 1px) rotateZ(-1deg); }
+          75% { transform: translate(1px, -1px) rotateZ(1deg); }
+        }
+        
+        @keyframes speedBoost {
+          from { 
+            filter: brightness(1) drop-shadow(0 0 5px rgba(255, 255, 255, 0.5));
+          }
+          to { 
+            filter: brightness(1.2) drop-shadow(0 0 15px rgba(0, 255, 255, 0.8));
+          }
+        }
+        
+        .high-speed {
+          animation: speedBoost 0.5s ease-in-out infinite alternate;
+        }
+      `;
+      document.head.appendChild(style);
+    }
+  }, []);
+
   if (isHarshEvent) {
     const shakeIntensity = accelerationIntensity * 2;
     containerStyle.animation = `shake 0.1s infinite`;
-    
-    // Inject shake animation if not exists
-    React.useEffect(() => {
-      if (!document.getElementById('vehicle-physics-styles')) {
-        const style = document.createElement('style');
-        style.id = 'vehicle-physics-styles';
-        style.textContent = `
-          @keyframes shake {
-            0%, 100% { transform: translate(0px, 0px) rotateZ(0deg); }
-            25% { transform: translate(1px, 1px) rotateZ(1deg); }
-            50% { transform: translate(-1px, 1px) rotateZ(-1deg); }
-            75% { transform: translate(1px, -1px) rotateZ(1deg); }
-          }
-          
-          @keyframes speedBoost {
-            from { 
-              filter: brightness(1) drop-shadow(0 0 5px rgba(255, 255, 255, 0.5));
-            }
-            to { 
-              filter: brightness(1.2) drop-shadow(0 0 15px rgba(0, 255, 255, 0.8));
-            }
-          }
-          
-          .high-speed {
-            animation: speedBoost 0.5s ease-in-out infinite alternate;
-          }
-        `;
-        document.head.appendChild(style);
-      }
-    }, []);
   }
 
   // Add speed boost effect for high speeds
