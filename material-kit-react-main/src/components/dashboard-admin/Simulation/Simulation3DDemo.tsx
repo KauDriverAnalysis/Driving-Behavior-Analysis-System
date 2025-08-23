@@ -4,7 +4,7 @@ import * as React from 'react';
 import { Simulation3D } from './3DSimulation';
 
 // Mock data generator for demonstration
-const generateMockData = (numPoints = 100) => {
+const generateMockData = (numPoints: number = 100) => {
   const data = [];
   const startLat = 24.7136;
   const startLng = 46.6753;

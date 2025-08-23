@@ -3,7 +3,7 @@
 import * as React from 'react';
 
 interface TrailProps {
-  points: { x: number; y: number; z?: number; event?: string; speed: number }[];
+  points: Array<{ x: number; y: number; z?: number; event?: string; speed: number }>;
   currentIndex: number;
   containerWidth: number;
   containerHeight: number;
