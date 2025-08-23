@@ -347,6 +347,14 @@ export function Simulation3D({ data }: { data: Segment[] }) {
                   const pos = getCarPosition(currentPoint, containerWidth, containerHeight);
                   return { x: pos.x - 16, y: pos.y - 8 }; // Center the car
                 })()}
+              {/* 2D Car Model */}
+              <Car3D
+                position={(() => {
+                  const containerWidth = containerRef.current?.clientWidth || 400;
+                  const containerHeight = containerRef.current?.clientHeight || 320;
+                  const pos = getCarPosition(currentPoint, containerWidth, containerHeight);
+                  return { x: pos.x - 16, y: pos.y - 8 }; // Center the car
+                })()}
                 rotation={getCarRotation(currentIndex)}
                 color={currentPoint.event ? getEventColor(currentPoint.event) : '#ff6b6b'}
                 scale={isFullscreen ? 1.5 : 1.2}

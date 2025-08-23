@@ -9,6 +9,9 @@ interface CarProps {
   scale?: number;
   hasEvent?: boolean;
   eventColor?: string;
+  speed?: number;
+  acceleration?: { x: number; y: number };
+  engineRunning?: boolean;
 }
 
 export function Car3D({ 
@@ -17,7 +20,10 @@ export function Car3D({
   color = '#ff6b6b', 
   scale = 1,
   hasEvent = false,
-  eventColor = '#f44336'
+  eventColor = '#f44336',
+  speed = 0,
+  acceleration = { x: 0, y: 0 },
+  engineRunning = true
 }: CarProps) {
   const carRef = React.useRef<HTMLDivElement>(null);
 
@@ -42,6 +48,35 @@ export function Car3D({
           from { opacity: 0.6; }
           to { opacity: 1; }
         }
+        
+        @keyframes engineIdle {
+          0%, 100% { transform: translate(0px, 0px); }
+          50% { transform: translate(0.5px, 0px); }
+        }
+        
+        @keyframes highSpeedGlow {
+          0%, 100% { 
+            filter: brightness(1) drop-shadow(0 0 5px rgba(255, 255, 255, 0.3));
+          }
+          50% { 
+            filter: brightness(1.2) drop-shadow(0 0 15px rgba(0, 255, 255, 0.8));
+          }
+        }
+        
+        @keyframes brakeGlow {
+          0%, 100% { 
+            filter: brightness(1);
+          }
+          50% { 
+            filter: brightness(1.5) drop-shadow(0 0 10px rgba(255, 0, 0, 0.8));
+          }
+        }
+        
+        @keyframes acceleration {
+          0% { transform: scaleX(1); }
+          50% { transform: scaleX(1.1); }
+          100% { transform: scaleX(1); }
+        }
       `;
       document.head.appendChild(style);
     }
@@ -49,6 +84,19 @@ export function Car3D({
 
   const carColor = hasEvent ? eventColor : color;
   const roofColor = hasEvent ? eventColor : '#cc5555';
+  
+  // Calculate physics effects
+  const speedIntensity = Math.min(speed / 100, 1);
+  const accelerationMagnitude = Math.sqrt(acceleration.x ** 2 + acceleration.y ** 2);
+  const isHardBraking = acceleration.x < -0.3;
+  const isAccelerating = acceleration.x > 0.2;
+  const isHighSpeed = speed > 60;
+  
+  // Dynamic styling based on physics
+  const carAnimation = engineRunning ? 'engineIdle 2s ease-in-out infinite' : 'none';
+  const speedAnimation = isHighSpeed ? 'highSpeedGlow 1s ease-in-out infinite alternate' : 'none';
+  const brakeAnimation = isHardBraking ? 'brakeGlow 0.3s ease-in-out infinite alternate' : 'none';
+  const accelAnimation = isAccelerating ? 'acceleration 0.5s ease-in-out infinite' : 'none';
 
   return (
     <div
@@ -59,7 +107,8 @@ export function Car3D({
         transformOrigin: 'center center',
         width: '32px',
         height: '16px',
-        zIndex: 10
+        zIndex: 10,
+        animation: `${carAnimation}${speedAnimation ? `, ${speedAnimation}` : ''}${brakeAnimation ? `, ${brakeAnimation}` : ''}`
       }}
     >
       {/* Car Body - Main chassis */}
@@ -70,9 +119,10 @@ export function Car3D({
           background: `linear-gradient(145deg, ${carColor}, ${carColor}dd)`,
           borderRadius: '3px',
           position: 'relative',
-          boxShadow: '0 3px 6px rgba(0,0,0,0.4), inset 0 1px 2px rgba(255,255,255,0.2)',
+          boxShadow: `0 3px 6px rgba(0,0,0,0.4), inset 0 1px 2px rgba(255,255,255,0.2)${isHighSpeed ? ', 0 0 15px rgba(0, 255, 255, 0.6)' : ''}`,
           border: '1px solid rgba(255,255,255,0.3)',
-          overflow: 'hidden'
+          overflow: 'hidden',
+          animation: accelAnimation
         }}
       >
         {/* Car roof */}
@@ -143,24 +193,24 @@ export function Car3D({
           style={{
             width: '3px',
             height: '2px',
-            background: hasEvent ? '#fff' : '#ffffcc',
+            background: hasEvent || isHighSpeed ? '#fff' : '#ffffcc',
             position: 'absolute',
             top: '1px',
             left: '1px',
             borderRadius: '1px',
-            boxShadow: hasEvent ? '0 0 4px #fff' : '0 0 2px #ffffcc'
+            boxShadow: hasEvent || isHighSpeed ? '0 0 4px #fff' : '0 0 2px #ffffcc'
           }}
         />
         <div
           style={{
             width: '3px',
             height: '2px',
-            background: hasEvent ? '#fff' : '#ffffcc',
+            background: hasEvent || isHighSpeed ? '#fff' : '#ffffcc',
             position: 'absolute',
             top: '1px',
             right: '1px',
             borderRadius: '1px',
-            boxShadow: hasEvent ? '0 0 4px #fff' : '0 0 2px #ffffcc'
+            boxShadow: hasEvent || isHighSpeed ? '0 0 4px #fff' : '0 0 2px #ffffcc'
           }}
         />
 
@@ -169,22 +219,24 @@ export function Car3D({
           style={{
             width: '2px',
             height: '2px',
-            background: hasEvent ? '#ff6666' : '#ff4444',
+            background: hasEvent || isHardBraking ? '#ff6666' : '#ff4444',
             position: 'absolute',
             bottom: '1px',
             left: '2px',
-            borderRadius: '1px'
+            borderRadius: '1px',
+            boxShadow: isHardBraking ? '0 0 6px #ff0000' : 'none'
           }}
         />
         <div
           style={{
             width: '2px',
             height: '2px',
-            background: hasEvent ? '#ff6666' : '#ff4444',
+            background: hasEvent || isHardBraking ? '#ff6666' : '#ff4444',
             position: 'absolute',
             bottom: '1px',
             right: '2px',
-            borderRadius: '1px'
+            borderRadius: '1px',
+            boxShadow: isHardBraking ? '0 0 6px #ff0000' : 'none'
           }}
         />
       </div>
@@ -218,14 +270,37 @@ export function Car3D({
           top: '-14px',
           left: '50%',
           transform: 'translateX(-50%)',
-          width: '6px',
+          width: `${6 + speedIntensity * 4}px`,
           height: '2px',
-          background: hasEvent ? '#ff0000' : '#00ff00',
+          background: hasEvent ? '#ff0000' : isHighSpeed ? '#00ffff' : '#00ff00',
           borderRadius: '1px',
-          opacity: 0.8,
-          animation: hasEvent ? 'pulse 0.5s infinite alternate' : 'none'
+          opacity: 0.8 + speedIntensity * 0.2,
+          animation: hasEvent ? 'pulse 0.5s infinite alternate' : 'none',
+          boxShadow: isHighSpeed ? '0 0 8px rgba(0, 255, 255, 0.6)' : 'none'
         }}
       />
+
+      {/* Exhaust particles for high acceleration */}
+      {isAccelerating && engineRunning && (
+        <>
+          {Array.from({ length: 3 }, (_, i) => (
+            <div
+              key={`exhaust-${i}`}
+              style={{
+                position: 'absolute',
+                bottom: '-8px',
+                left: `${14 + i * 2}px`,
+                width: '1px',
+                height: '1px',
+                background: 'rgba(255, 255, 255, 0.6)',
+                borderRadius: '50%',
+                animation: `pulse ${0.5 + i * 0.2}s ease-out infinite`,
+                animationDelay: `${i * 0.1}s`
+              }}
+            />
+          ))}
+        </>
+      )}
 
       {/* Event warning glow */}
       {hasEvent && (
