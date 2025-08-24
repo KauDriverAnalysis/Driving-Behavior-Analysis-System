@@ -40,6 +40,8 @@ export function Enhanced3DVehicle({
   // Pre-calculate all positions from GPS data
   const [vehiclePath, setVehiclePath] = useState<any[]>([]);
   const [trailGeometry, setTrailGeometry] = useState<THREE.BufferGeometry | null>(null);
+  const [trailMaterial, setTrailMaterial] = useState<THREE.LineBasicMaterial | null>(null);
+  const [trailLine, setTrailLine] = useState<THREE.Line | null>(null);
 
   // Convert GPS coordinates to world positions
   const gpsToWorldPosition = (lat: number, lon: number, refLat: number, refLon: number) => {
@@ -132,32 +134,34 @@ export function Enhanced3DVehicle({
 
     setVehiclePath(path);
 
-    // Create trail geometry
+    // Create trail geometry (smooth line with gradient)
     if (showTrail) {
       const positions = new Float32Array(path.length * 3);
       const colors = new Float32Array(path.length * 3);
-      
       path.forEach((point, index) => {
         positions[index * 3] = point.position.x;
-        positions[index * 3 + 1] = 1.0;
+        positions[index * 3 + 1] = 1.05;
         positions[index * 3 + 2] = point.position.z;
-        
-        // Color based on events
+        let r = 0, g = 0.5, b = 1;
         if (point.isEvent) {
-          colors[index * 3] = 1.0;     // Red
-          colors[index * 3 + 1] = 0.0; // Green
-          colors[index * 3 + 2] = 0.0; // Blue
+          r = 1; g = 0.2; b = 0.2;
         } else {
-          colors[index * 3] = 0.0;     // Red
-          colors[index * 3 + 1] = 0.5; // Green
-          colors[index * 3 + 2] = 1.0; // Blue
+          const t = index / (path.length - 1);
+          r = t * 0.7;
+          g = 0.5 * (1 - t) + 0.2 * t;
+          b = 1 - 0.3 * t;
         }
+        colors[index * 3] = r;
+        colors[index * 3 + 1] = g;
+        colors[index * 3 + 2] = b;
       });
-      
       const geometry = new THREE.BufferGeometry();
       geometry.setAttribute('position', new THREE.BufferAttribute(positions, 3));
       geometry.setAttribute('color', new THREE.BufferAttribute(colors, 3));
+      const material = new THREE.LineBasicMaterial({ vertexColors: true, linewidth: 3, transparent: true, opacity: 0.85 });
       setTrailGeometry(geometry);
+      setTrailMaterial(material);
+      setTrailLine(new THREE.Line(geometry, material));
     }
 
   }, [allData, showTrail]);
@@ -288,11 +292,9 @@ export function Enhanced3DVehicle({
 
   return (
     <>
-      {/* Trail */}
-      {showTrail && trailGeometry && (
-        <points geometry={trailGeometry}>
-          <pointsMaterial args={[{ size: 2, vertexColors: true, transparent: true, opacity: 0.6 }]} />
-        </points>
+      {/* Trail - smooth line with gradient color */}
+      {showTrail && trailLine && (
+        <primitive object={trailLine} />
       )}
       
       {/* Vehicle */}
