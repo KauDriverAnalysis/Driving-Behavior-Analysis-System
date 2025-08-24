@@ -1,15 +1,8 @@
 'use client';
 
-import React, { useRef, useEffect, useState, useMemo } from 'react';
+import React, { useRef, useEffect, useState } from 'react';
 import { useThree, useFrame } from '@react-three/fiber';
 import * as THREE from 'three';
-
-// Helper for Catmull-Rom spline interpolation
-function getCatmullRomSpline(points: {x: number, y: number, z: number}[], segments = 200) {
-  if (points.length < 2) return null;
-  const curve = new THREE.CatmullRomCurve3(points.map(p => new THREE.Vector3(p.x, p.y, p.z)));
-  return curve.getPoints(segments);
-}
 
 interface VehicleData {
   time: string;
@@ -46,6 +39,7 @@ export function Enhanced3DVehicle({
   
   // Pre-calculate all positions from GPS data
   const [vehiclePath, setVehiclePath] = useState<any[]>([]);
+  const [trailGeometry, setTrailGeometry] = useState<THREE.BufferGeometry | null>(null);
 
   // Convert GPS coordinates to world positions
   const gpsToWorldPosition = (lat: number, lon: number, refLat: number, refLon: number) => {
@@ -83,15 +77,15 @@ export function Enhanced3DVehicle({
 
     const refLat = firstValidGPS.lat;
     const refLon = firstValidGPS.lng;
-
+    
     const path = allData.map((data, index) => {
       let position = { x: 0, z: 0 };
       let heading = 0;
-
+      
       // Use GPS data if available
       if (data.lat && data.lng) {
         position = gpsToWorldPosition(data.lat, data.lng, refLat, refLon);
-
+        
         // Calculate heading from GPS movement
         if (index > 0 && allData[index - 1].lat && allData[index - 1].lng) {
           heading = calculateBearing(
@@ -104,7 +98,7 @@ export function Enhanced3DVehicle({
         const prevPos = path[index - 1]?.position || { x: 0, z: 0 };
         const speed = (data.speed || 0) / 3.6; // Convert km/h to m/s
         const deltaTime = 0.1; // Assume 10Hz data rate
-
+        
         position = {
           x: prevPos.x + speed * Math.sin(heading) * deltaTime,
           z: prevPos.z + speed * Math.cos(heading) * deltaTime
@@ -137,7 +131,36 @@ export function Enhanced3DVehicle({
     });
 
     setVehiclePath(path);
-  }, [allData]);
+
+    // Create trail geometry
+    if (showTrail) {
+      const positions = new Float32Array(path.length * 3);
+      const colors = new Float32Array(path.length * 3);
+      
+      path.forEach((point, index) => {
+        positions[index * 3] = point.position.x;
+        positions[index * 3 + 1] = 1.0;
+        positions[index * 3 + 2] = point.position.z;
+        
+        // Color based on events
+        if (point.isEvent) {
+          colors[index * 3] = 1.0;     // Red
+          colors[index * 3 + 1] = 0.0; // Green
+          colors[index * 3 + 2] = 0.0; // Blue
+        } else {
+          colors[index * 3] = 0.0;     // Red
+          colors[index * 3 + 1] = 0.5; // Green
+          colors[index * 3 + 2] = 1.0; // Blue
+        }
+      });
+      
+      const geometry = new THREE.BufferGeometry();
+      geometry.setAttribute('position', new THREE.BufferAttribute(positions, 3));
+      geometry.setAttribute('color', new THREE.BufferAttribute(colors, 3));
+      setTrailGeometry(geometry);
+    }
+
+  }, [allData, showTrail]);
 
   // Update vehicle position based on current data index
   useEffect(() => {
@@ -217,14 +240,14 @@ export function Enhanced3DVehicle({
   const createCarModel = () => {
     const currentVehicleData = vehiclePath[currentIndex] || {};
     const { isEvent, event } = currentVehicleData;
-
+    
     // Color based on event
     let bodyColor = '#2e5cb8'; // Default blue
     if (event === 'harsh_braking') bodyColor = '#ff0000'; // Red
     else if (event === 'harsh_acceleration') bodyColor = '#ff8800'; // Orange
     else if (event === 'swerving') bodyColor = '#ffff00'; // Yellow
     else if (event === 'over_speed') bodyColor = '#ff00ff'; // Magenta
-
+    
     return (
       <group ref={meshRef}>
         {/* Main body */}
@@ -232,13 +255,13 @@ export function Enhanced3DVehicle({
           <boxGeometry args={[1.8, 0.5, 4.2]} />
           <meshPhongMaterial args={[{ color: bodyColor, shininess: 100 }]} />
         </mesh>
-
+        
         {/* Windshield */}
         <mesh position={[0, 0.6, 1.2]}>
           <boxGeometry args={[1.6, 0.3, 1.0]} />
           <meshPhongMaterial args={[{ color: "#87ceeb", transparent: true, opacity: 0.7 }]} />
         </mesh>
-
+        
         {/* Wheels */}
         {[
           [-0.8, 0, 1.4] as [number, number, number],   // Front left
@@ -251,7 +274,7 @@ export function Enhanced3DVehicle({
             <meshPhongMaterial args={[{ color: "#222" }]} />
           </mesh>
         ))}
-
+        
         {/* Event indicator light */}
         {isEvent && (
           <mesh position={[0, 1.0, 0]}>
@@ -263,71 +286,24 @@ export function Enhanced3DVehicle({
     );
   };
 
-  // Memoized smooth trail points
-  const smoothTrailPoints = useMemo(() => {
-    if (!showTrail || vehiclePath.length < 2) return null;
-    // Use y=1.0 for all points for a floating effect
-    const points = vehiclePath.map(p => ({ x: p.position.x, y: 1.0, z: p.position.z }));
-    return getCatmullRomSpline(points, Math.max(200, points.length * 2));
-  }, [vehiclePath, showTrail]);
-
-  // Memoized trail color gradient
-  const trailColors = useMemo(() => {
-    if (!smoothTrailPoints || !vehiclePath.length) return null;
-    // Color: blue to cyan, highlight event points as red/orange/yellow
-    return smoothTrailPoints.map((pt, i) => {
-      // Find closest original path index
-      const origIdx = Math.round(i * (vehiclePath.length - 1) / (smoothTrailPoints.length - 1));
-      const event = vehiclePath[origIdx]?.event;
-      if (event === 'harsh_braking') return [1, 0, 0]; // Red
-      if (event === 'harsh_acceleration') return [1, 0.5, 0]; // Orange
-      if (event === 'swerving') return [1, 1, 0]; // Yellow
-      if (event === 'over_speed') return [1, 0, 1]; // Magenta
-      // Default: blue to cyan gradient
-      const t = i / (smoothTrailPoints.length - 1);
-      return [0, 0.5 + 0.5 * t, 1];
-    });
-  }, [smoothTrailPoints, vehiclePath]);
-
-  // Create trail geometry for the line
-  const trailLineGeometry = useMemo(() => {
-    if (!smoothTrailPoints) return null;
-    const geometry = new THREE.BufferGeometry();
-    const positions = new Float32Array(smoothTrailPoints.length * 3);
-    const colors = new Float32Array(smoothTrailPoints.length * 3);
-    smoothTrailPoints.forEach((pt, i) => {
-      positions[i * 3] = pt.x;
-      positions[i * 3 + 1] = pt.y;
-      positions[i * 3 + 2] = pt.z;
-      if (trailColors) {
-        colors[i * 3] = trailColors[i][0];
-        colors[i * 3 + 1] = trailColors[i][1];
-        colors[i * 3 + 2] = trailColors[i][2];
-      }
-    });
-    geometry.setAttribute('position', new THREE.BufferAttribute(positions, 3));
-    geometry.setAttribute('color', new THREE.BufferAttribute(colors, 3));
-    return geometry;
-  }, [smoothTrailPoints, trailColors]);
-
   return (
     <>
-      {/* Nicer Trail as a smooth line */}
-      {showTrail && trailLineGeometry && (
-        <line geometry={trailLineGeometry}>
-          <lineBasicMaterial vertexColors transparent opacity={0.7} />
-        </line>
+      {/* Trail */}
+      {showTrail && trailGeometry && (
+        <points geometry={trailGeometry}>
+          <pointsMaterial args={[{ size: 2, vertexColors: true, transparent: true, opacity: 0.6 }]} />
+        </points>
       )}
-
+      
       {/* Vehicle */}
       {createCarModel()}
-
+      
       {/* Ground plane */}
       <mesh rotation={[-Math.PI / 2, 0, 0]} position={[0, 0, 0]}>
         <planeGeometry args={[200, 200]} />
         <meshLambertMaterial args={[{ color: "#1a4a1a" }]} />
       </mesh>
-
+      
       {/* Simple grid using lines */}
       <primitive object={new THREE.GridHelper(100, 50, '#444', '#222')} />
     </>
