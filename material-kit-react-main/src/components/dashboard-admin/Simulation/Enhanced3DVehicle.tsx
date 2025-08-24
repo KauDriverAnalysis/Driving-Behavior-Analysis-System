@@ -300,10 +300,10 @@ export function Enhanced3DVehicle({
       {/* Vehicle */}
       {createCarModel()}
       
-      {/* Ground plane */}
+      {/* Ground plane with a softer, more appealing color */}
       <mesh rotation={[-Math.PI / 2, 0, 0]} position={[0, 0, 0]}>
         <planeGeometry args={[200, 200]} />
-        <meshLambertMaterial args={[{ color: "#1a4a1a" }]} />
+        <meshLambertMaterial args={[{ color: "#b3e0ff" }]} />
       </mesh>
       
       {/* Simple grid using lines */}
