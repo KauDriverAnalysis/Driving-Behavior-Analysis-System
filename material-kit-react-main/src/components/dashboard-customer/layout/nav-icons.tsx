@@ -9,6 +9,7 @@ import { Shield as ShieldIcon } from '@phosphor-icons/react/dist/ssr/Shield';
 import { Car as CarIcon } from '@phosphor-icons/react/dist/ssr/Car';
 import { UserCircle as AccountIcon } from '@phosphor-icons/react/dist/ssr/UserCircle';
 import { Polygon as GeofencingIcon } from '@phosphor-icons/react/dist/ssr/Polygon'; // Updated import
+import { Play as PlayIcon } from '@phosphor-icons/react/dist/ssr/Play';
 
 export const navIcons = {
   'chart-pie': ChartPieIcon,
@@ -21,4 +22,5 @@ export const navIcons = {
   car: CarIcon,
   account: AccountIcon, // Ensure this key matches the one used in config.ts
   geofencing: GeofencingIcon, // Updated icon for Geofencing
+  play: PlayIcon,
 } as Record<string, Icon>;

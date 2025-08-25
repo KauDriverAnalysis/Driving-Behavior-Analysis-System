@@ -12,6 +12,7 @@ export const paths = {
     carCustomers: '/dashboard-customer/car-customers',
     account: '/dashboard-customer/account',
     geofencing: '/dashboard-customer/geofencing', // Added new geofencing path
+    simulation: '/dashboard-customer/Simulation',
   },
   dashboardAdmin: {
     overview: '/dashboard-admin',

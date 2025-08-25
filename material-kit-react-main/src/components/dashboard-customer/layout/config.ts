@@ -9,6 +9,12 @@ export const navItems: NavItemConfig[] = [
     icon: 'chart-pie'
   },
   {
+    key: 'simulation',
+    title: 'Simulation',
+    href: paths.dashboardCustomer.simulation,
+    icon: 'play'
+  },
+  {
     key: 'parentalControl',
     title: 'Parental Control',
     href: paths.dashboardCustomer.parentalControl,
