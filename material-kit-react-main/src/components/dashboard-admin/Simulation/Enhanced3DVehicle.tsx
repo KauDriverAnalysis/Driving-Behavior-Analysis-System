@@ -41,7 +41,7 @@ export function Enhanced3DVehicle({
   const [vehiclePath, setVehiclePath] = useState<any[]>([]);
   const [trailGeometry, setTrailGeometry] = useState<THREE.BufferGeometry | THREE.TubeGeometry | null>(null);
   const [trailMaterial, setTrailMaterial] = useState<THREE.LineBasicMaterial | THREE.MeshLambertMaterial | null>(null);
-  const [trailLine, setTrailLine] = useState<THREE.Line | THREE.Mesh | null>(null);
+  const [trailLine, setTrailLine] = useState<THREE.Line | THREE.Mesh | THREE.Group | null>(null);
 
   // Convert GPS coordinates to world positions
   const gpsToWorldPosition = (lat: number, lon: number, refLat: number, refLon: number) => {
@@ -134,37 +134,53 @@ export function Enhanced3DVehicle({
 
     setVehiclePath(path);
 
-    // Create trail geometry (thick tube for better visibility)
-    if (showTrail) {
-      const points = path.map(point => new THREE.Vector3(point.position.x, 1.05, point.position.z));
-      const curve = new THREE.CatmullRomCurve3(points);
-      const tubeGeometry = new THREE.TubeGeometry(curve, points.length * 2, 0.15, 8, false);
+    // Create trail geometry (thick cylinders for guaranteed visibility)
+    if (showTrail && path.length > 1) {
+      const group = new THREE.Group();
       
-      // Create colors for the tube
-      const colors = new Float32Array(tubeGeometry.attributes.position.count * 3);
-      for (let i = 0; i < colors.length; i += 3) {
-        const t = (i / 3) / (colors.length / 3);
-        const pathIndex = Math.floor(t * (path.length - 1));
-        const point = path[pathIndex];
+      for (let i = 0; i < path.length - 1; i++) {
+        const currentPoint = path[i];
+        const nextPoint = path[i + 1];
         
-        let r = 0, g = 0.5, b = 1;
-        if (point?.isEvent) {
-          r = 1; g = 0.2; b = 0.2;
-        } else {
-          r = t * 0.7;
-          g = 0.5 * (1 - t) + 0.2 * t;
-          b = 1 - 0.3 * t;
+        const start = new THREE.Vector3(currentPoint.position.x, 1.1, currentPoint.position.z);
+        const end = new THREE.Vector3(nextPoint.position.x, 1.1, nextPoint.position.z);
+        
+        const distance = start.distanceTo(end);
+        if (distance > 0.01) { // Only create cylinder if points are far enough apart
+          const geometry = new THREE.CylinderGeometry(0.08, 0.08, distance, 8);
+          
+          // Color based on events
+          let color = new THREE.Color(0x4444ff); // Default blue
+          if (currentPoint.isEvent) {
+            color = new THREE.Color(0xff4444); // Red for events
+          } else {
+            const t = i / (path.length - 1);
+            color = new THREE.Color(t * 0.7, 0.5 * (1 - t) + 0.2 * t, 1 - 0.3 * t);
+          }
+          
+          const material = new THREE.MeshLambertMaterial({ 
+            color: color, 
+            transparent: true, 
+            opacity: 0.8 
+          });
+          
+          const cylinder = new THREE.Mesh(geometry, material);
+          
+          // Position and orient the cylinder
+          const midPoint = new THREE.Vector3().addVectors(start, end).multiplyScalar(0.5);
+          cylinder.position.copy(midPoint);
+          
+          const direction = new THREE.Vector3().subVectors(end, start).normalize();
+          const quaternion = new THREE.Quaternion().setFromUnitVectors(new THREE.Vector3(0, 1, 0), direction);
+          cylinder.quaternion.copy(quaternion);
+          
+          group.add(cylinder);
         }
-        colors[i] = r;
-        colors[i + 1] = g;
-        colors[i + 2] = b;
       }
       
-      tubeGeometry.setAttribute('color', new THREE.BufferAttribute(colors, 3));
-      const material = new THREE.MeshLambertMaterial({ vertexColors: true, transparent: true, opacity: 0.9 });
-      setTrailGeometry(tubeGeometry);
-      setTrailMaterial(material);
-      setTrailLine(new THREE.Mesh(tubeGeometry, material));
+      setTrailGeometry(null);
+      setTrailMaterial(null);
+      setTrailLine(group);
     }
 
   }, [allData, showTrail]);
