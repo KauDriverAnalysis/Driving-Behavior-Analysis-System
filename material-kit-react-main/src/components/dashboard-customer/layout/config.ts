@@ -12,7 +12,7 @@ export const navItems: NavItemConfig[] = [
     key: 'simulation',
     title: 'Simulation',
     href: paths.dashboardCustomer.simulation,
-    icon: 'play'
+    icon: 'simulation'
   },
   {
     key: 'parentalControl',
