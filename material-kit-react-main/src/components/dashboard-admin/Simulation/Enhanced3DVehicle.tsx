@@ -158,7 +158,7 @@ export function Enhanced3DVehicle({
       const geometry = new THREE.BufferGeometry();
       geometry.setAttribute('position', new THREE.BufferAttribute(positions, 3));
       geometry.setAttribute('color', new THREE.BufferAttribute(colors, 3));
-      const material = new THREE.LineBasicMaterial({ vertexColors: true, linewidth: 3, transparent: true, opacity: 0.85 });
+      const material = new THREE.LineBasicMaterial({ vertexColors: true, linewidth: 8, transparent: true, opacity: 0.9 });
       setTrailGeometry(geometry);
       setTrailMaterial(material);
       setTrailLine(new THREE.Line(geometry, material));
