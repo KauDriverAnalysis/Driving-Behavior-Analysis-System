@@ -34,6 +34,12 @@ interface SimulationData {
     avgSpeed: number;
     maxSpeed: number;
     score: number;
+    accident_detected?: boolean;
+    accident_risk?: string;
+    accident_confidence?: number;
+    accident_type?: string;
+    accident_severity?: string;
+    accident_timestamp?: string;
   };
   events: {
     harshBraking: number;
@@ -205,14 +211,14 @@ export default function SimulationPage(): React.JSX.Element {
             </Typography>
           </Grid>
 
-          {/* Quick Stats */}
+          {/* Accident Detection Stats */}
           <Grid item xs={12} sm={6} md={3}>
-            <Paper sx={{ p: 2, textAlign: 'center', bgcolor: 'primary.50' }}>
-              <Typography variant="h4" color="primary.main" fontWeight="bold">
-                {simulationData.summary.score}/100
+            <Paper sx={{ p: 2, textAlign: 'center', bgcolor: simulationData.summary.accident_detected ? 'error.50' : 'success.50' }}>
+              <Typography variant="h4" color={simulationData.summary.accident_detected ? 'error.main' : 'success.main'} fontWeight="bold">
+                {simulationData.summary.accident_detected ? 'DETECTED' : 'SAFE'}
               </Typography>
               <Typography variant="body2" color="text.secondary">
-                Overall Safety Score
+                Accident Status
               </Typography>
             </Paper>
           </Grid>
@@ -231,21 +237,21 @@ export default function SimulationPage(): React.JSX.Element {
           <Grid item xs={12} sm={6} md={3}>
             <Paper sx={{ p: 2, textAlign: 'center' }}>
               <Typography variant="h4" fontWeight="bold">
-                {simulationData.summary.avgSpeed.toFixed(0)} km/h
+                {simulationData.summary.maxSpeed.toFixed(0)} km/h
               </Typography>
               <Typography variant="body2" color="text.secondary">
-                Average Speed
+                Maximum Speed
               </Typography>
             </Paper>
           </Grid>
 
           <Grid item xs={12} sm={6} md={3}>
             <Paper sx={{ p: 2, textAlign: 'center' }}>
-              <Typography variant="h4" fontWeight="bold" color="warning.main">
-                {Object.values(simulationData.events).reduce((a, b) => a + b, 0)}
+              <Typography variant="h4" fontWeight="bold" color="info.main">
+                {simulationData.summary.accident_risk || 'LOW'}
               </Typography>
               <Typography variant="body2" color="text.secondary">
-                Total Events
+                Risk Level
               </Typography>
             </Paper>
           </Grid>
