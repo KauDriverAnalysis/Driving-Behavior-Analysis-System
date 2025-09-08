@@ -64,32 +64,17 @@ export function SimulationResults({ data }: SimulationResultsProps) {
                 </Typography>
                 {data.summary.accident_time && (
                   <Typography variant="body1" color="text.secondary">
-                    <strong>Time:</strong> {data.summary.accident_time}
+                    Time: {data.summary.accident_time}
                   </Typography>
                 )}
                 {data.summary.accident_location && (
                   <Typography variant="body1" color="text.secondary">
-                    <strong>Location:</strong> {data.summary.accident_location}
-                  </Typography>
-                )}
-                {data.summary.accident_type && (
-                  <Typography variant="body1" color="text.secondary">
-                    <strong>Type:</strong> {data.summary.accident_type}
-                  </Typography>
-                )}
-                {data.summary.involved_parties && (
-                  <Typography variant="body1" color="text.secondary">
-                    <strong>Involved Parties:</strong> {data.summary.involved_parties}
+                    Location: {data.summary.accident_location}
                   </Typography>
                 )}
                 {data.summary.accident_severity && (
                   <Typography variant="body1" color="error">
-                    <strong>Severity:</strong> {data.summary.accident_severity}
-                  </Typography>
-                )}
-                {data.summary.recommendation && (
-                  <Typography variant="body2" color="warning.main" sx={{ mt: 2 }}>
-                    <strong>Recommendation:</strong> {data.summary.recommendation}
+                    Severity: {data.summary.accident_severity}
                   </Typography>
                 )}
                 <Typography variant="body2" color="error" sx={{ mt: 2 }}>
