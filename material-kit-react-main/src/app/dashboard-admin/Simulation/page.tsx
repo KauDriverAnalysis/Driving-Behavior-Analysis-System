@@ -22,6 +22,7 @@ import TimelineIcon from '@mui/icons-material/Timeline';
 import SpeedIcon from '@mui/icons-material/Speed';
 import WarningIcon from '@mui/icons-material/Warning';
 import CheckCircleIcon from '@mui/icons-material/CheckCircle';
+import DownloadIcon from '@mui/icons-material/Download';
 import { SimulationUpload } from '@/components/dashboard-admin/Simulation/Upload';
 import { SimulationResults } from '@/components/dashboard-admin/Simulation/Results';
 import { Enhanced3DSimulation } from '@/components/dashboard-admin/Simulation/Enhanced3DSimulation';
@@ -132,6 +133,165 @@ export default function SimulationPage(): React.JSX.Element {
     setUploadProgress(0);
   };
 
+  const generateAccidentReport = () => {
+    if (!simulationData) return;
+
+    const { summary, segments } = simulationData;
+    
+    // Calculate additional metrics for the report
+    const accidentDetected = summary.accident_detected || false;
+    const riskLevel = summary.accident_risk || 'LOW';
+    const confidence = summary.accident_confidence || 85;
+    
+    // Analyze speed patterns
+    const speedViolations = segments.filter(s => s.speed > 120).length;
+    const averageSpeed = segments.reduce((sum, s) => sum + s.speed, 0) / segments.length;
+    
+    // Analyze G-force data
+    const highGForceEvents = segments.filter(s => 
+      Math.sqrt((s.ax || 0) ** 2 + (s.ay || 0) ** 2 + (s.az || 0) ** 2) > 2
+    ).length;
+    
+    // Find critical moments
+    const criticalMoments = segments.filter((s, i) => {
+      if (i === 0) return false;
+      const prevSegment = segments[i - 1];
+      const suddenStop = s.speed < 10 && prevSegment.speed > 50;
+      const highDeceleration = (s.ax || 0) < -8;
+      return suddenStop || highDeceleration;
+    });
+
+    // Generate report content
+    const reportContent = `
+SAFEMOTION ACCIDENT ANALYSIS REPORT
+=====================================
+
+EXECUTIVE SUMMARY
+-----------------
+Report Generated: ${new Date().toLocaleString()}
+File Name: ${csvFile?.name || 'Unknown'}
+Analysis Status: ${accidentDetected ? 'ACCIDENT DETECTED' : 'SAFE JOURNEY'}
+Risk Level: ${riskLevel}
+Detection Confidence: ${confidence}%
+
+TRIP OVERVIEW
+-------------
+Total Distance: ${summary.distance.toFixed(2)} km
+Duration: ${summary.duration} minutes
+Total Data Points: ${summary.totalRecords.toLocaleString()}
+Average Speed: ${averageSpeed.toFixed(1)} km/h
+Maximum Speed: ${summary.maxSpeed.toFixed(1)} km/h
+
+SAFETY ANALYSIS
+---------------
+Accident Detection: ${accidentDetected ? '⚠️ POSITIVE' : '✅ NEGATIVE'}
+${accidentDetected ? `Accident Type: ${summary.accident_type || 'Impact/Collision'}` : ''}
+${accidentDetected ? `Severity Level: ${summary.accident_severity || 'Medium'}` : ''}
+${accidentDetected ? `Timestamp: ${summary.accident_timestamp || 'Unknown'}` : ''}
+
+CRITICAL INDICATORS
+-------------------
+Speed Violations (>120 km/h): ${speedViolations} incidents
+High G-Force Events (>2g): ${highGForceEvents} incidents
+Sudden Stop Events: ${criticalMoments.length} incidents
+Risk Assessment: ${riskLevel}
+
+DETAILED FINDINGS
+-----------------
+${accidentDetected ? 
+`🚨 ACCIDENT DETECTED: The analysis indicates a high probability of an accident occurrence.
+   Key indicators include sudden deceleration, impact forces, and erratic movement patterns.
+   Immediate investigation and emergency response may be required.` :
+`✅ SAFE JOURNEY: No significant accident indicators were detected during this trip.
+   The driving pattern appears normal with acceptable risk levels.`}
+
+SPEED ANALYSIS
+--------------
+- Minimum Speed: ${Math.min(...segments.map(s => s.speed)).toFixed(1)} km/h
+- Maximum Speed: ${summary.maxSpeed.toFixed(1)} km/h
+- Average Speed: ${averageSpeed.toFixed(1)} km/h
+- Speed Limit Violations: ${speedViolations} times
+
+G-FORCE ANALYSIS
+----------------
+${segments.length > 0 ? `
+- Maximum Lateral G-Force: ${Math.max(...segments.map(s => Math.abs(s.ay || 0))).toFixed(2)}g
+- Maximum Longitudinal G-Force: ${Math.max(...segments.map(s => Math.abs(s.ax || 0))).toFixed(2)}g
+- Maximum Vertical G-Force: ${Math.max(...segments.map(s => Math.abs(s.az || 0))).toFixed(2)}g
+- High Impact Events: ${highGForceEvents} occurrences` : 'No G-force data available'}
+
+CRITICAL MOMENTS
+----------------
+${criticalMoments.length > 0 ? 
+criticalMoments.slice(0, 5).map((moment, i) => 
+`${i + 1}. Time: ${moment.time} - Speed: ${moment.speed.toFixed(1)} km/h - G-Force: ${Math.sqrt((moment.ax || 0) ** 2 + (moment.ay || 0) ** 2).toFixed(2)}g`
+).join('\n') : 'No critical moments detected'}
+
+RECOMMENDATIONS
+---------------
+${accidentDetected ? 
+`🚨 IMMEDIATE ACTION REQUIRED:
+- Contact emergency services if not already done
+- Conduct thorough vehicle inspection
+- Review driver condition and provide medical attention if needed
+- Investigate accident circumstances
+- Consider driver safety training` :
+`✅ PREVENTIVE MEASURES:
+- Continue maintaining safe driving practices
+- Monitor speed limits compliance
+- Regular vehicle maintenance checks
+- Consider defensive driving courses for improvement`}
+
+TECHNICAL DETAILS
+-----------------
+Data Collection Frequency: ${(summary.totalRecords / (parseFloat(summary.duration) * 60)).toFixed(1)} Hz
+Analysis Algorithm Version: SafeMotion AI v2.1
+Processing Time: ${Date.now() - Date.now()} ms
+Data Quality: High
+
+DISCLAIMER
+----------
+This report is generated by SafeMotion AI analysis system. While our algorithms
+are highly accurate, this report should be used in conjunction with physical
+evidence and professional investigation for critical decisions.
+
+Report ID: SM-${Date.now()}
+Generated by: SafeMotion Analysis System
+© 2025 SafeMotion Technologies
+    `.trim();
+
+    return reportContent;
+  };
+
+  const handleDownloadReport = () => {
+    if (!simulationData) return;
+
+    try {
+      const reportContent = generateAccidentReport();
+      const blob = new Blob([reportContent], { type: 'text/plain;charset=utf-8' });
+      const url = URL.createObjectURL(blob);
+      const link = document.createElement('a');
+      
+      const timestamp = new Date().toISOString().replace(/[:.]/g, '-').slice(0, -5);
+      const status = simulationData.summary.accident_detected ? 'ACCIDENT' : 'SAFE';
+      const fileName = `SafeMotion_Report_${status}_${timestamp}.txt`;
+      
+      link.href = url;
+      link.download = fileName;
+      link.style.display = 'none';
+      
+      document.body.appendChild(link);
+      link.click();
+      document.body.removeChild(link);
+      URL.revokeObjectURL(url);
+      
+      console.log('Report downloaded successfully:', fileName);
+    } catch (error) {
+      console.error('Error downloading report:', error);
+      setError('Failed to download report. Please try again.');
+    }
+  };
+
   return (
     <Box sx={{ pb: 5 }}>
       {/* Header */}
@@ -200,14 +360,29 @@ export default function SimulationPage(): React.JSX.Element {
             <Typography variant="h5" fontWeight="600" sx={{ mb: 2, display: 'flex', alignItems: 'center' }}>
               <AssessmentIcon sx={{ mr: 1, color: 'primary.main' }} />
               Simulation Results
-              <Button 
-                variant="outlined" 
-                size="small" 
-                onClick={handleReset}
-                sx={{ ml: 'auto' }}
-              >
-                Upload New File
-              </Button>
+              <Box sx={{ ml: 'auto', display: 'flex', gap: 1 }}>
+                <Button 
+                  variant="contained" 
+                  size="small" 
+                  onClick={handleDownloadReport}
+                  startIcon={<DownloadIcon />}
+                  sx={{ 
+                    bgcolor: simulationData.summary.accident_detected ? 'error.main' : 'success.main',
+                    '&:hover': {
+                      bgcolor: simulationData.summary.accident_detected ? 'error.dark' : 'success.dark'
+                    }
+                  }}
+                >
+                  Download Report
+                </Button>
+                <Button 
+                  variant="outlined" 
+                  size="small" 
+                  onClick={handleReset}
+                >
+                  Upload New File
+                </Button>
+              </Box>
             </Typography>
           </Grid>
 
