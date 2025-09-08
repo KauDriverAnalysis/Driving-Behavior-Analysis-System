@@ -22,6 +22,7 @@ import TimelineIcon from '@mui/icons-material/Timeline';
 import SpeedIcon from '@mui/icons-material/Speed';
 import WarningIcon from '@mui/icons-material/Warning';
 import CheckCircleIcon from '@mui/icons-material/CheckCircle';
+import CrisisAlertIcon from '@mui/icons-material/CrisisAlert';
 import { SimulationUpload } from '@/components/dashboard-admin/Simulation/Upload';
 import { SimulationResults } from '@/components/dashboard-admin/Simulation/Results';
 import { Enhanced3DSimulation } from '@/components/dashboard-admin/Simulation/Enhanced3DSimulation';
@@ -34,6 +35,8 @@ interface SimulationData {
     avgSpeed: number;
     maxSpeed: number;
     score: number;
+    accident_detected?: boolean;
+    accident_severity?: string;
   };
   events: {
     harshBraking: number;
@@ -207,12 +210,23 @@ export default function SimulationPage(): React.JSX.Element {
 
           {/* Quick Stats */}
           <Grid item xs={12} sm={6} md={3}>
-            <Paper sx={{ p: 2, textAlign: 'center', bgcolor: 'primary.50' }}>
-              <Typography variant="h4" color="primary.main" fontWeight="bold">
-                {simulationData.summary.score}/100
+            <Paper sx={{ p: 2, textAlign: 'center' }}>
+              <Typography variant="h4" fontWeight="bold">
+                {simulationData.summary.totalRecords}
               </Typography>
               <Typography variant="body2" color="text.secondary">
-                Overall Safety Score
+                Total Records
+              </Typography>
+            </Paper>
+          </Grid>
+
+          <Grid item xs={12} sm={6} md={3}>
+            <Paper sx={{ p: 2, textAlign: 'center' }}>
+              <Typography variant="h4" fontWeight="bold">
+                {simulationData.summary.duration}
+              </Typography>
+              <Typography variant="body2" color="text.secondary">
+                Duration
               </Typography>
             </Paper>
           </Grid>
@@ -240,12 +254,38 @@ export default function SimulationPage(): React.JSX.Element {
           </Grid>
 
           <Grid item xs={12} sm={6} md={3}>
+            <Paper sx={{ p: 2, textAlign: 'center', bgcolor: 'error.50' }}>
+              {simulationData.summary?.accident_detected ? (
+                <>
+                  <CrisisAlertIcon sx={{ fontSize: 40, color: 'error.main', mb: 1 }} />
+                  <Typography variant="h4" color="error.main" fontWeight="bold">
+                    Accident
+                  </Typography>
+                  <Typography variant="body2" color="text.secondary">
+                    Accident detected in this simulation
+                  </Typography>
+                </>
+              ) : (
+                <>
+                  <CheckCircleIcon sx={{ fontSize: 40, color: 'success.main', mb: 1 }} />
+                  <Typography variant="h4" color="success.main" fontWeight="bold">
+                    Safe
+                  </Typography>
+                  <Typography variant="body2" color="text.secondary">
+                    No accident detected
+                  </Typography>
+                </>
+              )}
+            </Paper>
+          </Grid>
+
+          <Grid item xs={12} sm={6} md={3}>
             <Paper sx={{ p: 2, textAlign: 'center' }}>
-              <Typography variant="h4" fontWeight="bold" color="warning.main">
-                {Object.values(simulationData.events).reduce((a, b) => a + b, 0)}
+              <Typography variant="h4" fontWeight="bold" color={simulationData.summary?.accident_severity ? 'error.main' : 'text.secondary'}>
+                {simulationData.summary?.accident_severity ? simulationData.summary.accident_severity : 'N/A'}
               </Typography>
               <Typography variant="body2" color="text.secondary">
-                Total Events
+                Accident Severity
               </Typography>
             </Paper>
           </Grid>
